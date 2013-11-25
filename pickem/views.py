@@ -3,6 +3,7 @@ from django.http import HttpResponseRedirect
 from pickem.models import Contest, Selection, Team
 from django.views import generic
 from django.core.urlresolvers import reverse
+from django import forms
 
 import logging
 logger = logging.getLogger(__name__)
@@ -18,22 +19,32 @@ class ContestView(generic.DetailView):
     model = Contest
     template_name = 'pickem/bowl.html'
 
+class SelectionForm(forms.ModelForm):
+    def __init__(self, contest, *args, **kwargs):
+        super(SelectionForm, self).__init__(*args, **kwargs)
+        self.fields['team'].queryset = contest.team_set.all()
+    class Meta:
+        model = Selection
+        fields = ['team', 'wager']
+
 def select(request, contest_id):
     contest = get_object_or_404(Contest, pk=contest_id)
-    try_again_page = 'pickem/select.html'
-    try:
-        selected_team = contest.team_set.get(pk=request.POST['team'])
-    except(KeyError, Team.DoesNotExist):
-        #redisplay selection page
-        return render(request, try_again_page, {
-                      'contest':contest,
-                      'error_message':'You didn\'t select a team.'})
-    wager = request.POST['wager']
-    if not wager:
-        return render(request, try_again_page, {
-                      'contest':contest,
-                      'error_message':'You didn\'t place a wager.'})
-    logger.debug('wager: {}'.format(wager))
+    queryset = contest.team_set.all()
+    if request.method == 'POST':
+        form = SelectionForm(contest, request.POST)
+        if form.is_valid():
+            selected_team = form.cleaned_data['team']
+            wager = form.cleaned_data['wager']
+            update_selection_or_create(contest, selected_team, wager)
+            return HttpResponseRedirect(reverse('pickem:contest', args=(contest.id,)))
+    else:
+        form = SelectionForm(contest)
+    return render(request, 'pickem/select.html', {
+        'contest':contest,
+        'form':form,
+    })
+
+def update_selection_or_create(contest, selected_team, wager):
     try:
         selection = Selection.objects.get(contest=contest)
         selection.team = selected_team
@@ -41,4 +52,4 @@ def select(request, contest_id):
     except(Selection.DoesNotExist):
         selection = Selection(contest=contest, team=selected_team, wager=wager)
     selection.save()
-    return HttpResponseRedirect(reverse('pickem:contest', args=(contest.id,)))
+

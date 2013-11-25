@@ -1,12 +1,7 @@
 <h1>{{ contest.name }}</h1>
 
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
-<form action="{% url 'pickem:select' contest.id %}" method="post">
-{% csrf_token %}
-{% for team in contest.team_set.all %}
-    <input type="radio" name="team" id="team{{ forloop.counter }}" value="{{ team.id }}" />
-    <label for="team{{ forloop.counter }}">{{ team.name }}</label><br />
-{% endfor %}
-<input type="number" name="wager" value="Wager">
+<form action="{% url 'pickem:select' contest.id %}" method="post">{% csrf_token %}
+{{ form.as_p }}
 <input type="submit" value="Submit"/>
 </form>
