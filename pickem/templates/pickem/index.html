@@ -1,0 +1,9 @@
+{% if contest_list %}
+<ul>
+    {% for contest in contest_list %}
+    <li><a href="/pickem/{{ contest.id }}/">{{ contest.name }}</a></li>
+    {% endfor %}
+</ul>
+{% else %}
+        <p>No contests are available</p>
+{% endif %}

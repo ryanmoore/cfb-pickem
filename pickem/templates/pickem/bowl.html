@@ -1,0 +1,11 @@
+<h1>{{ contest.name }}</h1>
+<ul>
+    {% for team in contest.team_set.all %}
+    <li>{{ team.name }}({{ team.rank }})</li>
+    {% endfor %}
+    <h2>Selections</h2>
+    {% for selection in contest.selection_set.all %}
+    <li>{{ selection.team.name }} -- {{ selection.wager }}</li>
+    {% endfor %}
+    <a href="/pickem/select/{{ contest.id }}/">Make selection</a>
+</ul>
