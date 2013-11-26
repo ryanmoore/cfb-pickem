@@ -1,0 +1,7 @@
+<h1>Select All</h1>
+<form method="post" action="{% url 'pickem:select_all' %}">{% csrf_token %}
+    {% for form in forms %}
+    {{ form.as_p }}
+    {% endfor %}
+    <input type="submit" value="Submit"/>
+</form>
