@@ -17,6 +17,7 @@
         font-size: 1.2em;
         background-color: #eee;
         height: 30px;
+        line-height: 30px;
         text-align: center;
     }
     .rankings input[type="radio"] {
@@ -35,6 +36,12 @@
     }
     .rankings input[type="radio"]:checked + label {
         background-color: #bbb;
+    }
+    .rankings li span {
+        display : -moz-inline-box;
+        display : inline-block;
+        line-height : normal;
+        vertical-align : middle;
     }
     </style>
 </head>
@@ -63,9 +70,9 @@
 <input type='hidden' name='thedata' id='thedata'>
 <div class="rankings">
     <ul>
-        <li><label>1</label></li>
-        <li><label>2</label></li>
-        <li><label>3</label></li>
+        <li><span>1</span></li>
+        <li><span>2</span></li>
+        <li><span>3</span></li>
     </ul>
 </div>
 <div class="rankings">
