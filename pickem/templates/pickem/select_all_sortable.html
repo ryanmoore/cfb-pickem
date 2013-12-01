@@ -5,6 +5,20 @@
     <title>Select All Sortable</title>
     <link href="{% static 'pickem/css/bootstrap.min.css' %}" type="text/css" rel="stylesheet" media="screen">
     <style>
+    .rankings {
+        margin: 0 0 0 0;
+        padding: 0 0 0 0;
+        float: left;
+    }
+    .rankings li {
+        list-style-type: none;
+        margin: 0 0px 5px 0px;
+        padding: 5px 25px;
+        font-size: 1.2em;
+        background-color: #eee;
+        height: 30px;
+        text-align: center;
+    }
     .rankings input[type="radio"] {
         display: none;
     }
@@ -12,6 +26,12 @@
         display: inline-block;
         background-color: #ddd;
         padding: 4px 11px;
+    }
+    .rankings label:hover {
+        border-style: solid;
+        border-color: #000000;
+        padding: 3px 10px;
+        border-width: 1px;
     }
     .rankings input[type="radio"]:checked + label {
         background-color: #bbb;
@@ -37,11 +57,19 @@
     });
     </script>
 
+<div class="rankings">
 <form method="POST" action="{% url 'pickem:select_all_sortable' %}" id="rankform">
 {% csrf_token %}
 <input type='hidden' name='thedata' id='thedata'>
 <div class="rankings">
-<ol id="sortable">
+    <ul>
+        <li><label>1</label></li>
+        <li><label>2</label></li>
+        <li><label>3</label></li>
+    </ul>
+</div>
+<div class="rankings">
+<ul id="sortable">
     <li id="bowl1">bowl1
         <input type="radio" name="bowl1" value='team1' id='team1' checked="checked">
         <label for="team1">team1</label>
@@ -60,9 +88,11 @@
         <input type="radio" name="bowl3" value='team6' id='team6'>
         <label for="team6">team6</label>
     </li>
-</ol>
+</ul>
 </div>
+<br>
 <button type="submit">Submit</button>
 </form>
+</div>
 </body>
 </html>
