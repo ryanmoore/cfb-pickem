@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+{% load staticfiles %}
+<html>
+<head>
+    <title>Select All Sortable</title>
+    <link href="{% static 'pickem/css/bootstrap.min.css' %}" type="text/css" rel="stylesheet" media="screen">
+    <style>
+    .rankings input[type="radio"] {
+        display: none;
+    }
+    .rankings label {
+        display: inline-block;
+        background-color: #ddd;
+        padding: 4px 11px;
+    }
+    .rankings input[type="radio"]:checked + label {
+        background-color: #bbb;
+    }
+    </style>
+</head>
+<body>
+    <script type="text/javascript" src="{% static 'pickem/jquery-2.0.3.js' %}"></script>
+    <script type="text/javascript" src="{% static 'pickem/ui/jquery-ui.js' %}"></script>
+    <!--
+    <script src="{% static 'pickem/js/bootstrap.min.js'"</script>
+    -->
+    <script>
+    $( function() {
+        $( '#sortable').sortable({ axis: 'y' });
+        $( '#sortable' ).disableSelection();
+        $( 'form' ).submit(function() {
+            var order = $( '#sortable' ).sortable( 'toArray' );
+            $( "#thedata" ).val( JSON.stringify(order) );
+            //$( "#thedata" ).val($( "#sortable" ).sortable( "serialize" ));
+            //$( "#thedata" ).val( "foo" );
+        });
+    });
+    </script>
+
+<form method="POST" action="{% url 'pickem:select_all_sortable' %}" id="rankform">
+{% csrf_token %}
+<input type='hidden' name='thedata' id='thedata'>
+<div class="rankings">
+<ol id="sortable">
+    <li id="bowl1">bowl1
+        <input type="radio" name="bowl1" value='team1' id='team1' checked="checked">
+        <label for="team1">team1</label>
+        <input type="radio" name="bowl1" value='team2' id='team2'>
+        <label for="team2">team2</label>
+    </li>
+    <li id="bowl2">bowl2
+        <input type="radio" name="bowl2" value='team3' id='team3' checked="checked">
+        <label for="team3">team3</label>
+        <input type="radio" name="bowl2" value='team4' id='team4'>
+        <label for="team4">team4</label>
+    </li>
+    <li id="bowl3">bowl3
+        <input type="radio" name="bowl3" value='team5' id='team5' checked="checked">
+        <label for="team5">team5</label>
+        <input type="radio" name="bowl3" value='team6' id='team6'>
+        <label for="team6">team6</label>
+    </li>
+</ol>
+</div>
+<button type="submit">Submit</button>
+</form>
+</body>
+</html>

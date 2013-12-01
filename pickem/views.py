@@ -5,6 +5,7 @@ from django.views import generic
 from django.core.urlresolvers import reverse
 from django import forms
 from django.forms.formsets import formset_factory
+import json
 
 import logging
 logger = logging.getLogger(__name__)
@@ -61,6 +62,14 @@ def select_all(request):
 
     return render(request, 'pickem/select_all.html', {'forms':forms})
 
+def select_all_sortable(request):
+    print(request.POST)
+    if request.method == 'POST':
+        ordering = json.loads(request.POST['thedata'])
+        for bowl in ordering:
+            print(bowl, request.POST[bowl])
+    return render(request, 'pickem/select_all_sortable.html')
+    #contests = Contest.objects.order_by('date')
 
 def update_selection_or_create(contest, selected_team, wager):
     ''' If selection exists for the given contest, updates the team and wager.
