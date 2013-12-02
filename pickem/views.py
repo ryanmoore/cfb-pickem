@@ -3,8 +3,9 @@ import logging
 
 from django.shortcuts import render
 from django.views import generic
+from django.contrib.auth.decorators import login_required
 
-from pickem.models import Game
+from pickem.models import Game, Selection, Participant
 
 logger = logging.getLogger(__name__)
 
@@ -21,33 +22,70 @@ class GameView(generic.DetailView):
     template_name = 'pickem/bowl.html'
 
 
+@login_required
 def select_all(request):
-    selection_form_items = all_games_as_forms()
-    print(selection_form_items)
-    print(request.POST)
+    selection_form_items = all_games_as_forms(request.user)
     if request.method == 'POST':
         ordering = json.loads(request.POST['selections'])
-        for bowl in ordering:
-            print(bowl, request.POST[bowl])
+        for idx, game_name in enumerate(ordering):
+            pick = request.POST.get(game_name, default=None)
+            game_pk = int(game_name.split('=')[1])
+            wager = idx + 1
+            if pick is not None:
+                participant = Participant.objects.get(game_id=game_pk, team_id=pick)
+                update_selection_or_create(request.user, participant, wager)
+    update_selection_form_list(request.user, selection_form_items)
     return render(request, 'pickem/select_all.html',
                   {'selection_form_items': selection_form_items})
     #contests = Contest.objects.order_by('date')
 
-
 class SelectionFormItem:
-    def __init__(self, game, teams, checked):
+    def __init__(self, game, teams, checked=0, wager=0):
+        '''
+        checked will index from 1.
+        checked=0 will check neither. checked=1 the first. checked=2 the second.
+        '''
         self.game = game
         self.teams = teams
         self.checked = checked
+        self.wager = wager
 
 
-def all_games_as_forms():
+def all_games_as_forms(user):
     def game_form():
         for game in Game.objects.all():
             teams = [p.team for p in game.participants]
-            yield SelectionFormItem(game=game, teams=teams, checked=1)
+            yield SelectionFormItem(game=game, teams=teams)
 
     return list(game_form())
+
+
+def update_selection_form_list(user, selection_form_items):
+    '''Updates the checked field and ordering for the list of form_items'''
+    for form_item in selection_form_items:
+        try:
+            # query for the pick matching this user and this game
+            selection = Selection.objects.get(user=user, participant__game=form_item.game)
+            # add 1 because the checked field will index from 1 not 0
+            form_item.checked = form_item.teams.index(selection.participant.team) + 1
+            form_item.wager = selection.wager
+        except Selection.DoesNotExist:
+            form_item.checked = 0
+            form_item.wager = 0
+    return
+
+
+def update_selection_or_create(user, participant, wager):
+    ''' If selection exists for the given user and game, updates the selected participant and wager.
+    Otherwise creates a new one. Saves either way.
+    '''
+    try:
+        selection = Selection.objects.get(user=user, participant__game=participant.game)
+        selection.participant = participant
+        selection.wager = wager
+    except(Selection.DoesNotExist):
+        selection = Selection(user=user, participant=participant, wager=wager)
+    selection.save()
 
 
 """

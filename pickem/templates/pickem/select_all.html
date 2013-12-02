@@ -81,10 +81,10 @@
         <input type='hidden' name='selections' id='selections'>
         <ul id="selection_sortable">
             {% for matchup in selection_form_items %}
-            <li id="game{{ matchup.game.id }}">{{ matchup.game.event.name }}
+            <li id="game={{ matchup.game.id }}">{{ matchup.game.event.name }}
                 {% for team in matchup.teams %}
                 <input type="radio"
-                       name="game{{ matchup.game.id }}"
+                       name="game={{ matchup.game.id }}"
                        value="{{ team.name }}"
                        id="{{ team.name }}"
                 {% if forloop.counter == matchup.checked %}
