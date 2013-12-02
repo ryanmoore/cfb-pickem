@@ -1,21 +1,27 @@
 from django.contrib import admin
-from pickem.models import Contest, Team, Selection
+from pickem.models import Event, Game, Team, Participant
 
-class TeamInline(admin.StackedInline):
+
+class EventAdmin(admin.ModelAdmin):
+    model = Event
+
+
+class GameAdmin(admin.ModelAdmin):
+    model = Game
+    list_display = ['event', 'pretty_date']
+
+
+class TeamAdmin(admin.ModelAdmin):
     model = Team
-    extra = 2
-    max_num = 2
 
-class ContestAdmin(admin.ModelAdmin):
-    fieldsets = [
-        (None, {'fields':['name']}),
-        ('Date information', {'fields':['date']}),
-    ]
-    inlines = [TeamInline]
-    list_display = ['name', 'date']
 
-class SelectionAdmin(admin.ModelAdmin):
-    list_display = ['contest', 'team', 'wager']
+class ParticipantAdmin(admin.ModelAdmin):
+    model = Participant
+    list_display = ['team', 'game']
 
-admin.site.register(Contest, ContestAdmin)
-admin.site.register(Selection, SelectionAdmin)
+
+admin.site.register(Event, EventAdmin)
+admin.site.register(Game, GameAdmin)
+admin.site.register(Team, TeamAdmin)
+admin.site.register(Participant, ParticipantAdmin)
+

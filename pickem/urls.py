@@ -1,6 +1,4 @@
-from django.conf.urls import patterns, include, url
-
-
+'''
 from pickem import views
 urlpatterns = patterns('',
                        url(r'^$', views.IndexView.as_view(), name='index'),
@@ -9,3 +7,4 @@ urlpatterns = patterns('',
                        url(r'^select_all/$', views.select_all, name='select_all'),
                        url(r'^select_all_sortable/$', views.select_all_sortable, name='select_all_sortable')
                        )
+'''
