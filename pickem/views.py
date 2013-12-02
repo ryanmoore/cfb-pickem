@@ -1,26 +1,56 @@
-from django.shortcuts import render, get_object_or_404, render
-from django.http import HttpResponseRedirect
-from pickem.models import Contest, Selection, Team
-from django.views import generic
-from django.core.urlresolvers import reverse
-from django import forms
-from django.forms.formsets import formset_factory
 import json
-
 import logging
+
+from django.shortcuts import render
+from django.views import generic
+
+from pickem.models import Game
+
 logger = logging.getLogger(__name__)
 
 class IndexView(generic.ListView):
     template_name='pickem/index.html'
-    context_object_name = 'contest_list'
+    context_object_name = 'game_list'
 
     def get_queryset(self):
-        return Contest.objects.order_by('date')
+        return Game.objects.order_by('datetime')
 
-class ContestView(generic.DetailView):
-    model = Contest
+
+class GameView(generic.DetailView):
+    model = Game
     template_name = 'pickem/bowl.html'
 
+
+def select_all(request):
+    selection_form_items = all_games_as_forms()
+    print(selection_form_items)
+    print(request.POST)
+    if request.method == 'POST':
+        ordering = json.loads(request.POST['selections'])
+        for bowl in ordering:
+            print(bowl, request.POST[bowl])
+    return render(request, 'pickem/select_all.html',
+                  {'selection_form_items': selection_form_items})
+    #contests = Contest.objects.order_by('date')
+
+
+class SelectionFormItem:
+    def __init__(self, game, teams, checked):
+        self.game = game
+        self.teams = teams
+        self.checked = checked
+
+
+def all_games_as_forms():
+    def game_form():
+        for game in Game.objects.all():
+            teams = [p.team for p in game.participants]
+            yield SelectionFormItem(game=game, teams=teams, checked=1)
+
+    return list(game_form())
+
+
+"""
 class SelectionForm(forms.ModelForm):
     def __init__(self, contest, *args, **kwargs):
         ''' Change the listed selection of teams to limit it to those involved
@@ -83,3 +113,4 @@ def update_selection_or_create(contest, selected_team, wager):
         selection = Selection(contest=contest, team=selected_team, wager=wager)
     selection.save()
 
+"""

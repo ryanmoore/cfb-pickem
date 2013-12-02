@@ -1,7 +1,104 @@
-<h1>Select All</h1>
-<form method="post" action="{% url 'pickem:select_all' %}">{% csrf_token %}
-    {% for form in forms %}
-    {{ form.as_p }}
-    {% endfor %}
-    <input type="submit" value="Submit"/>
-</form>
+<!DOCTYPE html>
+{% load staticfiles %}
+<html>
+<head>
+    <title>Select All Sortable</title>
+    <link href="{% static 'pickem/css/bootstrap.min.css' %}" type="text/css" rel="stylesheet" media="screen">
+    <style>
+        ul {
+        margin: 0;
+        }
+        .rankings {
+        margin: 0 0 0 0;
+        padding: 0 0 0 0;
+        float: left;
+        }
+        .rankings li {
+        list-style-type: none;
+        margin: 0 0px 5px 0px;
+        padding: 5px 25px;
+        font-size: 1.2em;
+        background-color: #eee;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+        }
+        .rankings input[type="radio"] {
+        display: none;
+        }
+        .rankings label {
+        display: inline-block;
+        background-color: #ddd;
+        padding: 4px 11px;
+        }
+        .rankings label:hover {
+        border-style: solid;
+        border-color: #000000;
+        padding: 3px 10px;
+        border-width: 1px;
+        }
+        .rankings input[type="radio"]:checked + label {
+        background-color: #bbb;
+        }
+        .rankings li span {
+        display : -moz-inline-box;
+        display : inline-block;
+        line-height : normal;
+        vertical-align : middle;
+        }
+    </style>
+</head>
+<body>
+<script type="text/javascript" src="{% static 'pickem/jquery-2.0.3.js' %}"></script>
+<script type="text/javascript" src="{% static 'pickem/ui/jquery-ui.js' %}"></script>
+<!--
+<script src="{% static 'pickem/js/bootstrap.min.js'"</script>
+-->
+<script>
+    $( function() {
+        $( '#selection_sortable').sortable({ axis: 'y' });
+        $( '#selection_sortable' ).disableSelection();
+        $( 'form' ).submit(function() {
+            var order = $( '#selection_sortable' ).sortable( 'toArray' );
+            $( "#selections" ).val( JSON.stringify(order) );
+            //$( "#thedata" ).val($( "#sortable" ).sortable( "serialize" ));
+            //$( "#selections" ).val( "foo" );
+        });
+    });
+
+</script>
+
+<div class="rankings" style="margin: 0 5px 0 0">
+    <ul>
+        {% for dummy in selection_form_items %}
+        <li><span>{{ forloop.counter }}</span></li>
+        {% endfor %}
+    </ul>
+</div>
+<div class="rankings">
+    <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
+        {% csrf_token %}
+        <input type='hidden' name='selections' id='selections'>
+        <ul id="selection_sortable">
+            {% for matchup in selection_form_items %}
+            <li id="game{{ matchup.game.id }}">{{ matchup.game.event.name }}
+                {% for team in matchup.teams %}
+                <input type="radio"
+                       name="game{{ matchup.game.id }}"
+                       value="{{ team.name }}"
+                       id="{{ team.name }}"
+                {% if forloop.counter == matchup.checked %}
+                checked="checked"
+                {% endif %}
+                >
+                <label for="{{ team.name }}">{{ team.name }}</label>
+                {% endfor %}
+            </li>
+            {% endfor %}
+        </ul>
+        <br>
+        <button type="submit">Save</button>
+    </form>
+</div>
+</body>
+</html>

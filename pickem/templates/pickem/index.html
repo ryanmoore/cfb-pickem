@@ -1,9 +1,18 @@
-{% if contest_list %}
-<ul>
-    {% for contest in contest_list %}
-    <li><a href="/pickem/{{ contest.id }}/">{{ contest.name }}</a></li>
+{% if game_list %}
+<h1>Upcoming Games</h1>
+<table border="1">
+    <tr>
+        <td>Game</td>
+        <td>Kickoff</td>
+    </tr>
+    {% for game in game_list %}
+    <tr>
+        <td><a href="{% url 'pickem:game' game.id %}">{{ game.event }}</a></td>
+        <td>{{ game.pretty_date }}</td>
+    </tr>
     {% endfor %}
-</ul>
+</table>
+<a href="{% url 'pickem:select_all' %}">Make selection</a>
 {% else %}
-        <p>No contests are available</p>
+<p>No games available</p>
 {% endif %}

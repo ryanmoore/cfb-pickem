@@ -20,6 +20,10 @@ class Game(models.Model):
         localtime = timezone.localtime(self.datetime)
         return localtime.strftime('%c')
 
+    @property
+    def participants(self):
+        return Participant.objects.filter(game=self)
+
     def __str__(self):
         return '{}'.format(str(self.event))
 
