@@ -1,3 +1,5 @@
+{% extends 'pickem/base.html' %}
+{% block content %}
 {% if game_list %}
 <h1>Upcoming Games</h1>
 <table border="1">
@@ -12,7 +14,7 @@
     </tr>
     {% endfor %}
 </table>
-<a href="{% url 'pickem:select_all' %}">Make selection</a>
 {% else %}
 <p>No games available</p>
 {% endif %}
+{% endblock %}

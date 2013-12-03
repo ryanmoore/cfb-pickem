@@ -62,51 +62,53 @@
 {% endblock %}
 
 {% block content %}
-<div class="rankings" style="margin: 0 5px 0 0">
-    <ul>
-        {% for dummy in selection_form_items %}
-        <li>
-            <table>
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                </tr>
-            </table>
-        </li>
-        {% endfor %}
-    </ul>
-</div>
 <div class="rankings">
     <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
-        {% csrf_token %}
-        <input type='hidden' name='selections' id='selections'>
-        <ul id="selection_sortable">
-            {% for matchup in selection_form_items %}
-            <li id="game={{ matchup.game.id }}">
-                <table>
-                    <tr>
-                        <td class="game_title">{{ matchup.game.event.name }}</td>
-                        <td class="rankings_divider">|</td>
-                        {% for team in matchup.teams %}
-                        <td class="team_button">
-                            <input type="radio"
-                       name="game={{ matchup.game.id }}"
-                       value="{{ team.name }}"
-                       id="{{ team.name }}"
-                {% if forloop.counter == matchup.checked %}
-                checked="checked"
-                {% endif %}
-                >
-                            <label class="btn btn-default" for="{{ team.name }}">{{ team.name }}</label>
-                        </td>
-                        {% if forloop.counter == 1 %}
-                        <td class="rankings_divider">|</td>
-                        {% endif %}
-                        {% endfor %}
-                    </tr>
-                </table>
-            </li>
-            {% endfor %}
-        </ul>
+        <div class="rankings" style="margin: 0 5px 0 0">
+            <ul>
+                {% for dummy in selection_form_items %}
+                <li>
+                    <table>
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                        </tr>
+                    </table>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="rankings">
+            {% csrf_token %}
+            <input type='hidden' name='selections' id='selections'>
+            <ul id="selection_sortable">
+                {% for matchup in selection_form_items %}
+                <li id="game={{ matchup.game.id }}">
+                    <table>
+                        <tr>
+                            <td class="game_title">{{ matchup.game.event.name }}</td>
+                            <td class="rankings_divider">|</td>
+                            {% for team in matchup.teams %}
+                            <td class="team_button">
+                                <input type="radio"
+                                       name="game={{ matchup.game.id }}"
+                                       value="{{ team.name }}"
+                                       id="{{ team.name }}"
+                                {% if forloop.counter == matchup.checked %}
+                                checked="checked"
+                                {% endif %}
+                                >
+                                <label class="btn btn-default" for="{{ team.name }}">{{ team.name }}</label>
+                            </td>
+                            {% if forloop.counter == 1 %}
+                            <td class="rankings_divider">|</td>
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                    </table>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
         <br>
         <button type="submit" class="btn btn-default">Save</button>
     </form>
@@ -114,7 +116,7 @@
 {% endblock %}
 
 {% block external_js %}
-<script type="text/javascript" src="{% static 'pickem/ui/jquery-ui.js' %}"></script>
+<script type="text/javascript" src="{% static 'pickem/libs/jquery-ui/jquery-ui.js' %}"></script>
 <script type="text/javascript" src="{% static 'pickem/js/select_all_form.js' %}"></script>
 {% endblock %}
 
