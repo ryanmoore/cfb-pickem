@@ -49,9 +49,19 @@ class Participant(models.Model):
 class Selection(models.Model):
     user = models.ForeignKey(User)
     participant = models.ForeignKey(Participant)
-    wager = models.PositiveSmallIntegerField()
 
     unique_together = ('user', 'participant')
 
     def __str__(self):
-        return str(self.contest)
+        return
+
+
+class Wager(models.Model):
+    user = models.ForeignKey(User)
+    game = models.ForeignKey(Game)
+    amount = models.PositiveSmallIntegerField()
+
+    unique_together = ('user', 'game')
+
+    def __str__(self):
+        return '{}: {} on {}'.format(self.user, self.wager, self.event)
