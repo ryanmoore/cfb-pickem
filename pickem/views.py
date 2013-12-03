@@ -26,6 +26,7 @@ class GameView(generic.DetailView):
 def select_all(request):
     selection_form_items = all_games_as_forms(request.user)
     if request.method == 'POST':
+        print(request.POST)
         ordering = json.loads(request.POST['selections'])
         for idx, game_name in enumerate(ordering):
             pick = request.POST.get(game_name, default=None)

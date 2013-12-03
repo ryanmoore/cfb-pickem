@@ -1,28 +1,28 @@
-<!DOCTYPE html>
+{% extends 'pickem/base.html' %}
 {% load staticfiles %}
-<html>
-<head>
-    <title>Select All Sortable</title>
-    <link href="{% static 'pickem/css/bootstrap.min.css' %}" type="text/css" rel="stylesheet" media="screen">
-    <style>
-        ul {
-        margin: 0;
-        }
+
+{% block title %}Picks{% endblock %}
+
+{% block additional_style %}
+<style>
+    .rankings ul {
+    margin: 0;
+    padding: 0;
+    }
         .rankings {
-        margin: 0 0 0 0;
-        padding: 0 0 0 0;
-        float: left;
-        }
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    float: left;
+    }
         .rankings li {
-        list-style-type: none;
-        margin: 0 0px 5px 0px;
-        padding: 5px 25px;
-        font-size: 1.2em;
-        background-color: #eee;
-        height: 30px;
-        line-height: 30px;
-        text-align: center;
-        }
+    list-style-type: none;
+    margin: 0 0px 5px 0px;
+    padding: 5px 25px;
+    font-size: 1em;
+    background-color: #eee;
+    line-height: 30px;
+    vertical-align: middle;
+    }
         .rankings input[type="radio"] {
         display: none;
         }
@@ -41,37 +41,37 @@
         background-color: #bbb;
         }
         .rankings li span {
-        display : -moz-inline-box;
-        display : inline-block;
-        line-height : normal;
+    display : table-cell;
+    line-height : normal;
         vertical-align : middle;
         }
-    </style>
-</head>
-<body>
-<script type="text/javascript" src="{% static 'pickem/jquery-2.0.3.js' %}"></script>
-<script type="text/javascript" src="{% static 'pickem/ui/jquery-ui.js' %}"></script>
-<!--
-<script src="{% static 'pickem/js/bootstrap.min.js'"</script>
--->
-<script>
-    $( function() {
-        $( '#selection_sortable').sortable({ axis: 'y' });
-        $( '#selection_sortable' ).disableSelection();
-        $( 'form' ).submit(function() {
-            var order = $( '#selection_sortable' ).sortable( 'toArray' );
-            $( "#selections" ).val( JSON.stringify(order) );
-            //$( "#thedata" ).val($( "#sortable" ).sortable( "serialize" ));
-            //$( "#selections" ).val( "foo" );
-        });
-    });
+    td.game_title {
+    width: 250px;
+    }
+    td.team_button {
+    width: 150px;
+    text-align: center;
+    }
+    .rankings_divider {
+    font-weight: 100;
+    }
+    .rankings tr {
+    height: 35px;
+    }
+</style>
+{% endblock %}
 
-</script>
-
+{% block content %}
 <div class="rankings" style="margin: 0 5px 0 0">
     <ul>
         {% for dummy in selection_form_items %}
-        <li><span>{{ forloop.counter }}</span></li>
+        <li>
+            <table>
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                </tr>
+            </table>
+        </li>
         {% endfor %}
     </ul>
 </div>
@@ -81,9 +81,14 @@
         <input type='hidden' name='selections' id='selections'>
         <ul id="selection_sortable">
             {% for matchup in selection_form_items %}
-            <li id="game={{ matchup.game.id }}">{{ matchup.game.event.name }}
-                {% for team in matchup.teams %}
-                <input type="radio"
+            <li id="game={{ matchup.game.id }}">
+                <table>
+                    <tr>
+                        <td class="game_title">{{ matchup.game.event.name }}</td>
+                        <td class="rankings_divider">|</td>
+                        {% for team in matchup.teams %}
+                        <td class="team_button">
+                            <input type="radio"
                        name="game={{ matchup.game.id }}"
                        value="{{ team.name }}"
                        id="{{ team.name }}"
@@ -91,14 +96,25 @@
                 checked="checked"
                 {% endif %}
                 >
-                <label for="{{ team.name }}">{{ team.name }}</label>
-                {% endfor %}
+                            <label class="btn btn-default" for="{{ team.name }}">{{ team.name }}</label>
+                        </td>
+                        {% if forloop.counter == 1 %}
+                        <td class="rankings_divider">|</td>
+                        {% endif %}
+                        {% endfor %}
+                    </tr>
+                </table>
             </li>
             {% endfor %}
         </ul>
         <br>
-        <button type="submit">Save</button>
+        <button type="submit" class="btn btn-default">Save</button>
     </form>
 </div>
-</body>
-</html>
+{% endblock %}
+
+{% block external_js %}
+<script type="text/javascript" src="{% static 'pickem/ui/jquery-ui.js' %}"></script>
+<script type="text/javascript" src="{% static 'pickem/js/select_all_form.js' %}"></script>
+{% endblock %}
+
