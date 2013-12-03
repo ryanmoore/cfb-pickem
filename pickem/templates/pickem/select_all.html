@@ -4,68 +4,14 @@
 {% block title %}Picks{% endblock %}
 
 {% block additional_style %}
-<style>
-    .rankings ul {
-    margin: 0;
-    padding: 0;
-    }
-        .rankings {
-    margin: 0 0 0 0;
-    padding: 0 0 0 0;
-    float: left;
-    }
-        .rankings li {
-    list-style-type: none;
-    margin: 0 0px 5px 0px;
-    padding: 5px 25px;
-    font-size: 1em;
-    background-color: #eee;
-    line-height: 30px;
-    vertical-align: middle;
-    }
-        .rankings input[type="radio"] {
-        display: none;
-        }
-        .rankings label {
-        display: inline-block;
-        background-color: #ddd;
-        padding: 4px 11px;
-        }
-        .rankings label:hover {
-        border-style: solid;
-        border-color: #000000;
-        padding: 3px 10px;
-        border-width: 1px;
-        }
-        .rankings input[type="radio"]:checked + label {
-        background-color: #bbb;
-        }
-        .rankings li span {
-    display : table-cell;
-    line-height : normal;
-        vertical-align : middle;
-        }
-    td.game_title {
-    width: 250px;
-    }
-    td.team_button {
-    width: 150px;
-    text-align: center;
-    }
-    .rankings_divider {
-    font-weight: 100;
-    }
-    .rankings tr {
-    height: 35px;
-    }
-</style>
+<link type="text/css" href="{% static 'pickem/css/sortable_selection.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
-<div class="rankings">
+<div class="sortable_selection">
     <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
-        <div class="rankings" style="margin: 0 5px 0 0">
-            <ul>
+        <div class="sortable_selection" style="margin: 0 5px 0 0">
+        <ul>
                 {% for dummy in selection_form_items %}
                 <li>
                     <table>
@@ -77,16 +23,16 @@
                 {% endfor %}
             </ul>
         </div>
-        <div class="rankings">
+        <div class="sortable_selection">
             {% csrf_token %}
-            <input type='hidden' name='selections' id='selections'>
-            <ul id="selection_sortable">
+            <input type='hidden' name='matchup_ordering' id='matchup_ordering'>
+            <ul id="matchup_ranking">
                 {% for matchup in selection_form_items %}
                 <li id="game={{ matchup.game.id }}">
                     <table>
                         <tr>
                             <td class="game_title">{{ matchup.game.event.name }}</td>
-                            <td class="rankings_divider">|</td>
+                            <td class="sortable_selection_divider">|</td>
                             {% for team in matchup.teams %}
                             <td class="team_button">
                                 <input type="radio"
@@ -100,7 +46,7 @@
                                 <label class="btn btn-default" for="{{ team.name }}">{{ team.name }}</label>
                             </td>
                             {% if forloop.counter == 1 %}
-                            <td class="rankings_divider">|</td>
+                            <td class="sortable_selection_divider">|</td>
                             {% endif %}
                             {% endfor %}
                         </tr>

@@ -12,7 +12,7 @@
     <title>{% block title %}CFB Pickem{% endblock %}</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="{% static 'pickem/bootstrap/css/bootstrap.css' %}" type="text/css" rel="stylesheet">
+    <link href="{% static 'pickem/libs/bootstrap/css/bootstrap.css' %}" type="text/css" rel="stylesheet">
     <!-- Custom styles for this template -->
     <link href="{% static 'pickem/css/navbar-fixed-top.css' %}" type="text/css" rel="stylesheet">
     {% block additional_style %}{% endblock %}
@@ -54,11 +54,24 @@
                 </li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
-                {% url 'pickem:select_all' as select_url %}
-                {% if request.get_full_path == select_url %}
-                <li class="active"><a href="{{ select_url }}">Make picks</a></li>
+                {% if not request.user.is_authenticated %}
+                {% url 'pickem:login' as login_url %}
+                {% if request.get_full_path == login_url %}
+                <li class="active"><a href="{{ login_url }}">Login</a></li>
                 {% else %}
-                <li><a href="{{ select_url }}">Make picks</a></li>
+                <li><a href="{{ login_url }}">Login</a></li>
+                {% endif %}
+
+                {% else %}
+
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ request.user.username|capfirst }} <b
+                            class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="{% url 'pickem:select_all' %}">Picks</a></li>
+                        <li><a href="{% url 'pickem:logout' %}">Logout</a></li>
+                    </ul>
+                </li>
                 {% endif %}
             </ul>
         </div>

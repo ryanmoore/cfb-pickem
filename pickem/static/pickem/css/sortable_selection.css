@@ -1,0 +1,53 @@
+.sortable_selection ul {
+margin: 0;
+padding: 0;
+}
+.sortable_selection {
+margin: 0 0 0 0;
+padding: 0 0 0 0;
+float: left;
+}
+.sortable_selection li {
+list-style-type: none;
+margin: 0 0px 5px 0px;
+padding: 5px 25px;
+font-size: 1em;
+background-color: #eee;
+line-height: 30px;
+vertical-align: middle;
+}
+.sortable_selection input[type="radio"] {
+display: none;
+}
+.sortable_selection label {
+display: inline-block;
+background-color: #ddd;
+padding: 4px 11px;
+}
+.sortable_selection label:hover {
+border-style: solid;
+border-color: #000000;
+padding: 3px 10px;
+border-width: 1px;
+}
+.sortable_selection input[type="radio"]:checked + label {
+background-color: #bbb;
+}
+.sortable_selection li span {
+display : table-cell;
+line-height : normal;
+vertical-align : middle;
+}
+td.game_title {
+width: 250px;
+}
+td.team_button {
+width: 150px;
+text-align: center;
+}
+.sortable_selection_divider {
+font-weight: 100;
+}
+.sortable_selection tr {
+height: 35px;
+}

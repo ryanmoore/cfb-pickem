@@ -1,11 +1,11 @@
 function onSubmit() {
-var order = $( '#selection_sortable' ).sortable( 'toArray' );
-$( "#selections" ).val( JSON.stringify(order) );
+var order = $( '#matchup_ranking' ).sortable( 'toArray' );
+$( "#matchup_ordering" ).val( JSON.stringify(order) );
 }
 
 function configure_sortable() {
-$( '#selection_sortable').sortable({ axis: 'y' });
-$( '#selection_sortable' ).disableSelection();
+$( '#matchup_ranking').sortable({ axis: 'y' });
+$( '#matchup_ranking' ).disableSelection();
 $( 'form' ).submit( onSubmit );
 }
 
