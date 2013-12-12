@@ -1,6 +1,8 @@
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
 from django.conf import settings
+from django.views.generic import RedirectView
+from django.core.urlresolvers import reverse
 
 admin.autodiscover()
 
@@ -9,7 +11,7 @@ urlpatterns = patterns('',
     # url(r'^$', 'cfb_pickem.views.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
 
-    url(r'^pickem/', include('pickem.urls', namespace='pickem')),
+    url(r'', include('pickem.urls', namespace='pickem')),
     url(r'^admin/', include(admin.site.urls)),
 )
 
