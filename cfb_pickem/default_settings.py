@@ -16,13 +16,23 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '-3*v**va=+d!2cj3yfe_x@+s(kz2mp^a97wo1!-49xmv8k#t@y'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
 TEMPLATE_DEBUG = True
+
+try:
+    from cfb_pickem.secret_key import SECRET_KEY
+except ImportError:
+    from django.utils.crypto import get_random_string
+    DEST=os.path.join(os.path.abspath(os.path.dirname(__file__)), 'secret_key.py')
+    chars = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
+    SECRET_KEY = get_random_string(50, chars)
+    with open(DEST, 'w') as outfile:
+        outfile.write('SECRET_KEY = \'{}\''.format(SECRET_KEY))
+    print('Created new secret key: {}'.format(DEST))
+
 
 ALLOWED_HOSTS = [ 'localhost' ]
 
@@ -84,6 +94,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
 
 LOGIN_URL = 'pickem:login'
+LOGIN_REDIRECT_URL = 'pickem:index'
 
 TEMPLATE_DIRS = [os.path.join(BASE_DIR, 'templates')]
 
@@ -91,5 +102,3 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.auth.context_processors.auth',
     'django.core.context_processors.request',
 )
-
-LOGIN_REDIRECT_URL = 'pickem:index'
