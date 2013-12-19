@@ -1,6 +1,7 @@
 from django.contrib import admin
 from pickem.models import Event, Game, Team, Participant
 
+# pylint: disable=too-many-public-methods
 
 class EventAdmin(admin.ModelAdmin):
     model = Event

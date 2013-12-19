@@ -30,7 +30,10 @@ class Game(models.Model):
 
 class Team(models.Model):
     name = models.CharField(max_length=200, primary_key=True)
-    abbreviation = models.CharField(max_length=32)
+    rank = models.IntegerField(null=True)
+    site = models.CharField(max_length=200)
+    record = models.CharField(max_length=64)
+    #abbreviation = models.CharField(max_length=32)
 
     def __str__(self):
         return '{}'.format(self.name)
