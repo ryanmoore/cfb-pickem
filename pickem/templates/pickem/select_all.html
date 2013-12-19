@@ -32,7 +32,6 @@
                     <table>
                         <tr>
                             <td class="game_title">{{ matchup.game.event.name }}</td>
-                            <td class="sortable_selection_divider">|</td>
                             {% for team in matchup.teams %}
                             <td class="team_button">
                                 <input type="radio"
@@ -43,11 +42,8 @@
                                 checked="checked"
                                 {% endif %}
                                 >
-                                <label class="btn btn-default" for="{{ team.name }}">{{ team.name }}</label>
+                                <label class="btn btn-default team_button" for="{{ team.name }}">{{ team.name }}</label>
                             </td>
-                            {% if forloop.counter == 1 %}
-                            <td class="sortable_selection_divider">|</td>
-                            {% endif %}
                             {% endfor %}
                         </tr>
                     </table>

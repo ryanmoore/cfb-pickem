@@ -1,53 +1,61 @@
 .sortable_selection ul {
-margin: 0;
-padding: 0;
+    margin: 0;
+    padding: 0;
 }
 .sortable_selection {
-margin: 0 0 0 0;
-padding: 0 0 0 0;
-float: left;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    float: left;
 }
 .sortable_selection li {
-list-style-type: none;
-margin: 0 0px 5px 0px;
-padding: 5px 25px;
-font-size: 1em;
-background-color: #eee;
-line-height: 30px;
-vertical-align: middle;
+    list-style-type: none;
+    margin: 0 0px 5px 0px;
+    padding: 1px 25px;
+    font-size: 1em;
+    background-color: #eee;
+    line-height: 30px;
+    vertical-align: middle;
 }
 .sortable_selection input[type="radio"] {
-display: none;
+    display: none;
 }
 .sortable_selection label {
-display: inline-block;
-background-color: #ddd;
-padding: 4px 11px;
+    display: inline-block;
+    background-color: #ddd;
+    padding: 3px 1px;
 }
 .sortable_selection label:hover {
-border-style: solid;
-border-color: #000000;
-padding: 3px 10px;
-border-width: 1px;
+    border-style: solid;
+    border-color: #000000;
+    padding: 3px 10px;
+    border-width: 1px;
 }
 .sortable_selection input[type="radio"]:checked + label {
-background-color: #bbb;
+    background-color: #bbb;
 }
 .sortable_selection li span {
-display : table-cell;
-line-height : normal;
-vertical-align : middle;
+    display : table-cell;
+    line-height : normal;
+    vertical-align : middle;
 }
 td.game_title {
-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -o-text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 300px;
 }
 td.team_button {
-width: 150px;
-text-align: center;
+    width: 150px;
+    text-align: center;
+}
+label.team_button {
+    width: 150px;
+    margin: 0px 2px;
 }
 .sortable_selection_divider {
-font-weight: 100;
+    font-weight: 100;
 }
 .sortable_selection tr {
-height: 35px;
+    height: 35px;
 }
