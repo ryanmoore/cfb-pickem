@@ -114,4 +114,5 @@ def update_wager_or_create(user, game, amount):
     wager, created = Wager.objects.get_or_create(user=user, game=game,
             defaults={'amount' : amount })
     if not created:
-        wager.update(amount=amount)
+        wager.amount = amount
+        wager.save()
