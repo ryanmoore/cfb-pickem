@@ -11,6 +11,14 @@
     <tr>
         <td><a href="{% url 'pickem:game' game.id %}">{{ game.event }}</a></td>
         <td>{{ game.pretty_date }}</td>
+        {% for participant in game.participants %}
+            <td>
+                {% if participant.team.rank %}
+                <strong>{{ participant.team.rank }}</strong>
+                {% endif %}
+                {{ participant.team.name }}
+            </td>
+        {% endfor %}
     </tr>
     {% endfor %}
 </table>

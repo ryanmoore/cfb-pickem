@@ -1,8 +1,21 @@
 {% extends 'pickem/base.html' %}
 
 {% block content %}
-<h1>{{ game.event.name }} @ {{ game.pretty_date }}</h1>
-{% for participant in game.participant_set.all %}
-<h2>{{ participant.team }}</h2>
+<h1>{{ game.event.name }}</h1>
+<p>{{ game.pretty_date }}</p>
+<table>
+    {% for participant in game.participant_set.all %}
+    <tr>
+        <td>
+            <a href="{{ participant.team.site }}">
+                {% if participant.team.rank %}
+                <strong>{{ participant.team.rank }} </strong>
+                {% endif %}
+                {{ participant.team }}
+                {{ participant.team.record }}
+            </a>
+        </td>
+    </tr>
 {% endfor %}
+</table>
 {% endblock %}

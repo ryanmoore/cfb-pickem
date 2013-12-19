@@ -15,4 +15,6 @@ urlpatterns = patterns('',
            kwargs={'template_name': 'pickem/registration/login.html'}),
        url(r'^logout/$', django.contrib.auth.views.logout, name='logout',
            kwargs={'template_name': 'pickem/registration/logout.html'}),
+       url(r'^scoreboard/$', views.ScoreView.as_view(), name='scores'),
+       url(r'^picks/$', views.PicksView.as_view(), name='picks'),
 )

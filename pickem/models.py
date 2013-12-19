@@ -14,11 +14,9 @@ class Game(models.Model):
     event = models.ForeignKey(Event)
     datetime = models.DateTimeField()
 
-    unique_together = ('event', 'datetime')
-
     def pretty_date(self):
         localtime = timezone.localtime(self.datetime)
-        return localtime.strftime('%c')
+        return localtime.strftime('%a %b %d @ %I:%m %p')
 
     @property
     def participants(self):
@@ -43,8 +41,6 @@ class Participant(models.Model):
     game = models.ForeignKey(Game)
     team = models.ForeignKey(Team)
 
-    unique_together = ('game', 'team')
-
     def __str__(self):
         return '{} in {}'.format(str(self.team), str(self.game))
 
@@ -53,18 +49,10 @@ class Selection(models.Model):
     user = models.ForeignKey(User)
     participant = models.ForeignKey(Participant)
 
-    unique_together = ('user', 'participant')
-
-    def __str__(self):
-        return
-
-
 class Wager(models.Model):
     user = models.ForeignKey(User)
     game = models.ForeignKey(Game)
     amount = models.PositiveSmallIntegerField()
-
-    unique_together = ('user', 'game')
 
     def __str__(self):
         return '{}: {} on {}'.format(self.user, self.wager, self.event)

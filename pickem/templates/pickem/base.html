@@ -34,44 +34,42 @@
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
                 {% url 'pickem:index' as index_url %}
+                {% url 'pickem:picks' as picks_url %}
+                {% url 'pickem:scores' as score_url %}
                 {% if request.get_full_path == index_url %}
                 <li class="active"><a href="{{ index_url }}">Home</a></li>
                 {% else %}
                 <li><a href="{{ index_url }}">Home</a></li>
                 {% endif %}
-                <li><a href="#about">About</a></li>
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="#">Action</a></li>
-                        <li><a href="#">Another action</a></li>
-                        <li><a href="#">Something else here</a></li>
-                        <li class="divider"></li>
-                        <li class="dropdown-header">Nav header</li>
-                        <li><a href="#">Separated link</a></li>
-                        <li><a href="#">One more separated link</a></li>
-                    </ul>
-                </li>
+                {% if request.get_full_path == picks_url %}
+                <li class="active"><a href="{{ picks_url }}">Picks</a></li>
+                {% else %}
+                <li><a href="{{ picks_url }}">Picks</a></li>
+                {% endif %}
+                {% if request.get_full_path == score_url %}
+                <li class="active"><a href="{{ score_url }}">Scores</a></li>
+                {% else %}
+                <li><a href="{{ score_url }}">Scores</a></li>
+                {% endif %}
             </ul>
             <ul class="nav navbar-nav navbar-right">
                 {% if not request.user.is_authenticated %}
-                {% url 'pickem:login' as login_url %}
-                {% if request.get_full_path == login_url %}
-                <li class="active"><a href="{{ login_url }}">Login</a></li>
+                    {% url 'pickem:login' as login_url %}
+                    {% if request.get_full_path == login_url %}
+                        <li class="active"><a href="{{ login_url }}">Login</a></li>
+                    {% else %}
+                        <li><a href="{{ login_url }}">Login</a></li>
+                    {% endif %}
                 {% else %}
-                <li><a href="{{ login_url }}">Login</a></li>
-                {% endif %}
-
-                {% else %}
-
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ request.user.username|capfirst }} <b
-                            class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="{% url 'pickem:select_all' %}">Picks</a></li>
-                        <li><a href="{% url 'pickem:logout' %}">Logout</a></li>
-                    </ul>
-                </li>
+                    <li><a href="{% url 'pickem:select_all' %}"><b>Make Picks</b></a></li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ request.user.username|capfirst }} <b
+                                class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{% url 'pickem:select_all' %}">Picks</a></li>
+                            <li><a href="{% url 'pickem:logout' %}">Logout</a></li>
+                        </ul>
+                    </li>
                 {% endif %}
             </ul>
         </div>

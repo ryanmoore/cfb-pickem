@@ -1,0 +1,16 @@
+{% extends 'pickem/base.html' %}
+{% block title %}Picks{% endblock %}
+{% block content %}
+<h1>Picks</h1>
+<table>
+{% for row in picks_table %}
+    <tr>
+        {% for elt in row %}
+        <td>
+            {{ elt }}
+        </td>
+        {% endfor %}
+    </tr>
+{% endfor %}
+</table>
+{% endblock %}

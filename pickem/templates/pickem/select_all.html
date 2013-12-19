@@ -1,7 +1,7 @@
 {% extends 'pickem/base.html' %}
 {% load staticfiles %}
 
-{% block title %}Picks{% endblock %}
+{% block title %}My Picks{% endblock %}
 
 {% block additional_style %}
 <link type="text/css" href="{% static 'pickem/css/sortable_selection.css' %}" rel="stylesheet">
@@ -31,7 +31,7 @@
                 <li id="game={{ matchup.game.id }}">
                     <table>
                         <tr>
-                            <td class="game_title">{{ matchup.game.event.name }}</td>
+                            <td class="game_title"><a href="{% url 'pickem:game' matchup.game.id %}">{{ matchup.game.event.name }}</a></td>
                             {% for team in matchup.teams %}
                             <td class="team_button">
                                 <input type="radio"
@@ -42,7 +42,12 @@
                                 checked="checked"
                                 {% endif %}
                                 >
-                                <label class="btn btn-default team_button" for="{{ team.name }}">{{ team.name }}</label>
+                                <label class="btn btn-default team_button" for="{{ team.name }}">
+                                {{ team.name }}
+                                {% if team.rank %}
+                                ({{ team.rank }})
+                                {% endif %}
+                            </label>
                             </td>
                             {% endfor %}
                         </tr>

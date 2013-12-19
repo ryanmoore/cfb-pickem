@@ -1,0 +1,16 @@
+{% extends 'pickem/base.html' %}
+{% block title %}Scores{% endblock %}
+{% block content %}
+<h1>Current Scores</h1>
+<table>
+{% for row in score_table %}
+    <tr>
+        {% for elt in row %}
+        <td>
+            {{ elt }}
+        </td>
+        {% endfor %}
+    </tr>
+{% endfor %}
+</table>
+{% endblock %}

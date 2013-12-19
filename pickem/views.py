@@ -4,6 +4,7 @@ import logging
 from django.shortcuts import render
 from django.views import generic
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 
 from pickem.models import Game, Selection, Participant, Wager
 
@@ -28,6 +29,48 @@ class GameView(generic.DetailView):
     model = Game
     template_name = 'pickem/bowl.html'
 
+class ScoreView(generic.TemplateView):
+    ''' List all users and their scores
+    '''
+
+    template_name = 'pickem/scores.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['score_table'] = self.make_score_table()
+        return context
+
+    def make_score_table(self, **kwargs):
+        headers = ['User', 'Score']
+        users = list(User.objects.order_by('username'))
+        return [headers]
+
+class PicksView(generic.TemplateView):
+    '''List all games in table, users across the top
+    '''
+
+    template_name = 'pickem/picks.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['picks_table'] = self.make_picks_table()
+        return context
+
+    def make_picks_table(self, **kwargs):
+        users = list(User.objects.order_by('username'))
+        usernames = [ user.username.title() for user in users ]
+        headers = ['Game', 'Kickoff'] + usernames
+        games = list(Game.objects.order_by('datetime'))
+        table_cols = []
+        table_cols.append([ game.event.name for game in games ])
+        table_cols.append([ game.pretty_date() for game in games ])
+        for user in users:
+            wagers = list(user.wager_set.order_by('game__datetime'))
+            picks = list(user.selection_set.order_by('participant__game__datetime'))
+            picks = [ '{} on {}'.format(wager.amount, pick.participant.team) for wager, pick in zip(wagers, picks) ]
+            table_cols.append(picks)
+        table = [headers]+list(zip(*table_cols))
+        return table
 
 @login_required
 def select_all(request):
