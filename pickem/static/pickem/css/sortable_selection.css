@@ -21,7 +21,7 @@
 }
 .sortable_selection label {
     display: inline-block;
-    background-color: #ddd;
+    background-color: #bbb;
     padding: 3px 1px;
 }
 .sortable_selection label:hover {
@@ -31,7 +31,11 @@
     border-width: 1px;
 }
 .sortable_selection input[type="radio"]:checked + label {
-    background-color: #bbb;
+    background-color: #428bca;
+    color: #ffffff;
+    border-style: solid;
+    border-color: #ffffff;
+    border-width: 2px;
 }
 .sortable_selection li span {
     display : table-cell;

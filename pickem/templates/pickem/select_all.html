@@ -16,6 +16,7 @@
     <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
         <div class="sortable_selection" style="margin: 0 5px 0 0">
         <ul>
+                <li><table><tr><th>Confidence</th></tr></table></li>
                 {% for dummy in selection_form_items %}
                 <li>
                     <table>
@@ -31,6 +32,7 @@
             {% csrf_token %}
             <input type='hidden' name='matchup_ordering' id='matchup_ordering'>
             <ul id="matchup_ranking">
+                <li class="sortable-state-disabled"><table><tr><th>Bowl</th></tr></table></li>
                 {% for matchup in selection_form_items %}
                 <li id="game={{ matchup.game.id }}">
                     <table>

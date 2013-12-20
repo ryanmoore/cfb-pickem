@@ -141,7 +141,7 @@ def update_selection_form_list(user, selection_form_items):
             form_item.checked = 0
         except Wager.DoesNotExist:
             form_item.wager = i
-    selection_form_items.sort(key=lambda x: x.wager)
+    selection_form_items.sort(key=lambda x: x.wager, reverse=True)
     return
 
 

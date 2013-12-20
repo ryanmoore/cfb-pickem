@@ -4,7 +4,7 @@ function onSubmit() {
 }
 
 function configure_sortable() {
-    $( '#matchup_ranking').sortable({ axis: 'y' });
+    $( '#matchup_ranking').sortable({ axis: 'y', items:'li:not(.sortable-state-disabled)' });
     $( '#matchup_ranking' ).disableSelection();
     $( 'form' ).submit( onSubmit );
 }
