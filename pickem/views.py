@@ -5,6 +5,7 @@ from django.shortcuts import render
 from django.views import generic
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.db import transaction
 
 from pickem.models import Game, Selection, Participant, Wager
 
@@ -78,6 +79,7 @@ def pretty_date(datetime):
 def pretty_time(datetime):
     return datetime.strftime('%I:%m %p')
 
+@transaction.atomic
 @login_required
 def select_all(request):
     '''GET and POST logic for the page where selections occur
