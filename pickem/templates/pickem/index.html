@@ -2,25 +2,30 @@
 {% block content %}
 {% if game_list %}
 <h1>Upcoming Games</h1>
-<table border="1">
-    <tr>
-        <td>Game</td>
-        <td>Kickoff</td>
-    </tr>
-    {% for game in game_list %}
-    <tr>
-        <td><a href="{% url 'pickem:game' game.id %}">{{ game.event }}</a></td>
-        <td>{{ game.pretty_date }}</td>
-        {% for participant in game.participants %}
-            <td>
-                {% if participant.team.rank %}
-                <strong>{{ participant.team.rank }}</strong>
-                {% endif %}
-                {{ participant.team.name }}
-            </td>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Game</th>
+            <th colspan="2">Kickoff</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for game in game_list %}
+        <tr>
+            <td><a href="{% url 'pickem:game' game.id %}">{{ game.event }}</a></td>
+            <td>{{ game.datetime|date:"DATE_FORMAT" }}</td>
+            <td>{{ game.datetime|date:"P" }}</td>
+            {% for participant in game.participants %}
+                <td>
+                    {% if participant.team.rank %}
+                    <strong>{{ participant.team.rank }}</strong>
+                    {% endif %}
+                    {{ participant.team.name }}
+                </td>
+            {% endfor %}
+        </tr>
         {% endfor %}
-    </tr>
-    {% endfor %}
+    </tbody>
 </table>
 {% else %}
 <p>No games available</p>

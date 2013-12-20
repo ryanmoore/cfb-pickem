@@ -63,13 +63,20 @@ class PicksView(generic.TemplateView):
         games = list(Game.objects.order_by('datetime'))
         table_cols = []
         table_cols.append([ game.event.name for game in games ])
-        table_cols.append([ game.pretty_date() for game in games ])
+        table_cols.append([ pretty_date(game.datetime) for game in games ])
+        table_cols.append([ pretty_time(game.datetime) for game in games ])
         for user in users:
             wagers = list(user.wager_set.order_by('game__datetime'))
             picks = list(user.selection_set.order_by('participant__game__datetime'))
-            picks = [ '{} - {}'.format(pick.participant.team, wager.amount) for wager, pick in zip(wagers, picks) ]
-            table_cols.append(picks)
+            table_cols.append([ wager.amount for wager in wagers ])
+            table_cols.append([ pick.participant.team for pick in picks ])
         return  headers, list(zip(*table_cols))
+
+def pretty_date(datetime):
+    return datetime.strftime('%a %b %d')
+
+def pretty_time(datetime):
+    return datetime.strftime('%I:%m %p')
 
 @login_required
 def select_all(request):
