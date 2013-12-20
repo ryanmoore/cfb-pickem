@@ -93,7 +93,7 @@ def select_all(request):
             pick = request.POST.get(game_name, default=None)
             game_pk = int(game_name.split('=')[1])
             game = Game.objects.get(id=game_pk)
-            wager = idx + 1
+            wager = len(ordering)-idx
             if pick is not None:
                 participant = Participant.objects.get(game=game, team_id=pick)
                 update_selection_or_create(request.user, participant)
