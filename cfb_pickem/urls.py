@@ -11,7 +11,7 @@ urlpatterns = patterns('',
     # url(r'^$', 'cfb_pickem.views.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
 
-    url(r'', include('pickem.urls', namespace='pickem')),
+    url(r'^pickem/', include('pickem.urls', namespace='pickem')),
     url(r'^admin/', include(admin.site.urls)),
 )
 
