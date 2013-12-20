@@ -53,6 +53,7 @@
                 {% endif %}
             </ul>
             <ul class="nav navbar-nav navbar-right">
+                {% block extra_navbar_right %}{% endblock %}
                 {% if not request.user.is_authenticated %}
                     {% url 'pickem:login' as login_url %}
                     {% if request.get_full_path == login_url %}

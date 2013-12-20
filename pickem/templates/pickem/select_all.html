@@ -7,6 +7,10 @@
 <link type="text/css" href="{% static 'pickem/css/sortable_selection.css' %}" rel="stylesheet">
 {% endblock %}
 
+{% block extra_navbar_right %}
+<li><button type="submit" form="rankform" class="mybutton btn btn-primary btn-lg" id="save_button">Save Picks</a></li>
+{% endblock %}
+
 {% block content %}
 <div class="sortable_selection">
     <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
@@ -57,7 +61,7 @@
             </ul>
         </div>
         <br>
-        <button type="submit" class="btn btn-default">Save</button>
+        <button type="submit" class="btn btn-primary btn-lg" style="margin-bottom: 20px;">Save</button>
     </form>
 </div>
 {% endblock %}

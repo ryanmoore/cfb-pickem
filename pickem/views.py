@@ -53,7 +53,7 @@ class PicksView(generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['picks_table'] = self.make_picks_table()
+        context['picks_headers'], context['picks_table'] = self.make_picks_table()
         return context
 
     def make_picks_table(self, **kwargs):
@@ -67,10 +67,9 @@ class PicksView(generic.TemplateView):
         for user in users:
             wagers = list(user.wager_set.order_by('game__datetime'))
             picks = list(user.selection_set.order_by('participant__game__datetime'))
-            picks = [ '{} on {}'.format(wager.amount, pick.participant.team) for wager, pick in zip(wagers, picks) ]
+            picks = [ '{} - {}'.format(pick.participant.team, wager.amount) for wager, pick in zip(wagers, picks) ]
             table_cols.append(picks)
-        table = [headers]+list(zip(*table_cols))
-        return table
+        return  headers, list(zip(*table_cols))
 
 @login_required
 def select_all(request):
