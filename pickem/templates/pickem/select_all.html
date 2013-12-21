@@ -12,6 +12,38 @@
 {% endblock %}
 
 {% block content %}
+<div class="panel panel-info">
+    <div class="panel-heading">How to play</div>
+    <div class="panel-body">
+        <p>
+        For each matchup, select team you think will win. Your
+        selection will be shown in blue. 
+        </p>
+        <p>
+        Each game is assigned a confidence value which is its position in
+        the list.
+        You can reorder the games by dragging them up or down the list. Place
+        your most confident picks at the top.
+        </p>
+        <p>
+        Hit "Save Picks" in the navigation bar at the top of the page at
+        any time to save your work.
+        </p>
+    </div>
+</div>
+{% if missing_count > 0 %}
+<div class="alert alert-warning">
+    <p>You still have <b>{{ missing_count }} picks</b> to make!
+    </p>
+</div>
+{% else %}
+<div class="alert alert-success">
+    <p><b>Well done!</b>
+    You've finished your picks for all games. Just make sure you have them in
+    the order you want.
+    </p>
+</div>
+{% endif %}
 <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
     {% csrf_token %}
     <input type='hidden' name='matchup_ordering' id='matchup_ordering'>

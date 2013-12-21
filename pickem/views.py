@@ -99,9 +99,10 @@ def select_all(request):
                 update_selection_or_create(request.user, participant)
                 # always update wager in case the list has been reordered
             update_wager_or_create(request.user, game, wager)
-    update_selection_form_list(request.user, selection_form_items)
+    missing = update_selection_form_list(request.user, selection_form_items)
     return render(request, 'pickem/select_all.html',
-                  {'selection_form_items': selection_form_items})
+                  {'selection_form_items': selection_form_items,
+                      'missing_count' : missing })
     #contests = Contest.objects.order_by('date')
 
 class SelectionFormItem:
@@ -142,7 +143,10 @@ def update_selection_form_list(user, selection_form_items):
         except Wager.DoesNotExist:
             form_item.wager = i
     selection_form_items.sort(key=lambda x: x.wager, reverse=True)
-    return
+    return num_missing_picks(selection_form_items)
+
+def num_missing_picks(selection_form_items):
+    return len([x for x in selection_form_items if x.checked == 0 ])
 
 
 def update_selection_or_create(user, participant):
