@@ -1,65 +1,51 @@
-.sortable_selection ul {
-    margin: 0;
-    padding: 0;
+.table_container {
+    float: center;
+    min-width: 900px;
 }
-.sortable_selection {
-    margin: 0 0 0 0;
-    padding: 0 0 0 0;
-    float: left;
+
+.pick_table {
+    display: inline-block;
+    width: auto;
 }
-.sortable_selection li {
-    list-style-type: none;
-    margin: 0 0px 5px 0px;
-    padding: 1px 25px;
-    font-size: 1em;
-    background-color: #eee;
-    line-height: 30px;
-    vertical-align: middle;
+
+.pick_table td {
+    vertical-align: middle !important;
+    height: 55px;
 }
-.sortable_selection input[type="radio"] {
+
+.pick_table input[type="radio"] {
     display: none;
 }
-.sortable_selection label {
-    display: inline-block;
-    background-color: #bbb;
-    padding: 3px 1px;
+
+.pick_table .team_button {
+    width: 150px;
+    float: right;
 }
-.sortable_selection label:hover {
-    border-style: solid;
-    border-color: #000000;
-    padding: 3px 10px;
-    border-width: 1px;
-}
-.sortable_selection input[type="radio"]:checked + label {
-    background-color: #428bca;
-    color: #ffffff;
-    border-style: solid;
-    border-color: #ffffff;
-    border-width: 2px;
-}
-.sortable_selection li span {
-    display : table-cell;
-    line-height : normal;
-    vertical-align : middle;
-}
+
 td.game_title {
     overflow: hidden;
     text-overflow: ellipsis;
     -o-text-overflow: ellipsis;
     white-space: nowrap;
-    width: 300px;
+    width: 290px;
 }
-td.team_button {
-    width: 150px;
-    text-align: center;
+.pick_table label {
+    display: inline-block;
+    margin-left: 2px;
+    margin-right: 2px;
+    vertical-align: middle;
+    background-color: #bbb;
 }
-label.team_button {
-    width: 150px;
-    margin: 0px 2px;
+.pick_table label:hover {
+    border-style: solid;
+    border-color: #000000;
+    border-width: 1px;
 }
-.sortable_selection_divider {
-    font-weight: 100;
-}
-.sortable_selection tr {
-    height: 35px;
+
+.pick_table input[type="radio"]:checked + label {
+    background-color: #428bca;
+    color: #ffffff;
+    border-style: solid;
+    border-color: #ffffff;
+    border-width: 2px;
 }

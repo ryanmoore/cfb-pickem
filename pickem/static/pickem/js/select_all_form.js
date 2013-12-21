@@ -4,7 +4,13 @@ function onSubmit() {
 }
 
 function configure_sortable() {
-    $( '#matchup_ranking').sortable({ axis: 'y', items:'li:not(.sortable-state-disabled)' });
+    $( '#matchup_ranking').sortable({ 
+        axis: 'y',
+        scroll: true,
+        scrollSensitivity: 80,
+        scrollSpeed: 10
+        //,items:'td:not(.sortable-state-disabled)'
+    });
     $( '#matchup_ranking' ).disableSelection();
     $( 'form' ).submit( onSubmit );
 }

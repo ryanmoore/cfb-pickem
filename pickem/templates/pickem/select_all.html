@@ -12,60 +12,52 @@
 {% endblock %}
 
 {% block content %}
-<div class="sortable_selection">
-    <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
-        <div class="sortable_selection" style="margin: 0 5px 0 0">
-        <ul>
-                <li><table><tr><th>Confidence</th></tr></table></li>
-                {% for dummy in selection_form_items %}
-                <li>
-                    <table>
-                        <tr>
-                            <td>{{ forloop.revcounter }}</td>
-                        </tr>
-                    </table>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-        <div class="sortable_selection">
-            {% csrf_token %}
-            <input type='hidden' name='matchup_ordering' id='matchup_ordering'>
-            <ul id="matchup_ranking">
-                <li class="sortable-state-disabled"><table><tr><th>Bowl</th></tr></table></li>
+<form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
+    {% csrf_token %}
+    <input type='hidden' name='matchup_ordering' id='matchup_ordering'>
+    <div class="table_container">
+        <table class="pick_table table">
+            <thead><tr><th>Confidence</th></tr></thead>
+            <tbody>
                 {% for matchup in selection_form_items %}
-                <li id="game={{ matchup.game.id }}">
-                    <table>
-                        <tr>
-                            <td class="game_title"><a href="{% url 'pickem:game' matchup.game.id %}">{{ matchup.game.event.name }}</a></td>
-                            {% for team in matchup.teams %}
-                            <td class="team_button">
-                                <input type="radio"
-                                       name="game={{ matchup.game.id }}"
-                                       value="{{ team.name }}"
-                                       id="{{ team.name }}"
-                                {% if forloop.counter == matchup.checked %}
-                                checked="checked"
-                                {% endif %}
-                                >
-                                <label class="btn btn-default team_button" for="{{ team.name }}">
-                                {{ team.name }}
-                                {% if team.rank %}
-                                ({{ team.rank }})
-                                {% endif %}
-                            </label>
-                            </td>
-                            {% endfor %}
-                        </tr>
-                    </table>
-                </li>
+                <tr><td>{{ forloop.revcounter }}</td></tr>
                 {% endfor %}
-            </ul>
-        </div>
-        <br>
-        <button type="submit" class="btn btn-primary btn-lg" style="margin-bottom: 20px;">Save</button>
-    </form>
-</div>
+            </tbody>
+        </table>
+        <table class="pick_table table">
+            <thead>
+                <tr><th>Bowl</th></tr>
+            </thead>
+            <tbody id="matchup_ranking">
+                {% for matchup in selection_form_items %}
+                <tr id="game={{ matchup.game.id }}">
+                    <td class="game_title">
+                        <a href="{% url 'pickem:game' matchup.game.id %}">{{ matchup.game.event.name }}</a>
+                    </td>
+                    {% for team in matchup.teams %}
+                    <td>
+                            <input type="radio"
+                                   name="game={{ matchup.game.id }}"
+                                   value="{{ team.name }}"
+                                   id="{{ team.name }}"
+                            {% if forloop.counter == matchup.checked %}
+                            checked="checked"
+                            {% endif %}
+                            >
+                            <label class="btn btn-default btn-block team_button" for="{{ team.name }}">
+                            {{ team.name }}
+                            {% if team.rank %}
+                            ({{ team.rank }})
+                            {% endif %}
+                        </label>
+                    </td>
+                        {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</form>
 {% endblock %}
 
 {% block external_js %}
