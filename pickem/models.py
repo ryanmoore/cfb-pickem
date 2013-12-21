@@ -55,4 +55,4 @@ class Wager(models.Model):
     amount = models.PositiveSmallIntegerField()
 
     def __str__(self):
-        return '{}: {} on {}'.format(self.user, self.amount, self.event)
+        return '{}: {} on {}'.format(self.user, self.amount, self.game)
