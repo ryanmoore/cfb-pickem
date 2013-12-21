@@ -20,7 +20,7 @@
         selection will be shown in blue. 
         </p>
         <p>
-        Each game is assigned a confidence value which is its position in
+        Each game is assigned a points value which is its position in
         the list.
         You can reorder the games by dragging them up or down the list. Place
         your most confident picks at the top.
@@ -49,20 +49,21 @@
     <input type='hidden' name='matchup_ordering' id='matchup_ordering'>
     <div class="table_container">
         <table class="pick_table table">
-            <thead><tr><th>Confidence</th></tr></thead>
+            <thead><tr><th>Points</th></tr></thead>
             <tbody>
                 {% for matchup in selection_form_items %}
-                <tr><td>{{ forloop.revcounter }}</td></tr>
+                <tr><td style="text-align: right;">{{ forloop.revcounter }}</td></tr>
                 {% endfor %}
             </tbody>
         </table>
         <table class="pick_table table">
             <thead>
-                <tr><th>Bowl</th></tr>
+                <tr><th colspan="4">Bowl</th></tr>
             </thead>
             <tbody id="matchup_ranking">
                 {% for matchup in selection_form_items %}
                 <tr id="game={{ matchup.game.id }}">
+                    <td class="handle"><b>::</b></td>
                     <td class="game_title">
                         <a href="{% url 'pickem:game' matchup.game.id %}">{{ matchup.game.event.name }}</a>
                     </td>

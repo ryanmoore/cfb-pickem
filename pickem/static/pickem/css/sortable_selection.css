@@ -49,3 +49,14 @@ td.game_title {
     border-color: #ffffff;
     border-width: 2px;
 }
+
+.handle {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: move;
+    width: auto;
+}

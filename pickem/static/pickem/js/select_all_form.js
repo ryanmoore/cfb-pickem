@@ -8,7 +8,8 @@ function configure_sortable() {
         axis: 'y',
         scroll: true,
         scrollSensitivity: 80,
-        scrollSpeed: 10
+        scrollSpeed: 10,
+        handle: ".handle"
         //,items:'td:not(.sortable-state-disabled)'
     });
     $( '#matchup_ranking' ).disableSelection();
