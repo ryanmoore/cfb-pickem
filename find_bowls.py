@@ -25,7 +25,7 @@ def main(argv):
     args = parser.parse_args(args=argv[1:])
     config = read_config(args.config)
     sourcefile = prepare_html_data(config)
-    soup = BeautifulSoup(open(sourcefile))
+    soup = BeautifulSoup(open(sourcefile), 'lxml')
 
     # prune down search tree to JUST the div with games
     soup = soup.find_all(name='div', class_='span-6')
