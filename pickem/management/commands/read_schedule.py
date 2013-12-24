@@ -34,6 +34,8 @@ def add_game(game):
     ''' Parses game data from json object and adds to database
     '''
     kickoff = parse_datetime(game['datetime'])
+    if kickoff is None:
+        return
     location = game['location']
     network = game['network']
     title = game['title'].title()
@@ -54,6 +56,9 @@ def add_game(game):
 def parse_datetime(kickoff):
     '''Decodes the expected datetime string into a datetime object
     '''
+    if kickoff.lower() == 'final':
+        print('Skipping finished game with datetime: final')
+        return None
     date_format = '%b. %d, %Y | %I:%M %p %Z'
     kickoff = re.sub(r'ET', r'EST', kickoff)
     result = datetime.datetime.strptime(kickoff, date_format)
