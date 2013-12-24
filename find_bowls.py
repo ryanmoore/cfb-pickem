@@ -29,8 +29,9 @@ def main(argv):
 
     # prune down search tree to JUST the div with games
     soup = soup.find_all(name='div', class_='span-6')
-    assert len(soup) == 2
-    soup = soup[1]
+    assert len(soup) == 3, "Expected 3 span-6's, found: {}".format(
+            len(soup))
+    soup = soup[-1]
     logging.debug('Game block identified.')
 
     # divide up games
