@@ -67,11 +67,28 @@ class PicksView(generic.TemplateView):
         table_cols.append([ pretty_date(game.datetime) for game in games ])
         table_cols.append([ pretty_time(game.datetime) for game in games ])
         for user in users:
-            wagers = list(user.wager_set.order_by('game__datetime'))
-            picks = list(user.selection_set.order_by('participant__game__datetime'))
-            table_cols.append([ wager.amount for wager in wagers ])
-            table_cols.append([ pick.participant.team for pick in picks ])
+            picks, wagers = get_ordered_user_selections(games, user)
+            table_cols.append([ wager.amount if wager else 'N/A' for wager in wagers ])
+            table_cols.append([ pick.participant.team if pick else 'N/A' for pick in picks ])
         return  headers, list(zip(*table_cols))
+
+def get_ordered_user_selections(ordered_games, user):
+    '''Returns (picks, wagers) for the given user in the same order as
+    their matching ordered_games
+    '''
+    wagers = list(user.wager_set.all())
+    picks = list(user.selection_set.all())
+    wagers = dict([ (wager.game, wager) for wager in wagers ])
+    picks = dict( [ (pick.participant.game, pick) for pick in picks] )
+    return (ordered_by_list(ordered_games, picks),
+            ordered_by_list(ordered_games, wagers))
+
+def ordered_by_list(ordered, lookup):
+    '''Orders the values in lookup in the same order as ordered.
+    Fills in missing items with None
+    '''
+    for elt in ordered:
+        yield lookup.get(elt, None)
 
 def pretty_date(datetime):
     return datetime.strftime('%a %b %d')
