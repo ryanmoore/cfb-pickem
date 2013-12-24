@@ -1,0 +1,44 @@
+{% extends 'pickem/base.html' %}
+{% load staticfiles %}
+
+{% block title %}Picks{% endblock %}
+
+{% block additional_style %}
+<link type="text/css" href="{% static 'pickem/css/pretty_picks.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<h1>Picks</h1>
+<table class="table">
+{% for pick_summary in pick_summaries %}
+    <tr>
+    {% for team, picks in pick_summary.picks.items %}
+        {% if forloop.counter0 == 1 %}
+        <td class="game">
+            {{ pick_summary.game.event.name }}<br>
+            {{ pick_summary.game.datetime|date:"DATE_FORMAT" }}<br>
+            {{ pick_summary.game.datetime|date:"P" }}
+        </td>
+        {% endif %}
+        <td>
+            <table class="picklist">
+                <thead><tr><th>{{ team }}</th></tr></thead>
+                <tbody>
+                    {% for pick in picks %}
+                    <tr>
+                        <td>
+                            {{ pick.amount }}
+                        </td>
+                        <td>
+                            {{ pick.user }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </td>
+    {% endfor %}
+</tr>
+{% endfor %}
+</table>
+{% endblock %}

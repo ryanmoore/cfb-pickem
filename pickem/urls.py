@@ -17,4 +17,7 @@ urlpatterns = patterns('',
            kwargs={'template_name': 'pickem/registration/logout.html'}),
        url(r'^scoreboard/$', views.ScoreView.as_view(), name='scores'),
        url(r'^picks/$', views.PicksView.as_view(), name='picks'),
+       url(r'^pretty_picks/$',
+           views.PrettyPicksView.as_view(),
+           name='pretty_picks'),
 )

@@ -54,23 +54,23 @@ class PicksView(generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['picks_headers'], context['picks_table'] = self.make_picks_table()
+        context['picks_headers'], context['picks_table'] = make_picks_table()
         return context
 
-    def make_picks_table(self, **kwargs):
-        users = list(User.objects.order_by('username'))
-        usernames = [ user.username.title() for user in users ]
-        headers = ['Game', 'Kickoff'] + usernames
-        games = list(Game.objects.order_by('datetime'))
-        table_cols = []
-        table_cols.append([ game.event.name for game in games ])
-        table_cols.append([ pretty_date(game.datetime) for game in games ])
-        table_cols.append([ pretty_time(game.datetime) for game in games ])
-        for user in users:
-            picks, wagers = get_ordered_user_selections(games, user)
-            table_cols.append([ wager.amount if wager else 'N/A' for wager in wagers ])
-            table_cols.append([ pick.participant.team if pick else 'N/A' for pick in picks ])
-        return  headers, list(zip(*table_cols))
+def make_picks_table(**kwargs):
+    users = list(User.objects.order_by('username'))
+    usernames = [ user.username.title() for user in users ]
+    headers = ['Game', 'Kickoff'] + usernames
+    games = list(Game.objects.order_by('datetime'))
+    table_cols = []
+    table_cols.append([ game.event.name for game in games ])
+    table_cols.append([ pretty_date(game.datetime) for game in games ])
+    table_cols.append([ pretty_time(game.datetime) for game in games ])
+    for user in users:
+        picks, wagers = get_ordered_user_selections(games, user)
+        table_cols.append([ wager.amount if wager else 'N/A' for wager in wagers ])
+        table_cols.append([ pick.participant.team if pick else 'N/A' for pick in picks ])
+    return  headers, list(zip(*table_cols))
 
 def get_ordered_user_selections(ordered_games, user):
     '''Returns (picks, wagers) for the given user in the same order as
@@ -89,6 +89,41 @@ def ordered_by_list(ordered, lookup):
     '''
     for elt in ordered:
         yield lookup.get(elt, None)
+
+class PrettyPicksView(generic.TemplateView):
+    '''List all games with users sorted under team chosen
+    '''
+    template_name = 'pickem/pretty_picks.html'
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        games = Game.objects.order_by('datetime')
+        users = User.objects.all()
+        pick_summaries = [ PickSummary(game, users) for game in games ]
+        context['pick_summaries'] = pick_summaries
+        return context
+
+class PickSummary:
+    def __init__(self, game, users):
+        self.game = game
+        self.users = users
+
+    @property
+    def participants(self):
+        return sorted(self.game.participant_set.all(),
+                key=lambda x: str(x.team))
+
+    def picks(self):
+        participants = self.participants
+        selections = Selection.objects.filter(participant__game=self.game)
+        wagers = Wager.objects.filter(game=self.game)
+        result = dict( [ (str(part.team), []) for part in participants ] )
+        for selection in selections:
+            result[str(selection.participant.team)].append(
+                    wagers.get(user=selection.user))
+        for key, value in result.items():
+            value.sort(key=lambda x: x.amount)
+        print(result)
+        return result
 
 def pretty_date(datetime):
     return datetime.strftime('%a %b %d')
