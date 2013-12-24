@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.2
 
 """
     Parses an html page holding game information. Creates summary
