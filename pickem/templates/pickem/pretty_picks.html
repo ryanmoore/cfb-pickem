@@ -19,7 +19,7 @@
         <button type='submit' class='btn btn-default' style='margin-bottom: 10px'>View condensed</button>
     </form>
 </div>
-<table class="table">
+<table class="table table-striped main-table">
 {% for pick_summary in pick_summaries %}
     <tr>
     {% for team, picks in pick_summary.picks.items %}
@@ -32,15 +32,15 @@
         {% endif %}
         <td>
             <table class="picklist">
-                <thead><tr><th>{{ team }}</th></tr></thead>
+                <thead><tr><th colspan="2">{{ team }}</th></tr></thead>
                 <tbody>
                     {% for pick in picks %}
                     <tr>
-                        <td>
+                        <td class="wager">
                             {{ pick.amount }}
                         </td>
-                        <td>
-                            {{ pick.user }}
+                        <td class="user">
+                            - {{ pick.user|capfirst }}
                         </td>
                     </tr>
                     {% endfor %}

@@ -1,7 +1,22 @@
 
+.main-table {
+    width: auto;
+}
+
 .game {
     text-align: center;
 }
 
-.picklist {
+table.picklist {
+    width: 100%;
+}
+
+td.wager {
+    width: 30px;
+    text-align: right;
+    padding-right: 4px;
+}
+
+td.user {
+    text-align: left;
 }
