@@ -1,6 +1,8 @@
 .table_container {
     float: center;
-    min-width: 900px;
+    width: 800px;
+    margin-right: auto;
+    margin-left: auto;
 }
 
 .pick_table {
