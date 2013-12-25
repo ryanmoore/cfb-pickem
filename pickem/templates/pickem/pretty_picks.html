@@ -14,6 +14,11 @@
 <p>Picks from all users are not displayed until pickem starts.</p> 
 </div>
 {% else %}
+<div>
+    <form action="{% url 'pickem:picks_table' %}">
+        <button type='submit' class='btn btn-default' style='margin-bottom: 10px'>View condensed</button>
+    </form>
+</div>
 <table class="table">
 {% for pick_summary in pick_summaries %}
     <tr>
