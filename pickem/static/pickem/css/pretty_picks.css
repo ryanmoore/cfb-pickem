@@ -47,6 +47,8 @@ td.user {
 
 .matchup-row {
     border-top: 1px solid #ddd;
+    padding-top: 4px;
+    padding-bottom: 20px;
 }
 
 .picklist-left {
