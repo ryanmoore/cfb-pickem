@@ -6,6 +6,8 @@ from django.views import generic
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.conf import settings
+import django.utils.timezone as timezone
 
 from pickem.models import Game, Selection, Participant, Wager
 
@@ -30,6 +32,9 @@ class GameView(generic.DetailView):
     model = Game
     template_name = 'pickem/bowl.html'
 
+def pickem_started():
+    return timezone.now() >= settings.PICKEM_START_TIME
+
 class ScoreView(generic.TemplateView):
     ''' List all users and their scores
     '''
@@ -38,6 +43,7 @@ class ScoreView(generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['started'] = pickem_started()
         context['score_table'] = self.make_score_table()
         return context
 
@@ -55,6 +61,7 @@ class PicksView(generic.TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['picks_headers'], context['picks_table'] = make_picks_table()
+        context['started'] = pickem_started()
         return context
 
 def make_picks_table(**kwargs):
@@ -100,6 +107,7 @@ class PrettyPicksView(generic.TemplateView):
         users = User.objects.all()
         pick_summaries = [ PickSummary(game, users) for game in games ]
         context['pick_summaries'] = pick_summaries
+        context['started'] = pickem_started()
         return context
 
 class PickSummary:
@@ -137,7 +145,8 @@ def select_all(request):
     '''GET and POST logic for the page where selections occur
     '''
     selection_form_items = all_games_as_forms()
-    if request.method == 'POST':
+    error = None
+    if not pickem_started() and request.method == 'POST':
         # Data is sent in the form as a single json string object summarizing
         # all picks and orders
         ordering = json.loads(request.POST['matchup_ordering'])
@@ -151,11 +160,14 @@ def select_all(request):
                 update_selection_or_create(request.user, participant)
                 # always update wager in case the list has been reordered
             update_wager_or_create(request.user, game, wager)
+    elif request.method == 'POST':
+        error = 'Submission failed. Pickem has already started.'
     missing = update_selection_form_list(request.user, selection_form_items)
     return render(request, 'pickem/select_all.html',
                   {'selection_form_items': selection_form_items,
-                      'missing_count' : missing })
-    #contests = Contest.objects.order_by('date')
+                      'missing_count' : missing,
+                      'started' : pickem_started(),
+                      'error' : error })
 
 class SelectionFormItem:
     def __init__(self, game, teams, checked=0, wager=0):

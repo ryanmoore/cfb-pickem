@@ -10,6 +10,8 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import datetime
+from pytz import timezone
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
@@ -102,3 +104,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.auth.context_processors.auth',
     'django.core.context_processors.request',
 )
+
+PICKEM_START_TIME = datetime.datetime(year=2013, month=12, day=24,
+        hour=11, minute=55, tzinfo=timezone('US/Eastern'))
+

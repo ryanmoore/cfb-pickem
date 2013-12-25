@@ -2,6 +2,11 @@
 {% block title %}Scores{% endblock %}
 {% block content %}
 <h1>Current Scores</h1>
+{% if started == False %}
+<div class="alert alert-danger">
+<p>Scores will not be available until pickem starts.</p>
+</div>
+{% else %}
 <table>
 {% for row in score_table %}
     <tr>
@@ -13,4 +18,5 @@
     </tr>
 {% endfor %}
 </table>
+{% endif %}
 {% endblock %}

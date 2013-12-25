@@ -8,19 +8,26 @@
 {% endblock %}
 
 {% block extra_navbar_right %}
+{% if started != True %}
 <li><button type="submit" form="rankform" class="mybutton btn btn-primary btn-lg" id="save_button">Save Picks</a></li>
+{% endif %}
 {% endblock %}
 
 {% block content %}
+{% if error %}
+<div class="alert alert-danger">
+    {{ error }}
+</div>
+{% endif %}
 <div class="panel panel-info">
     <div class="panel-heading">How to play</div>
     <div class="panel-body">
         <p>
-        For each matchup, select team you think will win. Your
-        selection will be shown in blue. 
+        For each matchup, select the team you think will win. Your
+        selections will be shown in blue. 
         </p>
         <p>
-        Each game is assigned a points value which is its position in
+        Each game is assigned a point value which is its position in
         the list.
         You can reorder the games by dragging them up or down the list. Place
         your most confident picks at the top.
@@ -31,7 +38,13 @@
         </p>
     </div>
 </div>
-{% if missing_count > 0 %}
+
+{% if started == True %}
+<div class="alert alert-danger">
+    <p><b>Alert:</b> Games have started. You will not be able to submit any
+    changes you make.</p>
+</div>
+{% elif missing_count > 0 %}
 <div class="alert alert-warning">
     <p>You still have <b>{{ missing_count }} picks</b> to make!
     </p>
@@ -44,6 +57,7 @@
     </p>
 </div>
 {% endif %}
+
 <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
     {% csrf_token %}
     <input type='hidden' name='matchup_ordering' id='matchup_ordering'>

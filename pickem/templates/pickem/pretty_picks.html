@@ -9,6 +9,11 @@
 
 {% block content %}
 <h1>Picks</h1>
+{% if started == False %}
+<div class="alert alert-danger">
+<p>Picks from all users are not displayed until pickem starts.</p> 
+</div>
+{% else %}
 <table class="table">
 {% for pick_summary in pick_summaries %}
     <tr>
@@ -41,4 +46,5 @@
 </tr>
 {% endfor %}
 </table>
+{% endif %}
 {% endblock %}
