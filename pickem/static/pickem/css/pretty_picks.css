@@ -1,24 +1,58 @@
+td.wager {
+    width: 20px;
+    text-align: right;
+}
 
-.main-table {
+.picklist-left th.team {
+    text-align: right;
+}
+
+.picklist-right th.team {
+    text-align: left;
+}
+
+td.user {
+    width: auto;
+}
+
+.picklist-left td.user {
+    text-align: right;
+}
+.picklist-left td.wager{
+    text-align: left;
+    padding-left: 5px;
+}
+
+.picklist-right td.user {
+    text-align: left;
+}
+.picklist-right td.wager{
+    text-align: right;
+    padding-right: 5px;
+}
+
+.game-details {
+    text-align: center;
+}
+
+.pick-table {
     width: auto;
     margin-right: auto;
     margin-left: auto;
 }
 
-.game {
-    text-align: center;
+.matchup-row:nth-of-type(odd) {
+    background-color: #f4f4f4;
 }
 
-table.picklist {
-    width: 100%;
+.matchup-row {
+    border-top: 1px solid #ddd;
 }
 
-td.wager {
-    width: 30px;
-    text-align: right;
-    padding-right: 4px;
+.picklist-left {
+    float: right;
 }
 
-td.user {
-    text-align: left;
+.picklist-right {
+    float: left;
 }
