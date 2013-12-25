@@ -129,8 +129,7 @@ class PickSummary:
             result[str(selection.participant.team)].append(
                     wagers.get(user=selection.user))
         for key, value in result.items():
-            value.sort(key=lambda x: x.amount)
-        print(result)
+            value.sort(key=lambda x: x.amount, reverse=True)
         return result
 
 def pretty_date(datetime):
