@@ -9,17 +9,24 @@ from django.db import transaction
 from django.conf import settings
 import django.utils.timezone as timezone
 
-from pickem.models import Game, Selection, Participant, Wager
+from pickem.models import Game, Selection, Participant, Wager, Winner
+from collections import defaultdict
 
 # pylint: disable=too-many-ancestors
 
 logger = logging.getLogger(__name__)
 
-class IndexView(generic.ListView):
+class IndexView(generic.TemplateView):
     ''' List all games in a table sorted by date
     '''
     template_name = 'pickem/index.html'
     context_object_name = 'game_list'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['game_list'] = Game.objects.order_by('datetime')
+        context['winners'] = [ w.participant for w in Winner.objects.all()]
+        return context
 
     def get_queryset(self):
         return Game.objects.order_by('datetime')
@@ -44,13 +51,32 @@ class ScoreView(generic.TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['started'] = pickem_started()
-        context['score_table'] = self.make_score_table()
+        context['score_headers'], context['score_table'] = self.make_score_table()
         return context
 
-    def make_score_table(self, **kwargs):
+    @staticmethod
+    def make_score_table(**kwargs):
         headers = ['User', 'Score']
-        users = list(User.objects.order_by('username'))
-        return [headers]
+        users = list(User.objects.all())
+        scores = ScoreView.calc_user_scores(users)
+        return (headers, scores)
+
+    @staticmethod
+    def calc_user_scores(users):
+        scores = dict( [ ( user.username, 0 ) for user in users ] )
+        winners = Winner.objects.all()
+        good_picks = Selection.objects.filter(participant__in=winners,
+                user__in=users)
+        all_user_wagers = Wager.objects.filter(user__in=users)
+        for pick in good_picks:
+            scores[pick.user.username] += Wager.objects.filter(user=pick.user,
+                    game=pick.participant.game).amount
+        # negate score instead of reverse=True because we want usernames
+        # sorted alphabetically
+        return sorted(scores.items(), key=lambda x:(-x[1], x[0]))
+
+
+
 
 class PicksView(generic.TemplateView):
     '''List all games in table, users across the top

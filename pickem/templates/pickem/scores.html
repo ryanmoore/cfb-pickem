@@ -1,22 +1,39 @@
 {% extends 'pickem/base.html' %}
+{% load staticfiles %}
+
 {% block title %}Scores{% endblock %}
+{% block additional_style %}
+<link type="text/css" href="{% static 'pickem/css/scores.css' %}" rel="stylesheet">
+{% endblock %}
 {% block content %}
-<h1>Current Scores</h1>
+<h1>Scores</h1>
 {% if started == False %}
 <div class="alert alert-danger">
 <p>Scores will not be available until pickem starts.</p>
 </div>
 {% else %}
-<table>
-{% for row in score_table %}
-    <tr>
-        {% for elt in row %}
-        <td>
-            {{ elt }}
-        </td>
+<table class="table table-striped scoreboard">
+    <thead>
+        <tr>
+        {% for header in score_headers %}
+            <th>
+                {{ header }}
+            </th>
         {% endfor %}
-    </tr>
-{% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+    {% for row in score_table %}
+        <tr>
+            {% for elt in row %}
+            <td>
+
+                {{ elt|capfirst }}
+            </td>
+            {% endfor %}
+        </tr>
+    {% endfor %}
+    </tbody>
 </table>
 {% endif %}
 {% endblock %}

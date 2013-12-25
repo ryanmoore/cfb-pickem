@@ -20,7 +20,11 @@
                     {% if participant.team.rank %}
                     <strong>{{ participant.team.rank }}</strong>
                     {% endif %}
+                    {% if participant in winners %}
+                    <strong>{{ participant.team.name }}</strong>
+                    {% else %}
                     {{ participant.team.name }}
+                    {% endif %}
                 </td>
             {% endfor %}
         </tr>

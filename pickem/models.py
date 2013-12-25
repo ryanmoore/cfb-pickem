@@ -44,6 +44,11 @@ class Participant(models.Model):
     def __str__(self):
         return '{} in {}'.format(str(self.team), str(self.game))
 
+class Winner(models.Model):
+    participant = models.ForeignKey(Participant)
+
+    def __str__(self):
+        return str(self.participant)
 
 class Selection(models.Model):
     user = models.ForeignKey(User)
