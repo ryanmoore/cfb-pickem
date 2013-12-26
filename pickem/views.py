@@ -39,8 +39,8 @@ class GameView(generic.DetailView):
     model = Game
     template_name = 'pickem/bowl.html'
 
-def pickem_started():
-    return timezone.now() >= settings.PICKEM_START_TIME
+def pickem_started(reference_time):
+    return reference_time >= settings.PICKEM_START_TIME
 
 class ScoreView(generic.TemplateView):
     ''' List all users and their scores
@@ -50,7 +50,7 @@ class ScoreView(generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['started'] = pickem_started()
+        context['started'] = pickem_started(timezone.now())
         context['score_headers'], context['score_table'] = self.make_score_table()
         context['start_time'] = settings.PICKEM_START_TIME
         return context
@@ -93,7 +93,7 @@ class PicksView(generic.TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['picks_headers'], context['picks_table'] = make_picks_table()
-        context['started'] = pickem_started()
+        context['started'] = pickem_started(timezone.now())
         context['start_time'] = settings.PICKEM_START_TIME
         return context
 
@@ -140,7 +140,7 @@ class PrettyPicksView(generic.TemplateView):
         users = User.objects.all()
         pick_summaries = [ PickSummary(game, users) for game in games ]
         context['pick_summaries'] = pick_summaries
-        context['started'] = pickem_started()
+        context['started'] = pickem_started(timezone.now())
         context['start_time'] = settings.PICKEM_START_TIME
         return context
 
@@ -179,7 +179,7 @@ def select_all(request):
     '''
     selection_form_items = all_games_as_forms()
     error = None
-    if not pickem_started() and request.method == 'POST':
+    if not pickem_started(timezone.now()) and request.method == 'POST':
         # Data is sent in the form as a single json string object summarizing
         # all picks and orders
         ordering = json.loads(request.POST['matchup_ordering'])
@@ -199,7 +199,7 @@ def select_all(request):
     return render(request, 'pickem/select_all.html',
                   {'selection_form_items': selection_form_items,
                       'missing_count' : num_missing_picks_user(request.user),
-                      'started' : pickem_started(),
+                      'started' : pickem_started(timezone.now()),
                       'error' : error })
 
 class SelectionFormItem:

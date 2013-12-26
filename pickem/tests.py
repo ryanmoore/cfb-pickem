@@ -5,6 +5,7 @@ import django.utils.timezone as timezone
 from django.conf import settings
 
 import pickem.views as views
+import datetime
 
 # Create your tests here.
 
@@ -81,4 +82,21 @@ class MissingCalculationTests(TestCase):
         self.make_picks(self.userA, int(len(self.games)/2))
         count = views.num_missing_picks_user(self.userA)
         self.assertEqual(count, int(len(self.games)/2))
+
+class StarttimeTests(TestCase):
+    def minutes_relative_to_start(self, minutes):
+        return settings.PICKEM_START_TIME + datetime.timedelta(
+                minutes=minutes)
+
+    def test_now_before_starttime(self):
+        self.assertFalse(views.pickem_started(
+            self.minutes_relative_to_start(-5)))
+
+    def test_now_after_starttime(self):
+        self.assertTrue(views.pickem_started(
+            self.minutes_relative_to_start(5)))
+
+    def test_now_is_starttime(self):
+        self.assertTrue(views.pickem_started(
+            self.minutes_relative_to_start(0)))
 
