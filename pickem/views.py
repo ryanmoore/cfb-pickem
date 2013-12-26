@@ -144,7 +144,10 @@ class ScoreTable:
         self.remaining = dict(self.remaining)
 
     def calc_user_remaining_points(self, user, unplayed):
-        wagers = Wager.objects.filter(user=user, game__in=unplayed)
+        games_with_picks = [ sel.participant.game for sel in
+                Selection.objects.filter(user=user) ]
+        unplayed_with_picks = set(unplayed).intersection(set(games_with_picks))
+        wagers = Wager.objects.filter(user=user, game__in=unplayed_with_picks)
         return sum(( wager.amount for wager in wagers))
 
 

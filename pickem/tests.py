@@ -1,5 +1,5 @@
 from django.test import TestCase
-from pickem.models import Game, Selection, Participant, Wager, Winner
+from pickem.models import Game, Selection, Participant, Wager, Winner, Team
 from django.contrib.auth.models import User
 import django.utils.timezone as timezone
 from django.conf import settings
@@ -114,6 +114,69 @@ class MissingCalculationTests(TestCase):
         progress = views.PrettyPicksView.get_user_progresses(percentage=True)
         self.assertEqual(progress[self.userA], 75)
         self.assertEqual(progress[self.userB], 25)
+
+class ScoreTableDBTests(TestCase):
+    def setUp(self):
+        self.num_games = 5
+        self.users = User.objects.create(username="bob"), User.objects.create(
+                username="alice")
+        self.games = [ Game.objects.create(event_id=i, datetime=timezone.now())
+                for i in range(self.num_games) ]
+        self.teams = [ Team.objects.create(name=str(i)) for i in range(
+            len(self.games)*2) ]
+        self.parts = [ Participant.objects.create(game=game, team=team)
+                for team, game in zip(self.teams, self.games+self.games) ]
+
+    def set_wagers(self, user, wagers):
+        for i, wager in enumerate(wagers):
+            Wager.objects.create(user=user,
+                    game=self.games[i],
+                    amount=wager)
+
+    def make_picks(self, user, participant_ids):
+        for i in participant_ids:
+            Selection.objects.create(user=user, participant=self.parts[i])
+
+    def make_winners(self, participant_ids):
+        for i in participant_ids:
+            Winner.objects.create(participant=self.parts[i])
+
+    def test_all_unplayed_games(self):
+        table = views.ScoreTable(self.users)
+        self.assertEqual(table.unplayed_games().count(), len(self.games))
+
+    def test_all_played_games(self):
+        self.make_winners(range(0, len(self.parts), 2))
+        table = views.ScoreTable(self.users)
+        self.assertEqual(table.unplayed_games().count(), 0)
+
+    def test_user_remaining_none_played(self):
+        '''if user has wagers for all games and there are no winners,
+        user has all points remaining'''
+        self.make_picks(self.users[0], range(0, len(self.parts), 2))
+        self.set_wagers(self.users[0], range(len(self.games)))
+        table = views.ScoreTable(self.users)
+        self.assertEqual(table.calc_user_remaining_points(self.users[0],
+            table.unplayed_games()), sum(range(len(self.games))))
+
+    def test_user_remaining_all_played(self):
+        '''if user has wagers for all games and all are played,
+        user has no points remaining'''
+        self.make_picks(self.users[0], range(0, len(self.parts), 2))
+        self.set_wagers(self.users[0], range(len(self.games)))
+        self.make_winners(range(1, len(self.parts), 2))
+        table = views.ScoreTable(self.users)
+        self.assertEqual(table.calc_user_remaining_points(self.users[0],
+            table.unplayed_games()), 0)
+
+    def test_user_remaining_no_picks(self):
+        '''user has picked no teams, user should have no points remaining
+        '''
+        #self.make_picks(self.users[0], range(0, len(self.parts), 2))
+        self.set_wagers(self.users[0], range(len(self.games)))
+        table = views.ScoreTable(self.users)
+        self.assertEqual(table.calc_user_remaining_points(self.users[0],
+            table.unplayed_games()), 0)
 
 class ScoreTableTests(TestCase):
     def test_scores_sort_correct(self):
