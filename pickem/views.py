@@ -56,7 +56,7 @@ class ScoreView(generic.TemplateView):
 
         users = User.objects.all()
         scores = ScoreTable(users)
-        context['scores_as_bars'] = scores.scores_as_bars()
+        context['scores_as_bars'] = scores.scores_as_bars(remainder=True)
         context['progress_bar_style'] = True
 
         return context
@@ -83,7 +83,8 @@ class ScoreView(generic.TemplateView):
 
 class ScoreTable:
     def __init__(self, users):
-        self.scores = []
+        self.scores = None
+        self.remaining = None
         self.users = users
 
     def scores_as_table(self):
@@ -92,16 +93,28 @@ class ScoreTable:
         self.sort_scores()
         return self.scores
 
-    def scores_as_bars(self):
+    def scores_as_bars(self, **kwargs):
         if not self.scores:
             self.calc_scores()
         self.sort_scores()
-        self.bar_scores = self.scores_to_bars()
+        self.bar_scores = list(self.scores_to_bars(**kwargs))
         return self.bar_scores
 
-    def scores_to_bars(self):
-        max_val = self.scores[0][1]
-        return [ (x, 100*y/max_val, y) for x,y in self.scores ]
+    def scores_to_bars(self, remainder=False):
+        if remainder and not self.remaining:
+            self.calc_remaining_points()
+        elif not remainder:
+            self.remaining = defaultdict(int)
+        longest_bar = max(( score[1] + self.remaining[score[0]] for
+            score in self.scores))
+        for user, score in self.scores:
+            score_bar = 100*score/longest_bar
+            remaining = self.remaining[user]
+            remaining_bar = 100*remaining/longest_bar
+            if remainder:
+                yield (user, score_bar, score, remaining_bar, remaining)
+            else:
+                yield (user, score_bar, score)
 
     def calc_scores(self):
         self.scores = dict( [ ( user, 0 ) for user in self.users ] )
@@ -121,6 +134,25 @@ class ScoreTable:
         winners = Winner.objects.all()
         return Selection.objects.filter(user__in=self.users).filter(
                 participant__in= [ w.participant for w in winners ] )
+
+    def calc_remaining_points(self):
+        unplayed = self.unplayed_games()
+        self.remaining = []
+        for user in self.users:
+            self.remaining.append((user, self.calc_user_remaining_points(
+                user, unplayed)))
+        self.remaining = dict(self.remaining)
+
+    def calc_user_remaining_points(self, user, unplayed):
+        wagers = Wager.objects.filter(user=user, game__in=unplayed)
+        return sum(( wager.amount for wager in wagers))
+
+
+    @staticmethod
+    def unplayed_games():
+        played = [ w.participant.game.id for w in Winner.objects.all() ]
+        return Game.objects.exclude(id__in=played)
+
 
 class PicksView(generic.TemplateView):
     '''List all games in table, users across the top

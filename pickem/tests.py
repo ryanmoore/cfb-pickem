@@ -126,9 +126,25 @@ class ScoreTableTests(TestCase):
     def test_scores_to_bars(self):
         table = views.ScoreTable([])
         table.scores = list(zip(range(6), range(6)))
-        expected = [ (5, 100), (4, 80), (3, 60), (2, 40), (1, 20), (0, 0), ]
+        expected = [ (5, 100, 5),
+                (4, 80, 4),
+                (3, 60, 3),
+                (2, 40, 2),
+                (1, 20, 1),
+                (0, 0, 0), ]
         self.assertSequenceEqual(table.scores_as_bars(), expected)
 
+    def test_scores_to_bars_remainder(self):
+        table = views.ScoreTable([])
+        table.scores = list(zip(range(6), range(6)))
+        table.remaining = dict(zip(range(6), reversed(range(6))))
+        expected = [ (5, 100, 5, 0, 0),
+                (4, 80, 4, 20, 1),
+                (3, 60, 3, 40, 2),
+                (2, 40, 2, 60, 3),
+                (1, 20, 1, 80, 4),
+                (0, 0, 0, 100, 5), ]
+        self.assertSequenceEqual(table.scores_as_bars(remainder=True), expected)
 
 class StarttimeTests(TestCase):
     def minutes_relative_to_start(self, minutes):
