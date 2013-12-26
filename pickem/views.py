@@ -66,15 +66,10 @@ class ScoreView(generic.TemplateView):
     def calc_user_scores(users):
         scores = dict( [ ( user.username, 0 ) for user in users ] )
         winners = Winner.objects.all()
-        print(winners)
         good_picks = Selection.objects.filter(user__in=users).filter(
                 participant__in= [ w.participant for w in winners ] )
-        print(good_picks)
         all_user_wagers = Wager.objects.filter(user__in=users)
         for pick in good_picks:
-            print(pick.participant.game)
-            print(pick.user.username, Wager.objects.filter(user=pick.user,
-                    game=pick.participant.game).get().amount)
             scores[pick.user.username] += Wager.objects.filter(user=pick.user,
                     game=pick.participant.game).get().amount
         # negate score instead of reverse=True because we want usernames
