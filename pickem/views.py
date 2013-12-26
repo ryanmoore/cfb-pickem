@@ -77,8 +77,6 @@ class ScoreView(generic.TemplateView):
         return sorted(scores.items(), key=lambda x:(-x[1], x[0]))
 
 
-
-
 class PicksView(generic.TemplateView):
     '''List all games in table, users across the top
     '''

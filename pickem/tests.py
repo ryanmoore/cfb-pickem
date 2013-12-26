@@ -100,3 +100,25 @@ class StarttimeTests(TestCase):
         self.assertTrue(views.pickem_started(
             self.minutes_relative_to_start(0)))
 
+class OrderedByListTests(TestCase):
+    def test_full_list_sorting(self):
+        num_items = 5
+        lookup = dict(zip(range(num_items), range(num_items)))
+        ordering = range(num_items)
+        self.assertSequenceEqual(ordering,
+                tuple(views.ordered_by_list(ordering, lookup)))
+
+    def test_empty_list_sorting(self):
+        num_items = 5
+        lookup = dict()
+        ordering = range(num_items)
+        self.assertSequenceEqual([ None ] * num_items,
+                tuple(views.ordered_by_list(ordering, lookup)))
+
+    def test_partial_list_sorting(self):
+        num_items = 5
+        lookup = dict( { 2:2, 4:4 } )
+        ordering = range(num_items)
+        self.assertSequenceEqual((None, None, 2, None, 4),
+                tuple(views.ordered_by_list(ordering, lookup)))
+
