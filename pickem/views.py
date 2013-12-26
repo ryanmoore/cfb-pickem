@@ -70,7 +70,7 @@ class ScoreView(generic.TemplateView):
         all_user_wagers = Wager.objects.filter(user__in=users)
         for pick in good_picks:
             scores[pick.user.username] += Wager.objects.filter(user=pick.user,
-                    game=pick.participant.game).amount
+                    game=pick.participant.game).get().amount
         # negate score instead of reverse=True because we want usernames
         # sorted alphabetically
         return sorted(scores.items(), key=lambda x:(-x[1], x[0]))
