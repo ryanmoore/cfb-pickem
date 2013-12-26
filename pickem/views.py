@@ -135,7 +135,22 @@ class PrettyPicksView(generic.TemplateView):
         context['pick_summaries'] = pick_summaries
         context['started'] = pickem_started(timezone.now())
         context['start_time'] = settings.PICKEM_START_TIME
+        context['user_progress'] = self.get_user_progresses()
         return context
+
+    @staticmethod
+    def get_user_completed_percentage(user):
+        missing = num_missing_picks_user(user)
+        games = Game.objects.all().count()
+        return (games-missing)/games
+
+    @staticmethod
+    def get_user_progresses():
+        users = User.objects.all().order_by('username')
+        return dict( [ (user,
+            PrettyPicksView.get_user_completed_percentage(user))
+            for user in users ] )
+
 
 class PickSummary:
     def __init__(self, game, users):

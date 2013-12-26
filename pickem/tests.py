@@ -15,7 +15,7 @@ class MissingCalculationTests(TestCase):
         self.userB = User.objects.create(username='alice')
         self.picks = []
         self.games = []
-        for i in range(0, 10):
+        for i in range(0, 12):
             self.games.append(Game.objects.create(event_id=i,
                 datetime=timezone.now()))
 
@@ -82,6 +82,32 @@ class MissingCalculationTests(TestCase):
         self.make_picks(self.userA, int(len(self.games)/2))
         count = views.num_missing_picks_user(self.userA)
         self.assertEqual(count, int(len(self.games)/2))
+
+    def test_user_progresses_none(self):
+        progress = views.PrettyPicksView.get_user_progresses()
+        self.assertEqual(progress[self.userA], 0)
+        self.assertEqual(progress[self.userB], 0)
+
+    def test_user_progresses_all(self):
+        self.make_picks(self.userB, len(self.games))
+        self.make_picks(self.userA, len(self.games))
+        progress = views.PrettyPicksView.get_user_progresses()
+        self.assertEqual(progress[self.userA], 1)
+        self.assertEqual(progress[self.userB], 1)
+
+    def test_user_progress_asymmetric(self):
+        self.make_picks(self.userB, len(self.games))
+        progress = views.PrettyPicksView.get_user_progresses()
+        self.assertEqual(progress[self.userA], 0)
+        self.assertEqual(progress[self.userB], 1)
+
+    def test_user_progress_partial(self):
+        self.make_picks(self.userA, 3*int(len(self.games)/4))
+        self.make_picks(self.userB, int(len(self.games)/4))
+        progress = views.PrettyPicksView.get_user_progresses()
+        self.assertEqual(progress[self.userA], .75)
+        self.assertEqual(progress[self.userB], .25)
+
 
 class StarttimeTests(TestCase):
     def minutes_relative_to_start(self, minutes):
