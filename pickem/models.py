@@ -54,6 +54,9 @@ class Selection(models.Model):
     user = models.ForeignKey(User)
     participant = models.ForeignKey(Participant)
 
+    def __str__(self):
+        return '{} picked {}'.format(self.user, self.participant)
+
 class Wager(models.Model):
     user = models.ForeignKey(User)
     game = models.ForeignKey(Game)
