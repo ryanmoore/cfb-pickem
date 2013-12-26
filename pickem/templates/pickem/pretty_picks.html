@@ -18,7 +18,7 @@
     {% for pick_summary in pick_summaries %}
     <div class="row matchup-row">
         {% for team, picks in pick_summary.picks.items %}
-        <div class="col-xs-2 team">
+        <div class="col-xs-4 team">
             {% if forloop.counter0 == 0 %}
             <table class="picklist-left">
             {% else %}
