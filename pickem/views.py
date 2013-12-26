@@ -195,10 +195,10 @@ def select_all(request):
             update_wager_or_create(request.user, game, wager)
     elif request.method == 'POST':
         error = 'Submission failed. Pickem has already started.'
-    missing = update_selection_form_list(request.user, selection_form_items)
+    update_selection_form_list(request.user, selection_form_items)
     return render(request, 'pickem/select_all.html',
                   {'selection_form_items': selection_form_items,
-                      'missing_count' : missing,
+                      'missing_count' : num_missing_picks_user(request.user),
                       'started' : pickem_started(),
                       'error' : error })
 
@@ -240,11 +240,11 @@ def update_selection_form_list(user, selection_form_items):
         except Wager.DoesNotExist:
             form_item.wager = i
     selection_form_items.sort(key=lambda x: x.wager, reverse=True)
-    return num_missing_picks(selection_form_items)
 
-def num_missing_picks(selection_form_items):
-    return len([x for x in selection_form_items if x.checked == 0 ])
-
+def num_missing_picks_user(user):
+    num_games = Game.objects.all().count()
+    num_user_picks = user.selection_set.all().count()
+    return num_games - num_user_picks
 
 def update_selection_or_create(user, participant):
     ''' If selection exists for the given user and game, updates the selected
