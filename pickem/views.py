@@ -52,6 +52,7 @@ class ScoreView(generic.TemplateView):
         context = super().get_context_data(**kwargs)
         context['started'] = pickem_started()
         context['score_headers'], context['score_table'] = self.make_score_table()
+        context['start_time'] = settings.PICKEM_START_TIME
         return context
 
     @staticmethod
@@ -93,6 +94,7 @@ class PicksView(generic.TemplateView):
         context = super().get_context_data(**kwargs)
         context['picks_headers'], context['picks_table'] = make_picks_table()
         context['started'] = pickem_started()
+        context['start_time'] = settings.PICKEM_START_TIME
         return context
 
 def make_picks_table(**kwargs):
@@ -139,6 +141,7 @@ class PrettyPicksView(generic.TemplateView):
         pick_summaries = [ PickSummary(game, users) for game in games ]
         context['pick_summaries'] = pick_summaries
         context['started'] = pickem_started()
+        context['start_time'] = settings.PICKEM_START_TIME
         return context
 
 class PickSummary:

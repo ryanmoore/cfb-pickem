@@ -11,7 +11,16 @@
 <h1>Picks</h1>
 {% if started == False %}
 <div class="alert alert-danger">
-<p>Picks from all users are not displayed until pickem starts.</p> 
+    <p>
+    Picks are secret until pickem starts. Check back after 
+    {{ start_time|date:"DATETIME_FORMAT" }}
+    </p>
+
+    <p>
+    You can view your picks at any time by using the navigation bar and
+    selecting <strong>Make Picks</strong>. Or just
+    <a href="{% url 'pickem:select_all' %}">click here</a>
+    </p>
 </div>
 {% else %}
 <div class="container pick-table">

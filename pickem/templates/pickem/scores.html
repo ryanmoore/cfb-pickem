@@ -9,7 +9,9 @@
 <h1>Scores</h1>
 {% if started == False %}
 <div class="alert alert-danger">
-<p>Scores will not be available until pickem starts.</p>
+    <p>Score page will not be available until
+    {{ start_time|date:"DATETIME_FORMAT" }}
+    </p>
 </div>
 {% else %}
 <table class="table table-striped scoreboard">
