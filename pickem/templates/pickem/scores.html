@@ -13,6 +13,22 @@
     {{ start_time|date:"DATETIME_FORMAT" }}
     </p>
 </div>
+{% elif progress_bar_style %}
+{% for user, percentage, score in scores_as_bars %}
+<div class="row">
+    <div class="col-xs-1">{{ user|capfirst }}</div>
+    <div class="col-xs-11">
+        <div class="progress">
+            <div class="progress-bar"
+                role="progressbar" aria-valuenow="{{ percentage }}"
+                aria-valuemin="0" aria-valuemax="100"
+                style="width: {{ percentage }}%;">
+                <span><strong>{{ score }}</strong></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% else %}
 <table class="table table-striped scoreboard">
     <thead>

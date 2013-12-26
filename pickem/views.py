@@ -50,9 +50,15 @@ class ScoreView(generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['start_time'] = settings.PICKEM_START_TIME
         context['started'] = pickem_started(timezone.now())
         context['score_headers'], context['score_table'] = self.make_score_table()
-        context['start_time'] = settings.PICKEM_START_TIME
+
+        users = User.objects.all()
+        scores = ScoreTable(users)
+        context['scores_as_bars'] = scores.scores_as_bars()
+        context['progress_bar_style'] = True
+
         return context
 
     @staticmethod
@@ -68,7 +74,6 @@ class ScoreView(generic.TemplateView):
         winners = Winner.objects.all()
         good_picks = Selection.objects.filter(user__in=users).filter(
                 participant__in= [ w.participant for w in winners ] )
-        all_user_wagers = Wager.objects.filter(user__in=users)
         for pick in good_picks:
             scores[pick.user.username] += Wager.objects.filter(user=pick.user,
                     game=pick.participant.game).get().amount
@@ -76,6 +81,46 @@ class ScoreView(generic.TemplateView):
         # sorted alphabetically
         return sorted(scores.items(), key=lambda x:(-x[1], x[0]))
 
+class ScoreTable:
+    def __init__(self, users):
+        self.scores = []
+        self.users = users
+
+    def scores_as_table(self):
+        if not self.scores:
+            self.calc_scores()
+        self.sort_scores()
+        return self.scores
+
+    def scores_as_bars(self):
+        if not self.scores:
+            self.calc_scores()
+        self.sort_scores()
+        self.bar_scores = self.scores_to_bars()
+        return self.bar_scores
+
+    def scores_to_bars(self):
+        max_val = self.scores[0][1]
+        return [ (x, 100*y/max_val, y) for x,y in self.scores ]
+
+    def calc_scores(self):
+        self.scores = dict( [ ( user, 0 ) for user in self.users ] )
+        good_picks = self.select_winning_picks()
+        for pick in good_picks:
+            self.scores[pick.user] += Wager.objects.filter(
+                    user=pick.user,
+                    game=pick.participant.game).get().amount
+        self.scores = list(self.scores.items())
+
+    def sort_scores(self):
+        # negate score instead of reverse=True because we want usernames
+        # sorted alphabetically
+        self.scores.sort(key=lambda x:(-x[1], str(x[0])))
+
+    def select_winning_picks(self):
+        winners = Winner.objects.all()
+        return Selection.objects.filter(user__in=self.users).filter(
+                participant__in= [ w.participant for w in winners ] )
 
 class PicksView(generic.TemplateView):
     '''List all games in table, users across the top

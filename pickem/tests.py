@@ -108,6 +108,27 @@ class MissingCalculationTests(TestCase):
         self.assertEqual(progress[self.userA], .75)
         self.assertEqual(progress[self.userB], .25)
 
+    def test_user_progress_percentages(self):
+        self.make_picks(self.userA, 3*int(len(self.games)/4))
+        self.make_picks(self.userB, int(len(self.games)/4))
+        progress = views.PrettyPicksView.get_user_progresses(percentage=True)
+        self.assertEqual(progress[self.userA], 75)
+        self.assertEqual(progress[self.userB], 25)
+
+class ScoreTableTests(TestCase):
+    def test_scores_sort_correct(self):
+        table = views.ScoreTable([])
+        table.scores = [ ('c', 1), ('z', 2), ('c', 3), ('e', 3), ('d', 3) ]
+        table.sort_scores()
+        expected = [ ('c', 3), ('d', 3), ('e', 3), ('z', 2), ('c', 1)]
+        self.assertSequenceEqual(table.scores, expected)
+
+    def test_scores_to_bars(self):
+        table = views.ScoreTable([])
+        table.scores = list(zip(range(6), range(6)))
+        expected = [ (5, 100), (4, 80), (3, 60), (2, 40), (1, 20), (0, 0), ]
+        self.assertSequenceEqual(table.scores_as_bars(), expected)
+
 
 class StarttimeTests(TestCase):
     def minutes_relative_to_start(self, minutes):
