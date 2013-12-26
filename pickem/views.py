@@ -135,20 +135,25 @@ class PrettyPicksView(generic.TemplateView):
         context['pick_summaries'] = pick_summaries
         context['started'] = pickem_started(timezone.now())
         context['start_time'] = settings.PICKEM_START_TIME
-        context['user_progress'] = self.get_user_progresses()
+        context['user_progress'] = sorted(
+                self.get_user_progresses(percentage=True).items(),
+                key=lambda x:(x[1], x[0].username))
         return context
 
     @staticmethod
     def get_user_completed_percentage(user):
         missing = num_missing_picks_user(user)
         games = Game.objects.all().count()
-        return (games-missing)/games
+        return round((games-missing)/games, 2)
 
     @staticmethod
-    def get_user_progresses():
+    def get_user_progresses(percentage=False):
+        multiple = 1
+        if percentage:
+            multiple = 100
         users = User.objects.all().order_by('username')
         return dict( [ (user,
-            PrettyPicksView.get_user_completed_percentage(user))
+            multiple*PrettyPicksView.get_user_completed_percentage(user))
             for user in users ] )
 
 

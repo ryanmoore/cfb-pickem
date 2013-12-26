@@ -23,7 +23,22 @@
     </p>
 </div>
 <div>
-
+    <div class="panel panel-default">
+        <div class="panel-heading">Pick progress</div>
+        <div style="margin:5px;">
+            {% for user, percentage in user_progress %}
+            <h4>{{ user|capfirst }}</h4>
+            <div class="progress">
+                <div class="progress-bar {% if percentage == 100 %}progress-bar-success{% endif %}"
+                    role="progressbar" aria-valuenow="{{ percentage }}"
+                    aria-valuemin="0" aria-valuemax="100"
+                    style="width: {{ percentage }}%;">
+                    <span class="sr-only">{{ percentage }}% Complete</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 </div>
 {% else %}
 <div class="container pick-table">
