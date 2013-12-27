@@ -9,8 +9,8 @@
 <div class="row">
     <h1>Scores</h1>
 </div>
+{% if started == False %}
 <div class="row">
-    {% if started == False %}
     <div class="alert alert-danger">
         <p>Score page will not be available until
         {{ start_time|date:"DATETIME_FORMAT" }}
