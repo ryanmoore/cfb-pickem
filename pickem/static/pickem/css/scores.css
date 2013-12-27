@@ -10,6 +10,5 @@ table.scoreboard {
 }
 
 .totals {
-    text-align: left;
-    float: left;
+    padding-left: 0px;
 }
