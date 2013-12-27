@@ -35,12 +35,6 @@ td.user {
     text-align: center;
 }
 
-.pick-table {
-    width: auto;
-    margin-right: auto;
-    margin-left: auto;
-}
-
 .matchup-row:nth-of-type(odd) {
     background-color: #f4f4f4;
 }

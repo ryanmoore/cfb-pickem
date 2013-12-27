@@ -41,16 +41,15 @@
     </div>
 </div>
 {% else %}
-<div class="container pick-table">
-    {% for pick_summary in pick_summaries %}
-    <div class="row matchup-row">
-        {% for team, picks in pick_summary.picks.items %}
-        <div class="col-xs-4 team">
-            {% if forloop.counter0 == 0 %}
-            <table class="picklist-left">
+{% for pick_summary in pick_summaries %}
+<div class="row matchup-row">
+    {% for team, picks in pick_summary.picks.items %}
+    <div class="col-xs-4 team">
+        {% if forloop.counter0 == 0 %}
+        <table class="picklist-left">
             {% else %}
             <table class="picklist-right">
-            {% endif %}
+                {% endif %}
                 <thead><tr><th class="team" colspan="2">{{ team }}</th></tr></thead>
                 <tbody>
                     {% for pick in picks %}
@@ -87,7 +86,6 @@
         {% endfor %}
     </div>
     {% endfor %}
-</div>
 <div>
     <form action="{% url 'pickem:picks_table' %}">
         <button type='submit' class='btn btn-default' style='margin-bottom: 10px'>View condensed</button>
