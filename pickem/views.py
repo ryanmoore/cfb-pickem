@@ -114,7 +114,7 @@ class ScoreTable:
             remaining = self.remaining[user]
             remaining_bar = 100*remaining/longest_bar
             if remainder:
-                yield (user, score_bar, score, remaining_bar, remaining)
+                yield (user, .8*score_bar, score, .8*remaining_bar, remaining)
             else:
                 yield (user, score_bar, score)
 
