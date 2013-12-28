@@ -45,6 +45,14 @@ td.user {
     padding-bottom: 20px;
 }
 
+.winning-pick table {
+    color: #008B00;
+}
+
+.losing-pick table {
+    color: #E3170D;
+}
+
 .picklist-left {
     float: right;
 }

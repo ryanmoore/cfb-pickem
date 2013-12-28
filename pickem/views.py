@@ -11,7 +11,7 @@ import django.utils.timezone as timezone
 from django.db.models import Max as DjangoMax
 
 from pickem.models import Game, Selection, Participant, Wager, Winner
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 # pylint: disable=too-many-ancestors
 
@@ -212,10 +212,15 @@ class PrettyPicksView(generic.TemplateView):
     template_name = 'pickem/pretty_picks.html'
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        games = Game.objects.order_by('datetime')
+
         users = User.objects.all()
-        pick_summaries = [ PickSummary(game, users) for game in games ]
-        context['pick_summaries'] = pick_summaries
+        complete_picks, incomplete_picks = self.generate_pick_summaries(users)
+
+        complete_picks = [ PickSummary(game, users) for game in complete_picks ]
+        incomplete_picks = [ PickSummary(game, users) for game in incomplete_picks ]
+
+        context['complete_picks'] = complete_picks
+        context['incomplete_picks'] = incomplete_picks
         context['started'] = pickem_started(timezone.now())
         context['start_time'] = settings.PICKEM_START_TIME
         if not context['started']:
@@ -223,6 +228,21 @@ class PrettyPicksView(generic.TemplateView):
                     self.get_user_progresses(percentage=True).items(),
                     key=lambda x:(x[1], x[0].username))
         return context
+
+    @staticmethod
+    def get_incomplete_games(completed_games):
+        all_games = Game.objects.order_by('datetime')
+        complete_set = set(completed_games)
+        return [ x for x in all_games if x not in complete_set ]
+
+    @staticmethod
+    def get_completed_games():
+        return [ x.participant.game
+                for x in Winner.objects.order_by('participant__game__datetime') ]
+
+    def generate_pick_summaries(self, users):
+        completed_games = self.get_completed_games()
+        return completed_games, self.get_incomplete_games(completed_games)
 
     @staticmethod
     def get_last_completed_game():
@@ -250,23 +270,32 @@ class PickSummary:
     def __init__(self, game, users):
         self.game = game
         self.users = users
+        self.winner_index = self.get_winner_index()
 
-    @property
-    def participants(self):
-        return sorted(self.game.participant_set.all(),
-                key=lambda x: str(x.team))
+    def get_participants(self):
+        return self.game.participant_set.order_by('team__name')
 
     def picks(self):
-        participants = self.participants
+        participants = self.get_participants()
         selections = Selection.objects.filter(participant__game=self.game)
         wagers = Wager.objects.filter(game=self.game)
-        result = dict( [ (str(part.team), []) for part in participants ] )
+        result = OrderedDict( [ (str(part.team), []) for part in participants ] )
         for selection in selections:
             result[str(selection.participant.team)].append(
                     wagers.get(user=selection.user))
         for key, value in result.items():
             value.sort(key=lambda x: x.amount, reverse=True)
         return result
+
+    def get_winner_index(self):
+        try:
+            winner = Winner.objects.get(participant__game=self.game).participant
+            for index, team in enumerate(self.get_participants()):
+                if team == winner:
+                    return index
+            return None
+        except Winner.DoesNotExist:
+            return None
 
 def pretty_date(datetime):
     return datetime.strftime('%a %b %d')

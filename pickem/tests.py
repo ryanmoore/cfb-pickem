@@ -283,3 +283,32 @@ class GetLatestTest(TestCase):
         self.assertEqual(views.PrettyPicksView.get_last_completed_game(),
                 self.games[4])
 
+    def test_get_incompleted_all(self):
+        ordered_games = sorted(self.games, key=lambda x: x.datetime)
+        self.assertEqual(ordered_games,
+                views.PrettyPicksView.get_incomplete_games([]))
+
+    def test_get_incompleted_none(self):
+        self.assertEqual([],
+                views.PrettyPicksView.get_incomplete_games(self.games))
+
+    def test_get_complete_all(self):
+        self.make_winners(range(len(self.games)))
+        ordered_games = sorted(self.games, key=lambda x: x.datetime)
+        self.assertEqual(ordered_games,
+                views.PrettyPicksView.get_completed_games())
+
+    def test_get_complete_none(self):
+        self.assertEqual([],
+            views.PrettyPicksView.get_completed_games())
+
+    def test_winner_index_first(self):
+        self.make_winners([0])
+        summary = views.PickSummary(self.games[0], self.users)
+        self.assertEqual(summary.get_winner_index(), 0)
+
+    def test_winner_index_second(self):
+        self.make_winners([5])
+        summary = views.PickSummary(self.games[0], self.users)
+        self.assertEqual(summary.get_winner_index(), 1)
+

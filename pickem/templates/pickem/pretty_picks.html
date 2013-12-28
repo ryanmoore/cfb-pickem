@@ -40,7 +40,7 @@
     </div>
 </div>
 {% else %}
-{% for pick_summary in pick_summaries %}
+{% for pick_summary in incomplete_picks %}
 <div class="row matchup-row">
     {% for team, picks in pick_summary.picks.items %}
     <div class="col-xs-4 team">
@@ -85,6 +85,56 @@
         {% endfor %}
     </div>
     {% endfor %}
+<div class="row"><h3>Completed games</h3></div>
+{% for pick_summary in complete_picks %}
+<div class="row matchup-row">
+    {% for team, picks in pick_summary.picks.items %}
+    {% if forloop.counter0 == pick_summary.winner_index %}
+    <div class="col-xs-4 team winning-pick">
+    {% else %}
+    <div class="col-xs-4 team losing-pick">
+    {% endif %}
+        {% if forloop.counter0 == 0 %}
+        <table class="picklist-left">
+        {% else %}
+        <table class="picklist-right">
+        {% endif %}
+            <thead><tr><th class="team" colspan="2">{{ team }}</th></tr></thead>
+            <tbody>
+                {% for pick in picks %}
+                <tr>
+                    {% if forloop.parentloop.counter0 == 0 %}
+                    <td class="user">
+                        {{ pick.user|capfirst }}
+                    </td>
+                    <td class="wager">
+                        <strong>{{ pick.amount }}</strong>
+                    </td>
+                    {% else %}
+                    <td class="wager">
+                        <strong>{{ pick.amount }}</strong>
+                    </td>
+                    <td class="user">
+                        {{ pick.user|capfirst }}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if forloop.counter0 == 0 %}
+    <div class="col-xs-4 game-details">
+        <p>
+        {{ pick_summary.game.event.name }}<br>
+        {{ pick_summary.game.datetime|date:"DATE_FORMAT" }}<br>
+        {{ pick_summary.game.datetime|date:"P" }}
+        </p>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endfor %}
 <div>
     <form action="{% url 'pickem:picks_table' %}">
         <button type='submit' class='btn btn-default' style='margin-bottom: 10px'>View condensed</button>
