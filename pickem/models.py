@@ -23,7 +23,7 @@ class Game(models.Model):
         return Participant.objects.filter(game=self)
 
     def __str__(self):
-        return '{}'.format(str(self.event))
+        return '{} at {}'.format(str(self.event), self.pretty_date())
 
 
 class Team(models.Model):

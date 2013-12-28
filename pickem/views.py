@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.conf import settings
 import django.utils.timezone as timezone
+from django.db.models import Max as DjangoMax
 
 from pickem.models import Game, Selection, Participant, Wager, Winner
 from collections import defaultdict
@@ -217,10 +218,16 @@ class PrettyPicksView(generic.TemplateView):
         context['pick_summaries'] = pick_summaries
         context['started'] = pickem_started(timezone.now())
         context['start_time'] = settings.PICKEM_START_TIME
-        context['user_progress'] = sorted(
-                self.get_user_progresses(percentage=True).items(),
-                key=lambda x:(x[1], x[0].username))
+        if not context['started']:
+            context['user_progress'] = sorted(
+                    self.get_user_progresses(percentage=True).items(),
+                    key=lambda x:(x[1], x[0].username))
         return context
+
+    @staticmethod
+    def get_last_completed_game():
+        return Winner.objects.latest(
+                'participant__game__datetime').participant.game
 
     @staticmethod
     def get_user_completed_percentage(user):

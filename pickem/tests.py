@@ -1,5 +1,5 @@
 from django.test import TestCase
-from pickem.models import Game, Selection, Participant, Wager, Winner, Team
+from pickem.models import Game, Selection, Participant, Wager, Winner, Team, Event
 from django.contrib.auth.models import User
 import django.utils.timezone as timezone
 from django.conf import settings
@@ -201,26 +201,24 @@ class ScoreTableTests(TestCase):
         table = views.ScoreTable([])
         table.scores = list(zip(range(6), range(6)))
         table.remaining = dict(zip(range(6), reversed(range(6))))
-        expected = [ (5, 100, 5, 0, 0),
-                (4, 80, 4, 20, 1),
-                (3, 60, 3, 40, 2),
-                (2, 40, 2, 60, 3),
-                (1, 20, 1, 80, 4),
-                (0, 0, 0, 100, 5), ]
+        expected = [ (5, .8*100, 5, .8*0, 0),
+                (4, .8*80, 4, .8*20, 1),
+                (3, .8*60, 3, .8*40, 2),
+                (2, .8*40, 2, .8*60, 3),
+                (1, .8*20, 1, .8*80, 4),
+                (0, .8*0, 0,  .8*100, 5), ]
         self.assertSequenceEqual(table.scores_as_bars(remainder=True), expected)
 
 class StarttimeTests(TestCase):
     def minutes_relative_to_start(self, minutes):
-        return settings.PICKEM_START_TIME + datetime.timedelta(
-                minutes=minutes)
+        return settings.PICKEM_START_TIME + datetime.timedelta(minutes=minutes)
 
     def test_now_before_starttime(self):
         self.assertFalse(views.pickem_started(
             self.minutes_relative_to_start(-5)))
 
     def test_now_after_starttime(self):
-        self.assertTrue(views.pickem_started(
-            self.minutes_relative_to_start(5)))
+        self.assertTrue(views.pickem_started(self.minutes_relative_to_start(5)))
 
     def test_now_is_starttime(self):
         self.assertTrue(views.pickem_started(
@@ -247,4 +245,41 @@ class OrderedByListTests(TestCase):
         ordering = range(num_items)
         self.assertSequenceEqual((None, None, 2, None, 4),
                 tuple(views.ordered_by_list(ordering, lookup)))
+
+class GetLatestTest(TestCase):
+    def setUp(self):
+        self.num_games = 5
+        self.users = User.objects.create(username="bob"), User.objects.create(
+                username="alice")
+        minute_offsets = [ 5, 2, 15, 100, 19 ]
+        self.games = [ Game.objects.create(
+            event_id=Event.objects.create(name=str('event {}'.format(i))),
+            datetime=timezone.now()+datetime.timedelta(minutes=m))
+            for i, m in enumerate(minute_offsets) ]
+        self.teams = [ Team.objects.create(name=str(i)) for i in range(
+            len(self.games)*2) ]
+        self.parts = [ Participant.objects.create(game=game, team=team)
+                for team, game in zip(self.teams, self.games+self.games) ]
+
+    def tearDown(self):
+        Winner.objects.all().delete()
+
+    def make_winners(self, participant_ids):
+        for i in participant_ids:
+            Winner.objects.create(participant=self.parts[i])
+
+    def test_find_latest1(self):
+        self.make_winners([0, 1])
+        self.assertEqual(views.PrettyPicksView.get_last_completed_game(),
+                self.games[0])
+
+    def test_find_latest2(self):
+        self.make_winners([0, 1, 2, 8, 9])
+        self.assertEqual(views.PrettyPicksView.get_last_completed_game(),
+                self.games[3])
+
+    def test_find_latest3(self):
+        self.make_winners([0, 1, 2, 4])
+        self.assertEqual(views.PrettyPicksView.get_last_completed_game(),
+                self.games[4])
 
