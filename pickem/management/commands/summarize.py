@@ -32,13 +32,15 @@ class Command(BaseCommand):
 
         with transaction.atomic():
             scores = self.score_table.scores_as_table()
-            scores = dict([ ( str(user), score ) for user, score in scores ] )
+            scores = dict([ ( user.id, score ) for user, score in scores ] )
+            users = dict([ (user.id, str(user)) for user in User.objects.all() ])
             matchups = self.remaining_matchups()
             matchup_ids = [ ( x.id, y.id ) for x,y in matchups ]
             participants = list(itertools.chain(*matchups))
             teams = dict( [ (part.id, part.team.name) for part in participants] )
             picks = list(self.get_picks(participants))
             data = {
+                    'users' : users,
                     'scores': scores,
                     'matchups' : matchup_ids,
                     'teams' : teams,
