@@ -19,6 +19,8 @@
     {{ error }}
 </div>
 {% endif %}
+
+{% if not started %}
 <div class="panel panel-info">
     <div class="panel-heading">How to play</div>
     <div class="panel-body">
@@ -38,9 +40,13 @@
         </p>
     </div>
 </div>
+{% endif %}
 
 {% if started == True %}
-<div class="alert alert-danger">
+<div class="alert alert-danger alert-dismissable" role="alert">
+    <button type="button" class="close" data-dismiss="alert">
+        <span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+    </button>
     <p><b>Alert:</b> Games have started. You will not be able to submit any
     changes you make.</p>
 </div>
