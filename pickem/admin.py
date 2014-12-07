@@ -6,11 +6,14 @@ from pickem.models import Event, Game, Team, Participant, Winner
 class EventAdmin(admin.ModelAdmin):
     model = Event
 
+class ParticipantInline(admin.StackedInline):
+    model = Participant
+    max_num = 2
 
 class GameAdmin(admin.ModelAdmin):
     model = Game
     list_display = ['event', 'pretty_date']
-
+    inlines = [ ParticipantInline ]
 
 class TeamAdmin(admin.ModelAdmin):
     model = Team
