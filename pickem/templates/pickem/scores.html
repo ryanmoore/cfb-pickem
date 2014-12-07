@@ -14,6 +14,12 @@
         </p>
     </div>
 </div>
+{% elif not scores_as_bars %}
+<div class="row">
+    <div class="alert alert-danger">
+        <p>No users</p>
+    </div>
+</div>
 {% elif progress_bar_style %}
 <div class="row">
     <div class="panel panel-info">
