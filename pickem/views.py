@@ -56,7 +56,7 @@ class ScoreView(generic.TemplateView):
         context['score_headers'], context['score_table'] = self.make_score_table()
 
         users = User.objects.all()
-        if not users:
+        if not users or not context['started']:
             return context
         scores = ScoreTable(users)
         context['scores_as_bars'] = scores.scores_as_bars(remainder=True)
