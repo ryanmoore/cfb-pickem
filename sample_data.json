@@ -1,0 +1,178 @@
+[
+{
+    "fields": {},
+    "model": "pickem.event",
+    "pk": "Bowl Game with a Longer Name"
+},
+{
+    "fields": {},
+    "model": "pickem.event",
+    "pk": "Bowl Game with a very extremely I mean really long name that should never fit"
+},
+{
+    "fields": {},
+    "model": "pickem.event",
+    "pk": "Rose Bowl"
+},
+{
+    "fields": {},
+    "model": "pickem.event",
+    "pk": "Sugar Bowl"
+},
+{
+    "fields": {
+        "event": "Rose Bowl",
+        "datetime": "2014-12-01T17:00:00Z"
+    },
+    "model": "pickem.game",
+    "pk": 1
+},
+{
+    "fields": {
+        "event": "Sugar Bowl",
+        "datetime": "2014-12-31T17:00:00Z"
+    },
+    "model": "pickem.game",
+    "pk": 2
+},
+{
+    "fields": {
+        "event": "Bowl Game with a very extremely I mean really long name that should never fit",
+        "datetime": "2015-01-01T11:00:00Z"
+    },
+    "model": "pickem.game",
+    "pk": 3
+},
+{
+    "fields": {},
+    "model": "pickem.team",
+    "pk": "Alabama"
+},
+{
+    "fields": {},
+    "model": "pickem.team",
+    "pk": "Florida State"
+},
+{
+    "fields": {},
+    "model": "pickem.team",
+    "pk": "Michigan"
+},
+{
+    "fields": {},
+    "model": "pickem.team",
+    "pk": "Northwestern"
+},
+{
+    "fields": {},
+    "model": "pickem.team",
+    "pk": "Ohio State"
+},
+{
+    "fields": {},
+    "model": "pickem.team",
+    "pk": "Oregon"
+},
+{
+    "fields": {
+        "game": 2,
+        "team": "Ohio State"
+    },
+    "model": "pickem.participant",
+    "pk": 1
+},
+{
+    "fields": {
+        "game": 2,
+        "team": "Alabama"
+    },
+    "model": "pickem.participant",
+    "pk": 2
+},
+{
+    "fields": {
+        "game": 1,
+        "team": "Oregon"
+    },
+    "model": "pickem.participant",
+    "pk": 3
+},
+{
+    "fields": {
+        "game": 1,
+        "team": "Florida State"
+    },
+    "model": "pickem.participant",
+    "pk": 4
+},
+{
+    "fields": {
+        "game": 3,
+        "team": "Michigan"
+    },
+    "model": "pickem.participant",
+    "pk": 5
+},
+{
+    "fields": {
+        "game": 3,
+        "team": "Northwestern"
+    },
+    "model": "pickem.participant",
+    "pk": 6
+},
+{
+    "fields": {
+        "username": "admin",
+        "first_name": "",
+        "last_name": "",
+        "is_active": true,
+        "is_superuser": true,
+        "is_staff": true,
+        "last_login": "2014-12-07T20:54:47.563Z",
+        "groups": [],
+        "user_permissions": [],
+        "password": "pbkdf2_sha256$12000$lIDJFo7I0tPu$bktWy51AZ8JM4INvSFPfLI0nwsp2SWFBHKNY5XItDRI=",
+        "email": "",
+        "date_joined": "2014-12-07T19:35:35Z"
+    },
+    "model": "auth.user",
+    "pk": 1
+},
+{
+    "fields": {
+        "username": "Bob",
+        "first_name": "",
+        "last_name": "",
+        "is_active": true,
+        "is_superuser": false,
+        "is_staff": false,
+        "last_login": "2014-12-07T19:42:22Z",
+        "groups": [],
+        "user_permissions": [],
+        "password": "pbkdf2_sha256$12000$l9CcTC2W23IS$rJFSa0spAuLFYm6EYlnywkrXxXin/1MIgylu6+d6LaU=",
+        "email": "",
+        "date_joined": "2014-12-07T19:42:22Z"
+    },
+    "model": "auth.user",
+    "pk": 2
+},
+{
+    "fields": {
+        "username": "Alice",
+        "first_name": "",
+        "last_name": "",
+        "is_active": true,
+        "is_superuser": false,
+        "is_staff": false,
+        "last_login": "2014-12-07T19:42:32Z",
+        "groups": [],
+        "user_permissions": [],
+        "password": "pbkdf2_sha256$12000$YOsnnZ19zu9s$8utE9fokAM4CUzIQGEsIh43MobywgXREeOeNm5aLlzU=",
+        "email": "",
+        "date_joined": "2014-12-07T19:42:32Z"
+    },
+    "model": "auth.user",
+    "pk": 3
+}
+]
