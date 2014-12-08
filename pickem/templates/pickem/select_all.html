@@ -67,48 +67,40 @@
 <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
     {% csrf_token %}
     <input type='hidden' name='matchup_ordering' id='matchup_ordering'>
-    <div class="table_container">
-        <table class="pick_table table">
-            <thead><tr><th>Points</th></tr></thead>
-            <tbody>
-                {% for matchup in selection_form_items %}
-                <tr><td style="text-align: right;">{{ forloop.revcounter }}</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <table class="pick_table table">
-            <thead>
-                <tr><th colspan="4">Bowl</th></tr>
-            </thead>
-            <tbody id="matchup_ranking">
-                {% for matchup in selection_form_items %}
-                <tr id="game={{ matchup.game.id }}">
-                    <td class="handle"><b>::</b></td>
-                    <td class="game_title">
-                        <a href="{% url 'pickem:game' matchup.game.id %}">{{ matchup.game.event.name }}</a>
-                    </td>
-                    {% for team in matchup.teams %}
-                    <td>
-                            <input type="radio"
-                                   name="game={{ matchup.game.id }}"
-                                   value="{{ team.name }}"
-                                   id="{{ team.name }}"
-                            {% if forloop.counter == matchup.checked %}
-                            checked="checked"
-                            {% endif %}
-                            >
-                            <label class="btn btn-default btn-block team_button" for="{{ team.name }}">
-                            {{ team.name }}
-                            {% if team.rank %}
-                            ({{ team.rank }})
-                            {% endif %}
-                        </label>
-                    </td>
-                        {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="table-container pick-list" id="matchup_ranking">
+        {% for matchup in selection_form_items %}
+        <div class="row">
+            <div class="col-xs-1 handle pick-list-col">
+                <span class="handle-grip">::</span>
+                <span class="pick-idx">
+                {{ forloop.revcounter }}
+                </span>
+            </div>
+            <div class="col-xs-3 game-title-col pick-list-col">
+                <span class="game_title">
+                    {{ matchup.game.event.name }}
+                </span>
+            </div>
+            {% for team in matchup.teams %}
+            <div class="col-xs-4 button-div pick-list-col">
+                    <input type="radio"
+                           name="game={{ matchup.game.id }}"
+                           value="{{ team.name }}"
+                           id="{{ team.name }}"
+                    {% if forloop.counter == matchup.checked %}
+                    checked="checked"
+                    {% endif %}
+                    >
+                    <label class="team-button" for="{{ team.name }}">
+                    {{ team.name }}
+                    {% if team.rank %}
+                    ({{ team.rank }})
+                    {% endif %}
+                    </label>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
     </div>
 </form>
 {% endblock %}

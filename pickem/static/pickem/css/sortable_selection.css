@@ -1,55 +1,54 @@
-.table_container {
-    float: center;
-    width: 800px;
-    margin-right: auto;
-    margin-left: auto;
+.table-container {
 }
 
-.pick_table {
-    display: inline-block;
-    width: auto;
+.pick-list {
+    width: 100%;
 }
 
-.pick_table td {
-    vertical-align: middle !important;
-    height: 55px;
+.button-div {
+    padding: 0;
+    padding-right: 2px;
 }
 
-.pick_table input[type="radio"] {
+.pick-list input[type="radio"] {
     display: none;
 }
 
-.pick_table .team_button {
-    width: 150px;
-    float: right;
-}
-
-td.game_title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    -o-text-overflow: ellipsis;
-    white-space: nowrap;
-    width: 290px;
-}
-.pick_table label {
-    display: inline-block;
-    margin-left: 2px;
-    margin-right: 2px;
-    vertical-align: middle;
-    background-color: #bbb;
-}
-.pick_table label:hover {
-    border-style: solid;
-    border-color: #000000;
-    border-width: 1px;
-}
-
-.pick_table input[type="radio"]:checked + label {
+.pick-list input[type="radio"]:checked + label {
     background-color: #428bca;
     color: #ffffff;
+}
+
+.team-button {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
     border-style: solid;
-    border-color: #ffffff;
-    border-width: 2px;
+    border-width: 1px;
+    border-color: transparent;
+    background-color: #bbb;
+}
+
+.pick-list label {
+}
+
+.pick-list-col {
+    height: 41px;
+    margin-bottom: 2px;
+    display: table;
+    padding: 0;
+}
+
+.pick-list-col > * {
+    height: 41px;
+}
+
+.pick-list label:hover {
+    border-style: solid;
+    border-color: #000000;
 }
 
 .handle {
@@ -60,5 +59,38 @@ td.game_title {
     -ms-user-select: none;
     user-select: none;
     cursor: move;
-    width: auto;
+    display: table;
 }
+
+.game-title-col {
+    display: table;
+    table-layout: fixed;
+    padding-right: 3px;
+}
+
+.handle > span {
+    display: table-cell;
+    vertical-align: middle;
+    width: 100%;
+}
+
+.handle-grip {
+    padding-right: 5px;
+}
+
+.pick-idx {
+    padding-right: 10px;
+    font-size: 14pt;
+    font-weight: bold;
+}
+
+.game_title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -o-text-overflow: ellipsis;
+    white-space: nowrap;
+    display: table-cell;
+    vertical-align: middle;
+    width: 100%;
+}
+
