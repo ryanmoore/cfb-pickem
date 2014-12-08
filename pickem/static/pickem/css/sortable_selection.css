@@ -2,12 +2,9 @@
 }
 
 .pick-list {
-    width: 100%;
 }
 
 .button-div {
-    padding: 0;
-    padding-right: 2px;
 }
 
 .pick-list input[type="radio"] {
@@ -22,7 +19,6 @@
 .team-button {
     width: 100%;
     margin-left: 0;
-    margin-right: 0;
     display: table-cell;
     text-align: center;
     vertical-align: middle;
@@ -32,15 +28,24 @@
     background-color: #bbb;
 }
 
-.pick-list label {
-}
-
 .pick-list-col {
     height: 41px;
     margin-bottom: 2px;
     display: table;
+    table-layout: fixed;
     padding: 0;
+    padding-right: 2px;
 }
+
+.pick-list label {
+}
+
+.game-title-col {
+    display: table;
+    table-layout: fixed;
+    padding-right: 3px;
+}
+
 
 .pick-list-col > * {
     height: 41px;
@@ -62,20 +67,14 @@
     display: table;
 }
 
-.game-title-col {
-    display: table;
-    table-layout: fixed;
-    padding-right: 3px;
-}
-
 .handle > span {
     display: table-cell;
     vertical-align: middle;
-    width: 100%;
 }
 
 .handle-grip {
     padding-right: 5px;
+    width: auto;
 }
 
 .pick-idx {

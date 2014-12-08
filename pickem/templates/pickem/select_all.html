@@ -70,14 +70,12 @@
     <div class="table-container pick-list" id="matchup_ranking">
         {% for matchup in selection_form_items %}
         <div class="row">
-            <div class="col-xs-1 handle pick-list-col">
+            <div class="col-xs-4 handle pick-list-col">
+                <span class="game_title">
                 <span class="handle-grip">::</span>
                 <span class="pick-idx">
                 {{ forloop.revcounter }}
                 </span>
-            </div>
-            <div class="col-xs-3 game-title-col pick-list-col">
-                <span class="game_title">
                     {{ matchup.game.event.name }}
                 </span>
             </div>
