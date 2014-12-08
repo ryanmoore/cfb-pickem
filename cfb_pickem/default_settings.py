@@ -105,6 +105,6 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.request',
 )
 
-PICKEM_START_TIME = datetime.datetime(year=2013, month=12, day=24,
+PICKEM_START_TIME = datetime.datetime(year=2014, month=12, day=24,
         hour=11, minute=55, tzinfo=timezone('US/Eastern'))
 
