@@ -69,7 +69,7 @@
     <input type='hidden' name='matchup_ordering' id='matchup_ordering'>
     <div class="table-container pick-list" id="matchup_ranking">
         {% for matchup in selection_form_items %}
-        <div class="row">
+        <div class="row" id="game={{matchup.game.id}}">
             <div class="col-xs-4 handle pick-list-col">
                 <span class="game_title">
                 <span class="handle-grip">::</span>
