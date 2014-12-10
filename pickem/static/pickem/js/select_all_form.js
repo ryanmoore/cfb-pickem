@@ -3,13 +3,22 @@ function onSubmit() {
     $( "#matchup_ordering" ).val( JSON.stringify(order) );
 }
 
+function update_indices() {
+    var count = $('#matchup_ranking').children().length;
+    $('#matchup_ranking').children().each(
+            function(index){
+                $(this).find(".pick-idx")[0].innerHTML = count-index;
+            });
+}
+
 function configure_sortable() {
     $( '#matchup_ranking').sortable({ 
         axis: 'y',
         scroll: true,
         scrollSensitivity: 80,
         scrollSpeed: 10,
-        handle: ".handle"
+        handle: ".handle",
+        update: update_indices
         //,items:'td:not(.sortable-state-disabled)'
     });
     $( '#matchup_ranking' ).disableSelection();
