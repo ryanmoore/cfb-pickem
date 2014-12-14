@@ -22,8 +22,12 @@
 
 {% if not started %}
 <div class="panel panel-info">
-    <div class="panel-heading">How to play</div>
-    <div class="panel-body">
+    <div class="panel-heading">
+        <a data-toggle="collapse" href="#how-to-panel" aria-expanded="true" aria-controls="collapseOne">
+        How to play
+        </a>
+    </div>
+    <div class="panel-body collapse" id="how-to-panel">
         <p>
         For each matchup, select the team you think will win. Your
         selections will be shown in blue. 
@@ -51,7 +55,10 @@
     changes you make.</p>
 </div>
 {% elif missing_count > 0 %}
-<div class="alert alert-warning">
+<div class="alert alert-warning alert-dismissable">
+    <button type="button" class="close" data-dismiss="alert">
+        <span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+    </button>
     <p>You still have <b>{{ missing_count }} picks</b> to make!
     </p>
 </div>
