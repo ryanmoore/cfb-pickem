@@ -1,8 +1,3 @@
-.table-container {
-}
-
-.pick-list {
-}
 
 .button-div {
 }
@@ -26,10 +21,15 @@
     border-width: 1px;
     border-color: transparent;
     background-color: #bbb;
+    /*border-radius: 5px;*/
+}
+
+.game-info-button {
+    text-align: center;
 }
 
 .pick-list-col {
-    height: 41px;
+    height: 42px;
     margin-bottom: 2px;
     display: table;
     table-layout: fixed;
@@ -38,17 +38,6 @@
 }
 
 .pick-list label {
-}
-
-.game-title-col {
-    display: table;
-    table-layout: fixed;
-    padding-right: 3px;
-}
-
-
-.pick-list-col > * {
-    height: 41px;
 }
 
 .pick-list label:hover {
@@ -64,23 +53,27 @@
     -ms-user-select: none;
     user-select: none;
     cursor: move;
-    display: table;
 }
 
-.handle > span {
-    display: table-cell;
+.pick-list-col > * {
+    height: 42px;
+}
+
+.handle div div {
+    line-height: 42px;
     vertical-align: middle;
+    text-align: center;
+    padding: 0;
 }
 
 .handle-grip {
-    padding-right: 5px;
-    width: auto;
+    padding-left: 10px;
 }
 
 .pick-idx {
-    padding-right: 10px;
     font-size: 14pt;
     font-weight: bold;
+    vertical-align: middle;
 }
 
 .game_title {
