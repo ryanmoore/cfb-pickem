@@ -22,17 +22,20 @@
 <!-- Fixed navbar -->
 <div class="navbar navbar-default navbar-fixed-top" role="navigation">
     <div class="container">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <div class="navbar-header pull-left">
+            <a class="navbar-brand" href="{% url 'pickem:index' %}">CFB Pickem</a>
+        </div>
+        <div class="navbar-header navbar-right">
+            <button type="button" class="navbar-toggle pull-right" data-toggle="collapse" data-target=".navbar-collapse">
                 <span class="sr-only">Toggle navigation</span>
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="{% url 'pickem:index' %}">CFB Pickem</a>
+            {% block extra_navbar_right %}{% endblock %}
         </div>
         <div class="navbar-collapse collapse">
-            <ul class="nav navbar-nav">
+            <ul class="nav navbar-nav navbar-left">
                 {% url 'pickem:index' as index_url %}
                 {% url 'pickem:picks' as picks_url %}
                 {% url 'pickem:scores' as score_url %}
@@ -53,27 +56,26 @@
                 {% endif %}
             </ul>
             <ul class="nav navbar-nav navbar-right">
-                {% block extra_navbar_right %}{% endblock %}
                 {% if not request.user.is_authenticated %}
-                    {% url 'pickem:login' as login_url %}
-                    {% if request.get_full_path == login_url %}
-                        <li class="active"><a href="{{ login_url }}">Login</a></li>
-                    {% else %}
-                        <li><a href="{{ login_url }}">Login</a></li>
-                    {% endif %}
+                {% url 'pickem:login' as login_url %}
+                {% if request.get_full_path == login_url %}
+                <li class="active"><a href="{{ login_url }}">Login</a></li>
                 {% else %}
-                    <li><a href="{% url 'pickem:select_all' %}"><b>Make Picks</b></a></li>
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ request.user.username|capfirst }} <b
-                                class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            {% if request.user.is_superuser %}
-                            <li><a href="{% url 'admin:index' %}">Admin</a></li>
-                            {% endif %}
-                            <li><a href="{% url 'pickem:select_all' %}">Picks</a></li>
-                            <li><a href="{% url 'pickem:logout' %}">Logout</a></li>
-                        </ul>
-                    </li>
+                <li><a href="{{ login_url }}">Login</a></li>
+                {% endif %}
+                {% else %}
+                <li><a href="{% url 'pickem:select_all' %}"><b>Make Picks</b></a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ request.user.username|capfirst }} <b
+                                                        class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                        {% if request.user.is_superuser %}
+                        <li><a href="{% url 'admin:index' %}">Admin</a></li>
+                        {% endif %}
+                        <li><a href="{% url 'pickem:select_all' %}">Picks</a></li>
+                        <li><a href="{% url 'pickem:logout' %}">Logout</a></li>
+                    </ul>
+                </li>
                 {% endif %}
             </ul>
         </div>

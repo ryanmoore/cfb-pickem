@@ -9,7 +9,9 @@
 
 {% block extra_navbar_right %}
 {% if started != True %}
-<li><button type="submit" form="rankform" class="btn btn-primary navbar-btn" id="save_button">Save Picks</a></li>
+    <ul class="nav navbar-nav pull-right save-button-box">
+        <li><button type="submit" form="rankform" class="btn btn-primary navbar-btn" id="save_button">Save</a></li>
+    </ul>
 {% endif %}
 {% endblock %}
 
