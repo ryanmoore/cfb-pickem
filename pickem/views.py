@@ -154,8 +154,9 @@ class ScoreTable:
                 Selection.objects.filter(user=user) ]
         unplayed_with_picks = set(unplayed).intersection(set(games_with_picks))
         wagers = Wager.objects.filter(user=user, game__in=unplayed_with_picks)
-        return sum(( wager.amount for wager in wagers))
-
+        conf_games_sum = sum(( wager.amount for wager in wagers))
+        fixed_games_sum = sum((game.fixed_wager_amount for game in games_with_picks))
+        return fixed_games_sum + conf_games_sum
 
     @staticmethod
     def unplayed_games():
@@ -217,7 +218,7 @@ class PrettyPicksView(generic.TemplateView):
         context = super().get_context_data(**kwargs)
 
         users = User.objects.all()
-        complete_picks, incomplete_picks = self.generate_pick_summaries(users)
+        complete_picks, incomplete_picks = self.generate_pick_summaries()
 
         complete_picks = [ PickSummary(game, users) for game in complete_picks ]
         incomplete_picks = [ PickSummary(game, users) for game in incomplete_picks ]
@@ -243,7 +244,7 @@ class PrettyPicksView(generic.TemplateView):
         return [ x.participant.game
                 for x in Winner.objects.order_by('participant__game__datetime') ]
 
-    def generate_pick_summaries(self, users):
+    def generate_pick_summaries(self):
         completed_games = self.get_completed_games()
         return completed_games, self.get_incomplete_games(completed_games)
 
@@ -274,18 +275,31 @@ class PickSummary:
         self.game = game
         self.users = users
         self.winner_index = self.get_winner_index()
+        self.picks = self.gather_picks()
 
     def get_participants(self):
         return self.game.participant_set.order_by('team__name')
 
-    def picks(self):
+    def gather_picks(self):
         participants = self.get_participants()
         selections = Selection.objects.filter(participant__game=self.game)
-        wagers = Wager.objects.filter(game=self.game)
+        def user_wager_function(game):
+            '''If fixed value amount game, return function that
+            returns the fixed value. Otherwise return one that does
+            lookups
+            '''
+            if game.fixed_wager_amount:
+                return lambda x: Wager(game=game,
+                        amount=game.fixed_wager_amount,
+                        user=x)
+            else:
+                wagers = Wager.objects.filter(game=self.game)
+                return lambda user: wagers.get(user=user)
+        get_user_wager = user_wager_function(self.game)
         result = OrderedDict( [ (str(part.team), []) for part in participants ] )
         for selection in selections:
             result[str(selection.participant.team)].append(
-                    wagers.get(user=selection.user))
+                    get_user_wager(selection.user))
         for key, value in result.items():
             value.sort(key=lambda x: x.amount, reverse=True)
         return result

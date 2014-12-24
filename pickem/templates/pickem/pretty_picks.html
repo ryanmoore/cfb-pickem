@@ -46,10 +46,10 @@
     <div class="col-xs-4 team">
         {% if forloop.counter0 == 0 %}
         <table class="picklist-left">
-            {% else %}
-            <table class="picklist-right">
-                {% endif %}
-                <thead><tr><th class="team" colspan="2">{{ team }}</th></tr></thead>
+        {% else %}
+        <table class="picklist-right">
+        {% endif %}
+            <thead><tr><th class="team" colspan="2">{{ team }}</th></tr></thead>
                 <tbody>
                     {% for pick in picks %}
                     <tr>
