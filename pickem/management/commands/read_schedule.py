@@ -8,6 +8,7 @@ import json
 import logging
 import datetime
 import re
+from optparse import make_option
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -17,6 +18,19 @@ class Command(BaseCommand):
     '''
     args = '<source>'
     help = ' Reads json of games from a file and adds them to the database'
+    option_list = BaseCommand.option_list + (
+            make_option('--dry-run',
+                action='store_true',
+                dest='dry_run',
+                default=False,
+                help='Do not actually do the modifications'),
+            make_option('--start-date',
+                type=str,
+                dest='start_date',
+                default=datetime.date.today().strftime('%d-%b-%Y'),
+                help='Ignores all games before this date'),
+            )
+
 
     def handle(self, *args, **options):
         ''' Main function manage calls. Reads json and adds to database
@@ -26,38 +40,51 @@ class Command(BaseCommand):
         with open(filename, 'r') as infile:
             data = json.load(infile)
 
+        update_championship_teams(data)
+
         with transaction.atomic():
             for game in data:
-                add_game(game)
+                add_game(game, options)
 
-def add_game(game):
+def add_game(game, options):
     ''' Parses game data from json object and adds to database
     '''
+    dry_run = options['dry_run']
+    start_date = options['start_date']
+    start_date = datetime.datetime.strptime(start_date, '%d-%b-%Y')
+    start_date = django_timezone.make_aware(start_date, django_timezone.get_current_timezone())
     kickoff = parse_datetime(game['datetime'])
+    title = game['title'].title()
     if kickoff is None:
+        logger.warning('Skipping finished game: {}'.format(title))
+        return
+    if kickoff < start_date:
+        logger.warning('Skipping too early game: {}'.format(title))
         return
     location = game['location']
     network = game['network']
-    title = game['title'].title()
     teams = ( game['teamA'], game['teamB'] )
 
     logger.info('Created event: {}'.format(title))
     event = Event(name=title)
-    event.save()
+    if not dry_run:
+        event.save()
     game = Game(event=event, datetime=kickoff)
-    game.save()
+    if not dry_run:
+        game.save()
     teams = [ add_team(team) for team in teams ]
     for team in teams:
-        team.save()
+        if not dry_run:
+            team.save()
     parts = [ Participant(game=game, team=team) for team in teams ]
     for part in parts:
-        part.save()
+        if not dry_run:
+            part.save()
 
 def parse_datetime(kickoff):
     '''Decodes the expected datetime string into a datetime object
     '''
-    if kickoff.lower() == 'final':
-        print('Skipping finished game with datetime: final')
+    if 'final' in kickoff.lower():
         return None
     date_format = '%b. %d, %Y | %I:%M %p %Z'
     kickoff = re.sub(r'ET', r'EST', kickoff)
@@ -72,3 +99,23 @@ def add_team(team):
             site=team['link'],
             record=team['record'],
             )
+
+
+def find_playoff_teams(data):
+    teams = []
+    for game in data:
+        if 'SEMIFINAL' not in game['title']:
+            continue
+        teams.append('{}/{}'.format(game['teamA']['name'], game['teamB']['name']))
+    return teams
+
+def update_championship_teams(data):
+    playoff_teams = find_playoff_teams(data)
+    print('Found playoff teams: {}'.format(str(playoff_teams)))
+    for game in data:
+        if 'championship' in game['title'].lower():
+            print('Registering playoff teams for: {}'.format(game['title']))
+            assert game['teamA']['name'] == 'TBD'
+            game['teamA']['name'] = playoff_teams[0]
+            assert game['teamB']['name'] == 'TBD'
+            game['teamB']['name'] = playoff_teams[1]
