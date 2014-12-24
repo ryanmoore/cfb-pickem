@@ -15,6 +15,7 @@ from collections import defaultdict, OrderedDict
 
 # pylint: disable=too-many-ancestors
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class IndexView(generic.TemplateView):
@@ -310,7 +311,7 @@ def pretty_time(datetime):
 def select_all(request):
     '''GET and POST logic for the page where selections occur
     '''
-    selection_form_items = all_games_as_forms()
+    selection_form_items, fixed_value_games = all_games_as_forms()
     error = None
     if not pickem_started(timezone.now()) and request.method == 'POST':
         # Data is sent in the form as a single json string object summarizing
@@ -326,11 +327,27 @@ def select_all(request):
                 update_selection_or_create(request.user, participant)
                 # always update wager in case the list has been reordered
             update_wager_or_create(request.user, game, wager)
+        logger.info(request.POST)
+        for game in fixed_value_games:
+            post_key = 'game={}'.format(game.game.pk)
+            logging.info('post_key: {}'.format(post_key))
+            pick = request.POST.get(post_key, default=None)
+            if pick is not None:
+                logger.info('Updating fixed value wager for: {}'.format(game.game))
+                logger.info('Pick is: {}'.format(pick))
+                participant = Participant.objects.get(game=game.game, team_id=pick)
+                logger.info('New selection: {}'.format(participant))
+                update_selection_or_create(request.user, participant)
+            else:
+                logger.info('No update for: {}'.format(game.game))
+
     elif request.method == 'POST':
         error = 'Submission failed. Pickem has already started.'
     update_selection_form_list(request.user, selection_form_items)
+    update_selection_form_list(request.user, fixed_value_games)
     return render(request, 'pickem/select_all.html',
                   {'selection_form_items': selection_form_items,
+                      'fixed_value_games' : fixed_value_games,
                       'missing_count' : num_missing_picks_user(request.user),
                       'started' : pickem_started(timezone.now()),
                       'error' : error })
@@ -348,11 +365,15 @@ class SelectionFormItem:
 
 
 def all_games_as_forms():
-    def game_form():
-        for game in Game.objects.all():
+    def game_form(fixed_value_games):
+        if fixed_value_games:
+            games = Game.objects.exclude(fixed_wager_amount=0)
+        else:
+            games = Game.objects.filter(fixed_wager_amount=0)
+        for game in games:
             teams = [p.team for p in game.participants]
             yield SelectionFormItem(game=game, teams=teams)
-    return list(game_form())
+    return list(game_form(False)), list(game_form(True))
 
 
 def update_selection_form_list(user, selection_form_items):
@@ -361,8 +382,11 @@ def update_selection_form_list(user, selection_form_items):
     for i, form_item in enumerate(selection_form_items):
         try:
             # query for the pick matching this user and this game
-            wager = Wager.objects.get(user=user, game=form_item.game)
-            form_item.wager = wager.amount
+            if form_item.game.fixed_wager_amount:
+                form_item.wager = form_item.game.fixed_wager_amount
+            else:
+                wager = Wager.objects.get(user=user, game=form_item.game)
+                form_item.wager = wager.amount
             selection = Selection.objects.get(user=user,
                     participant__game=form_item.game)
             # add 1 because the checked field will index from 1 not 0
@@ -371,6 +395,8 @@ def update_selection_form_list(user, selection_form_items):
         except Selection.DoesNotExist:
             form_item.checked = 0
         except Wager.DoesNotExist:
+            # can only be a non-fixed-value game
+            assert(not form_item.game.fixed_wager_amount)
             form_item.wager = i
     selection_form_items.sort(key=lambda x: x.wager, reverse=True)
 

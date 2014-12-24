@@ -13,6 +13,7 @@ class Event(models.Model):
 class Game(models.Model):
     event = models.ForeignKey(Event)
     datetime = models.DateTimeField()
+    fixed_wager_amount = models.PositiveSmallIntegerField(default=0)
 
     def pretty_date(self):
         localtime = timezone.localtime(self.datetime)

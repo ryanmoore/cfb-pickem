@@ -76,15 +76,50 @@
 <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
     {% csrf_token %}
     <input type='hidden' name='matchup_ordering' id='matchup_ordering'>
+    <h1>Playoff Games</h1>
+    <div class="table-container pick-list">
+        {% for matchup in fixed_value_games %}
+        <div class="row" id="game={{matchup.game.id}}">
+            <div class="col-xs-4 handle fixed-value pick-list-col">
+                <span class="handle-grip-placeholder"></span>
+                <span class="game_title">
+                    <span class="pick-idx">
+                        {{ matchup.wager }}
+                    </span>
+                    {{ matchup.game.event.name }}
+                </span>
+            </div>
+            {% for team in matchup.teams %}
+            <div class="col-xs-4 button-div pick-list-col">
+                    <input type="radio"
+                           name="game={{ matchup.game.id }}"
+                           value="{{ team.name }}"
+                           id="{{ team.name }}"
+                    {% if forloop.counter == matchup.checked %}
+                    checked="checked"
+                    {% endif %}
+                    >
+                    <label class="team-button" for="{{ team.name }}">
+                    {{ team.name }}
+                    {% if team.rank %}
+                    ({{ team.rank }})
+                    {% endif %}
+                    </label>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    <h1>Bowl Games</h1>
     <div class="table-container pick-list" id="matchup_ranking">
         {% for matchup in selection_form_items %}
         <div class="row" id="game={{matchup.game.id}}">
             <div class="col-xs-4 handle pick-list-col">
                 <span class="game_title">
-                <span class="handle-grip">::</span>
-                <span class="pick-idx">
-                {{ forloop.revcounter }}
-                </span>
+                    <span class="handle-grip">::</span>
+                    <span class="pick-idx">
+                        {{ forloop.revcounter }}
+                    </span>
                     {{ matchup.game.event.name }}
                 </span>
             </div>
@@ -113,8 +148,12 @@
 {% endblock %}
 
 {% block external_js %}
+{% if DEBUG %}
+<script type="text/javascript" src="{% static 'jquery-ui-1.11.2/jquery-ui.js' %}"></script>
+{% else %}
 <script type="text/javascript" src="//code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.2/jquery.ui.touch-punch.min.js"></script>
+{% endif %}
 <script type="text/javascript" src="{% static 'pickem/js/select_all_form.js' %}"></script>
 {% endblock %}
 
