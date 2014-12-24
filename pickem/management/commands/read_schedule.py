@@ -42,11 +42,32 @@ class Command(BaseCommand):
 
         update_championship_teams(data)
 
+        data = list(remove_earlier_games(data, options['start_date']))
+
         with transaction.atomic():
             for game in data:
-                add_game(game, options)
+                if is_championship_game(game):
+                    fixed_wager_amount = len(data)-1
+                else:
+                    fixed_wager_amount = 0
+                add_game(game, options, fixed_wager_amount)
 
-def add_game(game, options):
+def remove_earlier_games(data, start_date):
+    for game in data:
+        if not game_starts_before(game, start_date):
+            yield game
+        else:
+            print('Skipping too early game: {}'.format(game['title']))
+
+def game_starts_before(game, start_date):
+    start_date = datetime.datetime.strptime(start_date, '%d-%b-%Y')
+    start_date = django_timezone.make_aware(start_date, django_timezone.get_current_timezone())
+    kickoff = parse_datetime(game['datetime'])
+    title = game['title'].title()
+    if kickoff is None or kickoff < start_date:
+        return True
+
+def add_game(game, options, fixed_wager_amount):
     ''' Parses game data from json object and adds to database
     '''
     dry_run = options['dry_run']
@@ -69,7 +90,9 @@ def add_game(game, options):
     event = Event(name=title)
     if not dry_run:
         event.save()
-    game = Game(event=event, datetime=kickoff)
+    game = Game(event=event,
+            datetime=kickoff,
+            fixed_wager_amount=fixed_wager_amount)
     if not dry_run:
         game.save()
     teams = [ add_team(team) for team in teams ]
@@ -104,16 +127,22 @@ def add_team(team):
 def find_playoff_teams(data):
     teams = []
     for game in data:
-        if 'SEMIFINAL' not in game['title']:
+        if not is_semifinal_game(game):
             continue
         teams.append('{}/{}'.format(game['teamA']['name'], game['teamB']['name']))
     return teams
+
+def is_championship_game(game):
+    return 'championship' in game['title'].lower()
+
+def is_semifinal_game(game):
+    return 'semifinal' in game['title'].lower()
 
 def update_championship_teams(data):
     playoff_teams = find_playoff_teams(data)
     print('Found playoff teams: {}'.format(str(playoff_teams)))
     for game in data:
-        if 'championship' in game['title'].lower():
+        if is_championship_game(game):
             print('Registering playoff teams for: {}'.format(game['title']))
             assert game['teamA']['name'] == 'TBD'
             game['teamA']['name'] = playoff_teams[0]
