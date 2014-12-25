@@ -19,7 +19,7 @@ function configure_sortable() {
         scrollSpeed: 10,
         handle: ".handle",
         update: update_indices
-        //,items:'td:not(.sortable-state-disabled)'
+        //,items: 'div:not(.fixed-value-game)'
     });
     $( '#matchup_ranking' ).disableSelection();
     $( 'form' ).submit( onSubmit );

@@ -13,6 +13,7 @@ class Event(models.Model):
 class Game(models.Model):
     event = models.ForeignKey(Event)
     datetime = models.DateTimeField()
+    fixed_wager_amount = models.PositiveSmallIntegerField(default=0)
 
     def pretty_date(self):
         localtime = timezone.localtime(self.datetime)
@@ -28,9 +29,9 @@ class Game(models.Model):
 
 class Team(models.Model):
     name = models.CharField(max_length=200, primary_key=True)
-    #rank = models.IntegerField(null=True)
-    #site = models.CharField(max_length=200)
-    #record = models.CharField(max_length=64)
+    rank = models.IntegerField(null=True)
+    site = models.CharField(max_length=200)
+    record = models.CharField(max_length=64)
     #abbreviation = models.CharField(max_length=32)
 
     def __str__(self):

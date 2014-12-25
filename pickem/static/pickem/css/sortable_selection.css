@@ -1,3 +1,15 @@
+.table-container {
+}
+
+.save-button-box {
+    margin-right: 5px;
+    margin-left: 15px;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.pick-list {
+}
 
 .button-div {
 }
@@ -55,12 +67,15 @@
     cursor: move;
 }
 
-.pick-list-col > * {
-    height: 42px;
-}
-
 .handle div div {
     line-height: 42px;
+}
+
+.fixed-value {
+    cursor: auto;
+}
+
+.handle > span {
     vertical-align: middle;
     text-align: center;
     padding: 0;
@@ -68,6 +83,11 @@
 
 .handle-grip {
     padding-left: 10px;
+}
+
+.handle-grip-placeholder {
+    padding-right: 5px;
+    width: 5px;
 }
 
 .pick-idx {

@@ -15,6 +15,7 @@ from collections import defaultdict, OrderedDict
 
 # pylint: disable=too-many-ancestors
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class IndexView(generic.TemplateView):
@@ -153,8 +154,9 @@ class ScoreTable:
                 Selection.objects.filter(user=user) ]
         unplayed_with_picks = set(unplayed).intersection(set(games_with_picks))
         wagers = Wager.objects.filter(user=user, game__in=unplayed_with_picks)
-        return sum(( wager.amount for wager in wagers))
-
+        conf_games_sum = sum(( wager.amount for wager in wagers))
+        fixed_games_sum = sum((game.fixed_wager_amount for game in games_with_picks))
+        return fixed_games_sum + conf_games_sum
 
     @staticmethod
     def unplayed_games():
@@ -216,7 +218,7 @@ class PrettyPicksView(generic.TemplateView):
         context = super().get_context_data(**kwargs)
 
         users = User.objects.all()
-        complete_picks, incomplete_picks = self.generate_pick_summaries(users)
+        complete_picks, incomplete_picks = self.generate_pick_summaries()
 
         complete_picks = [ PickSummary(game, users) for game in complete_picks ]
         incomplete_picks = [ PickSummary(game, users) for game in incomplete_picks ]
@@ -242,7 +244,7 @@ class PrettyPicksView(generic.TemplateView):
         return [ x.participant.game
                 for x in Winner.objects.order_by('participant__game__datetime') ]
 
-    def generate_pick_summaries(self, users):
+    def generate_pick_summaries(self):
         completed_games = self.get_completed_games()
         return completed_games, self.get_incomplete_games(completed_games)
 
@@ -273,18 +275,31 @@ class PickSummary:
         self.game = game
         self.users = users
         self.winner_index = self.get_winner_index()
+        self.picks = self.gather_picks()
 
     def get_participants(self):
         return self.game.participant_set.order_by('team__name')
 
-    def picks(self):
+    def gather_picks(self):
         participants = self.get_participants()
         selections = Selection.objects.filter(participant__game=self.game)
-        wagers = Wager.objects.filter(game=self.game)
+        def user_wager_function(game):
+            '''If fixed value amount game, return function that
+            returns the fixed value. Otherwise return one that does
+            lookups
+            '''
+            if game.fixed_wager_amount:
+                return lambda x: Wager(game=game,
+                        amount=game.fixed_wager_amount,
+                        user=x)
+            else:
+                wagers = Wager.objects.filter(game=self.game)
+                return lambda user: wagers.get(user=user)
+        get_user_wager = user_wager_function(self.game)
         result = OrderedDict( [ (str(part.team), []) for part in participants ] )
         for selection in selections:
             result[str(selection.participant.team)].append(
-                    wagers.get(user=selection.user))
+                    get_user_wager(selection.user))
         for key, value in result.items():
             value.sort(key=lambda x: x.amount, reverse=True)
         return result
@@ -310,7 +325,7 @@ def pretty_time(datetime):
 def select_all(request):
     '''GET and POST logic for the page where selections occur
     '''
-    selection_form_items = all_games_as_forms()
+    selection_form_items, fixed_value_games = all_games_as_forms()
     error = None
     if not pickem_started(timezone.now()) and request.method == 'POST':
         # Data is sent in the form as a single json string object summarizing
@@ -326,11 +341,27 @@ def select_all(request):
                 update_selection_or_create(request.user, participant)
                 # always update wager in case the list has been reordered
             update_wager_or_create(request.user, game, wager)
+        logger.info(request.POST)
+        for game in fixed_value_games:
+            post_key = 'game={}'.format(game.game.pk)
+            logging.info('post_key: {}'.format(post_key))
+            pick = request.POST.get(post_key, default=None)
+            if pick is not None:
+                logger.info('Updating fixed value wager for: {}'.format(game.game))
+                logger.info('Pick is: {}'.format(pick))
+                participant = Participant.objects.get(game=game.game, team_id=pick)
+                logger.info('New selection: {}'.format(participant))
+                update_selection_or_create(request.user, participant)
+            else:
+                logger.info('No update for: {}'.format(game.game))
+
     elif request.method == 'POST':
         error = 'Submission failed. Pickem has already started.'
     update_selection_form_list(request.user, selection_form_items)
+    update_selection_form_list(request.user, fixed_value_games)
     return render(request, 'pickem/select_all.html',
                   {'selection_form_items': selection_form_items,
+                      'fixed_value_games' : fixed_value_games,
                       'missing_count' : num_missing_picks_user(request.user),
                       'started' : pickem_started(timezone.now()),
                       'error' : error })
@@ -348,21 +379,30 @@ class SelectionFormItem:
 
 
 def all_games_as_forms():
-    def game_form():
-        for game in Game.objects.all():
+    def game_form(fixed_value_games):
+        if fixed_value_games:
+            games = Game.objects.exclude(fixed_wager_amount=0)
+        else:
+            games = Game.objects.filter(fixed_wager_amount=0)
+        for game in games:
             teams = [p.team for p in game.participants]
             yield SelectionFormItem(game=game, teams=teams)
-    return list(game_form())
+    return list(game_form(False)), list(game_form(True))
 
 
 def update_selection_form_list(user, selection_form_items):
     '''Updates the checked field and ordering for the list of form_items
     '''
+    import random
+    random.shuffle(selection_form_items)
     for i, form_item in enumerate(selection_form_items):
         try:
             # query for the pick matching this user and this game
-            wager = Wager.objects.get(user=user, game=form_item.game)
-            form_item.wager = wager.amount
+            if form_item.game.fixed_wager_amount:
+                form_item.wager = form_item.game.fixed_wager_amount
+            else:
+                wager = Wager.objects.get(user=user, game=form_item.game)
+                form_item.wager = wager.amount
             selection = Selection.objects.get(user=user,
                     participant__game=form_item.game)
             # add 1 because the checked field will index from 1 not 0
@@ -371,6 +411,8 @@ def update_selection_form_list(user, selection_form_items):
         except Selection.DoesNotExist:
             form_item.checked = 0
         except Wager.DoesNotExist:
+            # can only be a non-fixed-value game
+            assert(not form_item.game.fixed_wager_amount)
             form_item.wager = i
     selection_form_items.sort(key=lambda x: x.wager, reverse=True)
 

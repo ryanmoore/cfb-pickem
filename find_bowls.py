@@ -20,7 +20,9 @@ def main(argv):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('config')
     parser.add_argument('output')
-    parser.add_argument('--count', default=35, help='Expected number of games')
+    parser.add_argument('--count',
+            type=int,
+            default=35, help='Expected number of games')
 
     args = parser.parse_args(args=argv[1:])
     config = read_config(args.config)
@@ -37,7 +39,7 @@ def main(argv):
     # divide up games
     game_soups = soup.find_all(name='div', class_='span-2')
     logging.info('Found {} games.'.format(len(game_soups)))
-    assert len(game_soups) == args.count
+    assert len(game_soups) == args.count, 'Expected: {}. Found: {}'.format(args.count, len(game_soups))
 
     raw_data = [ decode_game(game) for game in game_soups ]
     write_data(args.output, raw_data)
@@ -63,6 +65,13 @@ def decode_game(game_soup):
 
     return info
 
+def extract_record(team_soup):
+    elt = team_soup.find(class_='record')
+    if elt is None:
+        return 'N/A'
+    else:
+        return elt.text
+
 def decode_team(team_soup):
     '''Extracts relevant info for a particular team. Returns dict intended
     for json
@@ -71,7 +80,7 @@ def decode_team(team_soup):
     res = dict(
             # last because there is SOMETIMES a rank which is first
             name=rank_and_name[-1].a.text,
-            record=team_soup.find(class_='record').text,
+            record=extract_record(team_soup),
             link=rank_and_name[-1].a['href'],
             )
     if len(rank_and_name) > 1:

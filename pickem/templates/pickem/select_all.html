@@ -9,7 +9,9 @@
 
 {% block extra_navbar_right %}
 {% if started != True %}
-<li><button type="submit" form="rankform" class="mybutton btn btn-primary btn-lg" id="save_button">Save Picks</a></li>
+    <ul class="nav navbar-nav pull-right save-button-box">
+        <li><button type="submit" form="rankform" class="btn btn-primary navbar-btn" id="save_button">Save</a></li>
+    </ul>
 {% endif %}
 {% endblock %}
 
@@ -22,8 +24,12 @@
 
 {% if not started %}
 <div class="panel panel-info">
-    <div class="panel-heading">How to play</div>
-    <div class="panel-body">
+    <div class="panel-heading">
+        <a data-toggle="collapse" href="#how-to-panel" aria-expanded="true" aria-controls="collapseOne">
+        How to play
+        </a>
+    </div>
+    <div class="panel-body collapse" id="how-to-panel">
         <p>
         For each matchup, select the team you think will win. Your
         selections will be shown in blue. 
@@ -51,7 +57,10 @@
     changes you make.</p>
 </div>
 {% elif missing_count > 0 %}
-<div class="alert alert-warning">
+<div class="alert alert-warning alert-dismissable">
+    <button type="button" class="close" data-dismiss="alert">
+        <span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+    </button>
     <p>You still have <b>{{ missing_count }} picks</b> to make!
     </p>
 </div>
@@ -84,13 +93,52 @@
 <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
     {% csrf_token %}
     <input type='hidden' name='matchup_ordering' id='matchup_ordering'>
-    <div class="pick-list" id="matchup_ranking">
-        {% for matchup in selection_form_items %}
+    <h1>Playoff Games</h1>
+    <div class="table-container pick-list">
+        {% for matchup in fixed_value_games %}
         <div class="row" id="game={{matchup.game.id}}">
             <div class="col-xs-4 col-sm-2 handle">
                 <div class="row">
                     <div class="col-xs-0 col-sm-4"></div>
-                    <div class="col-xs-3 col-sm-2 pick-list-info handle-grip">::</div>
+                    <div class="col-xs-3 col-sm-2 pick-list-info handle-grip-placeholder"></div>
+                    <div class="col-xs-3 col-sm-2 pick-list-info pick-idx">{{ matchup.wager }}</div>
+                    <div class="col-xs-6 col-sm-4 pick-list-info game-info">
+                        <button type="button" class="btn btn-default game-info-btn"
+                                              data-toggle="modal" data-target="#gameinfo">
+                            <span class="glyphicon glyphicon-info-sign"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% for team in matchup.teams %}
+            <div class="col-xs-4 button-div pick-list-col">
+                    <input type="radio"
+                           name="game={{ matchup.game.id }}"
+                           value="{{ team.name }}"
+                           id="{{ team.name }}"
+                    {% if forloop.counter == matchup.checked %}
+                    checked="checked"
+                    {% endif %}
+                    >
+                    <label class="team-button" for="{{ team.name }}">
+                    {{ team.name }}
+                    {% if team.rank %}
+                    ({{ team.rank }})
+                    {% endif %}
+                    </label>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    <h1>Bowl Games</h1>
+    <div class="table-container pick-list" id="matchup_ranking">
+        {% for matchup in selection_form_items %}
+        <div class="row" id="game={{matchup.game.id}}">
+            <div class="col-xs-4 col-sm-2 handle pick-list-col">
+                <div class="row">
+                    <div class="col-xs-0 col-sm-4"></div>
+                    <div class="col-xs-3 col-sm-2 pick-list-info handle-grip-placeholder"></div>
                     <div class="col-xs-3 col-sm-2 pick-list-info pick-idx">{{ forloop.revcounter }}</div>
                     <div class="col-xs-6 col-sm-4 pick-list-info game-info">
                         <button type="button" class="btn btn-default game-info-btn"
@@ -125,8 +173,12 @@
 {% endblock %}
 
 {% block external_js %}
+{% if DEBUG %}
+<script type="text/javascript" src="{% static 'jquery-ui-1.11.2/jquery-ui.js' %}"></script>
+{% else %}
 <script type="text/javascript" src="//code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.2/jquery.ui.touch-punch.min.js"></script>
+{% endif %}
 <script type="text/javascript" src="{% static 'pickem/js/select_all_form.js' %}"></script>
 {% endblock %}
 

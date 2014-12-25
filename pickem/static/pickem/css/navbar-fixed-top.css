@@ -1,11 +1,3 @@
 body {
 padding-top: 70px;
 }
-
-a:not(:hover)#save_button {
-    color: #FFFFFF;
-}
-
-#save_button {
-    margin-top: 2px;
-}
