@@ -108,6 +108,9 @@
     padding-right: 10px;
     font-size: 14pt;
     font-weight: bold;
+    text-align: right;
+    width: 35px;
+    display: inline-block;
 }
 
 .game_title {
