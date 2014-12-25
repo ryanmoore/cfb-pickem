@@ -393,6 +393,8 @@ def all_games_as_forms():
 def update_selection_form_list(user, selection_form_items):
     '''Updates the checked field and ordering for the list of form_items
     '''
+    import random
+    random.shuffle(selection_form_items)
     for i, form_item in enumerate(selection_form_items):
         try:
             # query for the pick matching this user and this game
