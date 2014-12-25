@@ -362,6 +362,7 @@ def select_all(request):
     return render(request, 'pickem/select_all.html',
                   {'selection_form_items': selection_form_items,
                       'fixed_value_games' : fixed_value_games,
+                      'all_games' : selection_form_items+fixed_value_games,
                       'missing_count' : num_missing_picks_user(request.user),
                       'started' : pickem_started(timezone.now()),
                       'error' : error })

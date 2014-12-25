@@ -73,15 +73,23 @@
 </div>
 {% endif %}
 
-<div class="modal" id="gameinfo" tabindex="-1" role="dialog">
+{% for matchup in all_games %}
+<div class="modal" id="gameinfo-{{ matchup.game.id }}" tabindex="-1" role="dialog">
      <div class="modal-dialog">
          <div class="modal-content">
              <div class="modal-header">
                  <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-                 <h4 class="modal-title" id="myModalLabel">Modal title</h4>
+                 <h4 class="modal-title" id="myModalLabel">{{ matchup.game.event.name }}</h4>
              </div>
              <div class="modal-body">
-                 ...
+                {% for team in matchup.teams %}
+                <div>{{ team.name }}
+                    {% if team.rank %}
+                    ({{ team.rank }})
+                    {% endif %}
+                    {{ team.record }}
+                </div>
+                {% endfor %}
              </div>
              <div class="modal-footer">
                  <button type="button" class="btn btn-default" data-dismiss="modal">Dismiss</button>
@@ -89,6 +97,7 @@
          </div>
      </div>
 </div>
+{% endfor %}
 
 <form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
     {% csrf_token %}
@@ -97,18 +106,20 @@
     <div class="table-container pick-list">
         {% for matchup in fixed_value_games %}
         <div class="row" id="game={{matchup.game.id}}">
-            <div class="col-xs-4 col-sm-2 handle">
-                <div class="row">
-                    <div class="col-xs-0 col-sm-4"></div>
-                    <div class="col-xs-3 col-sm-2 pick-list-info handle-grip-placeholder"></div>
-                    <div class="col-xs-3 col-sm-2 pick-list-info pick-idx">{{ matchup.wager }}</div>
-                    <div class="col-xs-6 col-sm-4 pick-list-info game-info">
+            <div class="col-xs-4 handle pick-list-col">
+                <span class="game_title">
+                    <span class="handle-grip-placeholder"></span>
+                    <span class="pick-idx">{{ matchup.wager }}</span>
+                    <span class="pick-list-info game-info">
                         <button type="button" class="btn btn-default game-info-btn"
-                                              data-toggle="modal" data-target="#gameinfo">
+                                              data-toggle="modal" data-target="#gameinfo-{{ matchup.game.id }}">
                             <span class="glyphicon glyphicon-info-sign"></span>
                         </button>
-                    </div>
-                </div>
+                    </span>
+                    <span class="hidden-xs">
+                        {{ matchup.game.event.name }}
+                    </span>
+                </span>
             </div>
             {% for team in matchup.teams %}
             <div class="col-xs-4 button-div pick-list-col">
@@ -135,18 +146,20 @@
     <div class="table-container pick-list" id="matchup_ranking">
         {% for matchup in selection_form_items %}
         <div class="row" id="game={{matchup.game.id}}">
-            <div class="col-xs-4 col-sm-2 handle pick-list-col">
-                <div class="row">
-                    <div class="col-xs-0 col-sm-4"></div>
-                    <div class="col-xs-3 col-sm-2 pick-list-info handle-grip-placeholder"></div>
-                    <div class="col-xs-3 col-sm-2 pick-list-info pick-idx">{{ forloop.revcounter }}</div>
-                    <div class="col-xs-6 col-sm-4 pick-list-info game-info">
+            <div class="col-xs-4 handle pick-list-col">
+                <span class="game_title">
+                    <span class="handle-grip">::</span>
+                    <span class="pick-idx">{{ forloop.revcounter }}</span>
+                    <span class="pick-list-info game-info">
                         <button type="button" class="btn btn-default game-info-btn"
-                                              data-toggle="modal" data-target="#gameinfo">
+                                              data-toggle="modal" data-target="#gameinfo-{{ matchup.game.id }}">
                             <span class="glyphicon glyphicon-info-sign"></span>
                         </button>
-                    </div>
-                </div>
+                        <span class="hidden-xs">
+                            {{ matchup.game.event.name }}
+                        </span>
+                    </span>
+                </span>
             </div>
             {% for team in matchup.teams %}
             <div class="col-xs-4 button-div pick-list-col">

@@ -8,6 +8,10 @@
     margin-bottom: 0;
 }
 
+.pick-list-info {
+    width: 50%;
+}
+
 .pick-list {
 }
 
@@ -41,7 +45,7 @@
 }
 
 .pick-list-col {
-    height: 42px;
+    height: 41px;
     margin-bottom: 2px;
     display: table;
     table-layout: fixed;
@@ -50,6 +54,15 @@
 }
 
 .pick-list label {
+}
+.game-title-col {
+    display: table;
+    table-layout: fixed;
+    padding-right: 3px;
+}
+
+.pick-list-col > * {
+    height: 41px;
 }
 
 .pick-list label:hover {
@@ -65,35 +78,36 @@
     -ms-user-select: none;
     user-select: none;
     cursor: move;
+    display: table;
 }
 
-.handle div div {
-    line-height: 42px;
-}
+/*.handle div div {
+    line-height: 41px;
+}*/
 
 .fixed-value {
     cursor: auto;
 }
 
 .handle > span {
+    display: table-cell;
     vertical-align: middle;
-    text-align: center;
-    padding: 0;
 }
 
 .handle-grip {
-    padding-left: 10px;
+    padding-right: 5px;
+    width: auto;
 }
 
 .handle-grip-placeholder {
-    padding-right: 5px;
-    width: 5px;
+    padding-right: 15px;
+    width: 15px;
 }
 
 .pick-idx {
+    padding-right: 10px;
     font-size: 14pt;
     font-weight: bold;
-    vertical-align: middle;
 }
 
 .game_title {
