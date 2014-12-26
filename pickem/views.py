@@ -79,8 +79,12 @@ class ScoreView(generic.TemplateView):
         good_picks = Selection.objects.filter(user__in=users).filter(
                 participant__in= [ w.participant for w in winners ] )
         for pick in good_picks:
-            scores[pick.user.username] += Wager.objects.filter(user=pick.user,
+            if pick.participant.game.fixed_wager_amount:
+                wager = pick.participant.game.fixed_wager_amount
+            else:
+                wager = Wager.objects.filter(user=pick.user,
                     game=pick.participant.game).get().amount
+            scores[pick.user.username] += wager
         # negate score instead of reverse=True because we want usernames
         # sorted alphabetically
         return sorted(scores.items(), key=lambda x:(-x[1], x[0]))
@@ -126,9 +130,12 @@ class ScoreTable:
         self.scores = dict( [ ( user, 0 ) for user in self.users ] )
         good_picks = self.select_winning_picks()
         for pick in good_picks:
-            self.scores[pick.user] += Wager.objects.filter(
-                    user=pick.user,
+            if pick.participant.game.fixed_wager_amount:
+                wager = pick.participant.game.fixed_wager_amount
+            else:
+                wager = Wager.objects.filter(user=pick.user,
                     game=pick.participant.game).get().amount
+            self.scores[pick.user] += wager
         self.scores = list(self.scores.items())
 
     def sort_scores(self):
@@ -155,7 +162,7 @@ class ScoreTable:
         unplayed_with_picks = set(unplayed).intersection(set(games_with_picks))
         wagers = Wager.objects.filter(user=user, game__in=unplayed_with_picks)
         conf_games_sum = sum(( wager.amount for wager in wagers))
-        fixed_games_sum = sum((game.fixed_wager_amount for game in games_with_picks))
+        fixed_games_sum = sum((game.fixed_wager_amount for game in unplayed_with_picks))
         return fixed_games_sum + conf_games_sum
 
     @staticmethod
