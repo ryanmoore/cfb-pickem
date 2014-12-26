@@ -122,7 +122,16 @@ class ScoreTable:
             remaining = self.remaining[user]
             remaining_bar = 100*remaining/longest_bar
             if remainder:
-                yield (user, .8*score_bar, score, .8*remaining_bar, remaining)
+                main_area_factor = .75
+                leftover = 100 - sum((10,
+                    main_area_factor*score_bar,
+                    main_area_factor*remaining_bar))
+                yield (user,
+                        main_area_factor*score_bar,
+                        score,
+                        main_area_factor*remaining_bar,
+                        remaining,
+                        leftover)
             else:
                 yield (user, score_bar, score)
 

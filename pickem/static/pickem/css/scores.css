@@ -9,6 +9,28 @@ table.scoreboard {
     color: #000;
 }
 
+.score-username {
+    text-align: right;
+    padding: 0px;
+}
+
 .totals {
     padding-left: 0px;
+}
+
+.example-panel {
+    padding: 15px;
+}
+
+.example-label {
+    display: inline-block;
+    float: left;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.example-bar {
+    width: 150px;
+    display: inline-block;
+    float: left;
 }
