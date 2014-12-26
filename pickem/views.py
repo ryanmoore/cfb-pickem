@@ -107,7 +107,7 @@ class ScoreTable:
         self.sort_scores()
         self.bar_scores = list(self.scores_to_bars(**kwargs))
         # sort by score, then by reamining points and finally the username
-        self.bar_scores.sort(key=lambda x: (-x[2], -x[-1], str(x[0])))
+        self.bar_scores.sort(key=lambda x: (-x[2], -x[4], str(x[0])))
         return self.bar_scores
 
     def scores_to_bars(self, remainder=False):
