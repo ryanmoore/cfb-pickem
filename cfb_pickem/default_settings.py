@@ -22,8 +22,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-TEMPLATE_DEBUG = True
-
 try:
     from cfb_pickem.secret_key import SECRET_KEY
 except ImportError:
@@ -54,6 +52,7 @@ INSTALLED_APPS = (
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -99,12 +98,29 @@ STATIC_URL = '/static/'
 LOGIN_URL = 'pickem:login'
 LOGIN_REDIRECT_URL = 'pickem:index'
 
-TEMPLATE_DIRS = [os.path.join(BASE_DIR, 'templates')]
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.contrib.auth.context_processors.auth',
-    'django.core.context_processors.request',
-)
+TEMPLATES = [
+        {
+            #'DEBUG': True,
+            'BACKEND': 'django.template.backends.django.DjangoTemplates',
+            'DIRS': [
+                [os.path.join(BASE_DIR, 'templates')],
+                ],
+            'APP_DIRS': True,
+            'OPTIONS': {
+                'context_processors': [
+                    # Insert your TEMPLATE_CONTEXT_PROCESSORS here or use this
+                    # list if you haven't customized them:
+                    'django.contrib.auth.context_processors.auth',
+                    'django.template.context_processors.debug',
+                    'django.template.context_processors.i18n',
+                    'django.template.context_processors.media',
+                    'django.template.context_processors.static',
+                    'django.template.context_processors.tz',
+                    'django.contrib.messages.context_processors.messages',
+                    ],
+                },
+            },
+        ]
 
 PICKEM_START_TIME = datetime.datetime(year=2014, month=12, day=24,
         hour=11, minute=55, tzinfo=timezone('US/Eastern'))

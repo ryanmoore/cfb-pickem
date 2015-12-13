@@ -7,7 +7,7 @@ from pickem import views
 
 # pylint: disable=E1120
 
-urlpatterns = patterns('',
+urlpatterns = [
        url(r'^$', views.IndexView.as_view(), name='index'),
        url(r'^game/(?P<pk>\d+)/$', views.GameView.as_view(), name='game'),
        url(r'^user/picks/edit/$', views.select_all, name='select_all'),
@@ -20,4 +20,4 @@ urlpatterns = patterns('',
            views.PrettyPicksView.as_view(),
            name='picks'),
        url(r'^picks/table$', views.PicksView.as_view(), name='picks_table'),
-)
+       ]
