@@ -1,4 +1,5 @@
 {% load staticfiles %}
+{% with year=year|default:"2015" %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,9 +29,9 @@
     <div class="container">
         <div class="navbar-header pull-left">
             {% if DEBUG %}
-            <a class="navbar-brand" href="{% url 'pickem:index' %}">CFB Pickem Debug</a>
+            <a class="navbar-brand" href="{% url 'pickem:index' year %}">CFB Pickem Debug</a>
             {% else %}
-            <a class="navbar-brand" href="{% url 'pickem:index' %}">CFB Pickem</a>
+            <a class="navbar-brand" href="{% url 'pickem:index' year %}">CFB Pickem</a>
             {% endif %}
         </div>
         <div class="navbar-header navbar-right">
@@ -44,9 +45,9 @@
         </div>
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav navbar-left">
-                {% url 'pickem:index' as index_url %}
-                {% url 'pickem:picks' as picks_url %}
-                {% url 'pickem:scores' as score_url %}
+                {% url 'pickem:index' year as index_url %}
+                {% url 'pickem:picks' year as picks_url %}
+                {% url 'pickem:scores' year as score_url %}
                 {% if request.get_full_path == index_url %}
                 <li class="active"><a href="{{ index_url }}">Home</a></li>
                 {% else %}
@@ -64,7 +65,7 @@
                 {% endif %}
             </ul>
             <ul class="nav navbar-nav navbar-right">
-                {% if not request.user.is_authenticated %}
+                {% if not user.is_authenticated %}
                 {% url 'pickem:login' as login_url %}
                 {% if request.get_full_path == login_url %}
                 <li class="active"><a href="{{ login_url }}">Login</a></li>
@@ -72,15 +73,15 @@
                 <li><a href="{{ login_url }}">Login</a></li>
                 {% endif %}
                 {% else %}
-                <li><a href="{% url 'pickem:select_all' %}"><b>Make Picks</b></a></li>
+                <li><a href="{% url 'pickem:select_all' year %}"><b>Make Picks</b></a></li>
                 <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ request.user.username|capfirst }} <b
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ user.username|capfirst }} <b
                                                         class="caret"></b></a>
                     <ul class="dropdown-menu">
-                        {% if request.user.is_superuser %}
+                        {% if user.is_superuser %}
                         <li><a href="{% url 'admin:index' %}">Admin</a></li>
                         {% endif %}
-                        <li><a href="{% url 'pickem:select_all' %}">Picks</a></li>
+                        <li><a href="{% url 'pickem:select_all' year %}">Picks</a></li>
                         <li><a href="{% url 'pickem:logout' %}">Logout</a></li>
                     </ul>
                 </li>
@@ -110,3 +111,4 @@
 {% block external_js %}{% endblock %}
 </body>
 </html>
+{% endwith %}

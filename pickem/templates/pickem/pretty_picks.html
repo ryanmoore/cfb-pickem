@@ -18,7 +18,7 @@
     <p>
     You can view your picks at any time by using the navigation bar and
     selecting <strong>Make Picks</strong>. Or just
-    <a href="{% url 'pickem:select_all' %}">click here</a>
+    <a href="{% url 'pickem:select_all' year %}">click here</a>
     </p>
 </div>
 <div>
@@ -136,7 +136,7 @@
 </div>
 {% endfor %}
 <div>
-    <form action="{% url 'pickem:picks_table' %}">
+    <form action="{% url 'pickem:picks_table' year %}">
         <button type='submit' class='btn btn-default' style='margin-bottom: 10px'>View condensed</button>
     </form>
 </div>

@@ -99,7 +99,7 @@
 </div>
 {% endfor %}
 
-<form method="POST" action="{% url 'pickem:select_all' %}" id="rankform">
+<form method="POST" action="{% url 'pickem:select_all' year %}" id="rankform">
     {% csrf_token %}
     <input type='hidden' name='matchup_ordering' id='matchup_ordering'>
     <h1>Playoff Games</h1>

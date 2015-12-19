@@ -1,4 +1,5 @@
 {% extends 'pickem/base.html' %}
+{% with year=year|default:"2015" %}
 {% block content %}
 {% if game_list %}
 <h1>Upcoming Games</h1>
@@ -12,7 +13,7 @@
     <tbody>
         {% for game in game_list %}
         <tr>
-            <td><a href="{% url 'pickem:game' game.id %}">{{ game.event }}</a></td>
+            <td><a href="{% url 'pickem:game' year game.id %}">{{ game.event }}</a></td>
             <td>{{ game.datetime|date:"DATE_FORMAT" }}</td>
             <td>{{ game.datetime|date:"P" }}</td>
             {% for participant in game.participants %}
@@ -35,3 +36,4 @@
 <p>No games available</p>
 {% endif %}
 {% endblock %}
+{% endwith %}

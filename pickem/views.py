@@ -15,7 +15,7 @@ from collections import defaultdict, OrderedDict
 
 # pylint: disable=too-many-ancestors
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class IndexView(generic.TemplateView):
@@ -338,7 +338,7 @@ def pretty_time(datetime):
 
 @transaction.atomic
 @login_required
-def select_all(request):
+def select_all(request, year):
     '''GET and POST logic for the page where selections occur
     '''
     selection_form_items, fixed_value_games = all_games_as_forms()

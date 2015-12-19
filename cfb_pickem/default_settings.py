@@ -96,7 +96,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
 
 LOGIN_URL = 'pickem:login'
-LOGIN_REDIRECT_URL = 'pickem:index'
+LOGIN_REDIRECT_URL = 'pickem:index-bare'
 
 TEMPLATES = [
         {
