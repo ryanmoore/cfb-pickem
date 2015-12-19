@@ -21,7 +21,7 @@ class TeamAdmin(admin.ModelAdmin):
 
 class ParticipantAdmin(admin.ModelAdmin):
     model = Participant
-    list_display = ['team', 'game']
+    list_display = ['teamseason', 'game']
 
 class WinnerAdmin(admin.ModelAdmin):
     model = Winner

@@ -294,7 +294,7 @@ class PickSummary:
         self.picks = self.gather_picks()
 
     def get_participants(self):
-        return self.game.participant_set.order_by('team__name')
+        return self.game.participant_set.order_by('teamseason__team__name')
 
     def gather_picks(self):
         participants = self.get_participants()
@@ -312,7 +312,7 @@ class PickSummary:
                 wagers = Wager.objects.filter(game=self.game)
                 return lambda user: wagers.get(user=user)
         get_user_wager = user_wager_function(self.game)
-        result = OrderedDict( [ (str(part.team), []) for part in participants ] )
+        result = OrderedDict( [ (str(part.teamseason), []) for part in participants ] )
         for selection in selections:
             result[str(selection.participant.team)].append(
                     get_user_wager(selection.user))
