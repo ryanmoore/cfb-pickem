@@ -56,7 +56,7 @@ class Command(BaseCommand):
             self.season, new_season = self.create_season(options['year'])
             for entry in self.dataset:
                 self.handle_entry(entry)
-        sys.stdout.write(self.style.SUCCESS('Data import successful.'))
+        sys.stdout.write(self.style.SUCCESS('Data import successful.\n'))
         return
 
     def handle_entry(self, entry):
@@ -78,7 +78,7 @@ class Command(BaseCommand):
         return
 
     def handle_event(self, entry):
-        Event.objects.create(name=entry['pk'])
+        Event.objects.get_or_create(name=entry['pk'])
 
     def handle_game(self, entry):
         event = Event.objects.get(name=entry['fields']['event'])
