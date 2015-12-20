@@ -117,6 +117,7 @@ class ScoreTable:
             self.remaining = defaultdict(int)
         longest_bar = max(( score[1] + self.remaining[score[0]] for
             score in self.scores))
+        longest_bar = max(longest_bar, 10)
         for user, score in self.scores:
             score_bar = 100*score/longest_bar
             remaining = self.remaining[user]
