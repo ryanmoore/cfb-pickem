@@ -82,12 +82,12 @@
                  <h4 class="modal-title" id="myModalLabel">{{ matchup.game.event.name }}</h4>
              </div>
              <div class="modal-body">
-                {% for team in matchup.teams %}
-                <div>{{ team.name }}
-                    {% if team.rank %}
-                    ({{ team.rank }})
+                {% for teamseason in matchup.teams %}
+                <div>{{ teamseason.team.name }}
+                    {% if teamseason.rank %}
+                    ({{ teamseason.rank }})
                     {% endif %}
-                    {{ team.record }}
+                    {{ teamseason.record }}
                 </div>
                 {% endfor %}
              </div>
@@ -121,20 +121,20 @@
                     </span>
                 </span>
             </div>
-            {% for team in matchup.teams %}
+            {% for teamseason in matchup.teams %}
             <div class="col-xs-4 button-div pick-list-col">
                     <input type="radio"
                            name="game={{ matchup.game.id }}"
-                           value="{{ team.name }}"
-                           id="{{ team.name }}"
+                           value="{{ teamseason.team.name }}"
+                           id="{{ teamseason.team.name }}"
                     {% if forloop.counter == matchup.checked %}
                     checked="checked"
                     {% endif %}
                     >
-                    <label class="team-button" for="{{ team.name }}">
-                    {{ team.name }}
-                    {% if team.rank %}
-                    ({{ team.rank }})
+                    <label class="team-button" for="{{ teamseason.team.name }}">
+                    {{ teamseason.team.name }}
+                    {% if teamseason.rank %}
+                    ({{ teamseason.rank }})
                     {% endif %}
                     </label>
             </div>
@@ -161,20 +161,20 @@
                     </span>
                 </span>
             </div>
-            {% for team in matchup.teams %}
+            {% for teamseason in matchup.teams %}
             <div class="col-xs-4 button-div pick-list-col">
                     <input type="radio"
                            name="game={{ matchup.game.id }}"
-                           value="{{ team.name }}"
-                           id="{{ team.name }}"
+                           value="{{ teamseason.team.name }}"
+                           id="{{ teamseason.team.name }}"
                     {% if forloop.counter == matchup.checked %}
                     checked="checked"
                     {% endif %}
                     >
-                    <label class="team-button" for="{{ team.name }}">
-                    {{ team.name }}
-                    {% if team.rank %}
-                    ({{ team.rank }})
+                    <label class="team-button" for="{{ teamseason.team.name }}">
+                    {{ teamseason.team.name }}
+                    {% if teamseason.rank %}
+                    ({{ teamseason.rank }})
                     {% endif %}
                     </label>
             </div>

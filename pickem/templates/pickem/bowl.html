@@ -7,12 +7,12 @@
     {% for participant in game.participant_set.all %}
     <tr>
         <td>
-            <a href="{{ participant.team.site }}">
-                {% if participant.team.rank %}
-                <strong>{{ participant.team.rank }} </strong>
+            <a href="{{ participant.teamseason.team.site }}">
+                {% if participant.teamseason.rank %}
+                <strong>{{ participant.teamseason.rank }} </strong>
                 {% endif %}
-                {{ participant.team }}
-                {{ participant.team.record }}
+                {{ participant.teamseason.team }}
+                {{ participant.teamseason.record }}
             </a>
         </td>
     </tr>

@@ -1,7 +1,7 @@
 import json
 import logging
 
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.views import generic
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -10,7 +10,7 @@ from django.conf import settings
 import django.utils.timezone as timezone
 from django.db.models import Max as DjangoMax
 
-from pickem.models import Game, Selection, Participant, Wager, Winner
+from pickem.models import Game, Selection, Participant, Wager, Winner, Season
 from collections import defaultdict, OrderedDict
 
 # pylint: disable=too-many-ancestors
@@ -24,10 +24,14 @@ class IndexView(generic.TemplateView):
     template_name = 'pickem/index.html'
     context_object_name = 'game_list'
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, year, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['game_list'] = Game.objects.order_by('datetime')
-        context['winners'] = [ w.participant for w in Winner.objects.all()]
+        season = get_object_or_404(Season, year=year)
+        context['game_list'] = Game.objects.filter(
+            season=season).order_by('datetime')
+        context['winners'] = [w.participant
+                              for w in Winner.objects.filter(
+                                  participant__teamseason__season=season)]
         return context
 
     def get_queryset(self):
@@ -50,39 +54,44 @@ class ScoreView(generic.TemplateView):
 
     template_name = 'pickem/scores.html'
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, year, **kwargs):
         context = super().get_context_data(**kwargs)
+        season = get_object_or_404(Season, year=year)
         context['start_time'] = settings.PICKEM_START_TIME
         context['started'] = pickem_started(timezone.now())
-        context['score_headers'], context['score_table'] = self.make_score_table()
+        context['score_headers'], context[
+            'score_table'] = self.make_score_table(season)
 
         users = User.objects.all()
         if not users or not context['started']:
             return context
-        scores = ScoreTable(users)
+        scores = ScoreTable(users, season)
         context['scores_as_bars'] = scores.scores_as_bars(remainder=True)
         context['progress_bar_style'] = True
 
         return context
 
     @staticmethod
-    def make_score_table(**kwargs):
+    def make_score_table(season, **kwargs):
         headers = ['User', 'Score']
         users = list(User.objects.all())
-        scores = ScoreView.calc_user_scores(users)
+        scores = ScoreView.calc_user_scores(users, season)
         return (headers, scores)
 
     @staticmethod
-    def calc_user_scores(users):
-        scores = dict( [ ( user.username, 0 ) for user in users ] )
-        winners = Winner.objects.all()
-        good_picks = Selection.objects.filter(user__in=users).filter(
-                participant__in= [ w.participant for w in winners ] )
+    def calc_user_scores(users, season):
+        scores = dict([(user.username, 0) for user in users])
+        winners = Winner.objects.filter(participant__teamseason__season=season)
+        good_picks = Selection.objects.filter(
+            user__in=users,
+            participant__teamseason__season=season).filter(
+                participant__in=[w.participant for w in winners])
         for pick in good_picks:
             if pick.participant.game.fixed_wager_amount:
                 wager = pick.participant.game.fixed_wager_amount
             else:
-                wager = Wager.objects.filter(user=pick.user,
+                wager = Wager.objects.filter(
+                    user=pick.user,
                     game=pick.participant.game).get().amount
             scores[pick.user.username] += wager
         # negate score instead of reverse=True because we want usernames
@@ -90,7 +99,8 @@ class ScoreView(generic.TemplateView):
         return sorted(scores.items(), key=lambda x:(-x[1], x[0]))
 
 class ScoreTable:
-    def __init__(self, users):
+    def __init__(self, users, season):
+        self.season = season
         self.scores = None
         self.remaining = None
         self.users = users
@@ -154,9 +164,12 @@ class ScoreTable:
         self.scores.sort(key=lambda x:(-x[1], str(x[0])))
 
     def select_winning_picks(self):
-        winners = Winner.objects.all()
-        return Selection.objects.filter(user__in=self.users).filter(
-                participant__in= [ w.participant for w in winners ] )
+        winners = Winner.objects.filter(
+            participant__teamseason__season=self.season)
+        return Selection.objects.filter(
+            user__in=self.users,
+            participant__teamseason__season=self.season).filter(
+                participant__in=[w.participant for w in winners])
 
     def calc_remaining_points(self):
         unplayed = self.unplayed_games()
@@ -187,26 +200,30 @@ class PicksView(generic.TemplateView):
 
     template_name = 'pickem/picks.html'
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, year, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['picks_headers'], context['picks_table'] = make_picks_table()
+        season = get_object_or_404(Season, year=year)
+        context['picks_headers'], context['picks_table'] = make_picks_table(
+            season)
         context['started'] = pickem_started(timezone.now())
         context['start_time'] = settings.PICKEM_START_TIME
         return context
 
-def make_picks_table(**kwargs):
+def make_picks_table(season, **kwargs):
     users = list(User.objects.order_by('username'))
     usernames = [ user.username.title() for user in users ]
     headers = ['Game', 'Kickoff'] + usernames
-    games = list(Game.objects.order_by('datetime'))
+    games = list(Game.objects.filter(season=season).order_by('datetime'))
     table_cols = []
     table_cols.append([ game.event.name for game in games ])
     table_cols.append([ pretty_date(game.datetime) for game in games ])
     table_cols.append([ pretty_time(game.datetime) for game in games ])
     for user in users:
         picks, wagers = get_ordered_user_selections(games, user)
-        table_cols.append([ wager.amount if wager else 'N/A' for wager in wagers ])
-        table_cols.append([ pick.participant.team if pick else 'N/A' for pick in picks ])
+        table_cols.append([wager.amount if wager else 'N/A' for wager in wagers
+                          ])
+        table_cols.append([pick.participant.teamseason if pick else 'N/A'
+                           for pick in picks])
     return  headers, list(zip(*table_cols))
 
 def get_ordered_user_selections(ordered_games, user):
@@ -231,14 +248,16 @@ class PrettyPicksView(generic.TemplateView):
     '''List all games with users sorted under team chosen
     '''
     template_name = 'pickem/pretty_picks.html'
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, year, **kwargs):
         context = super().get_context_data(**kwargs)
+        season = get_object_or_404(Season, year=year)
 
         users = User.objects.all()
-        complete_picks, incomplete_picks = self.generate_pick_summaries()
+        complete_picks, incomplete_picks = self.generate_pick_summaries(season)
 
-        complete_picks = [ PickSummary(game, users) for game in complete_picks ]
-        incomplete_picks = [ PickSummary(game, users) for game in incomplete_picks ]
+        complete_picks = [PickSummary(game, users) for game in complete_picks]
+        incomplete_picks = [PickSummary(game, users)
+                            for game in incomplete_picks]
 
         context['complete_picks'] = complete_picks
         context['incomplete_picks'] = incomplete_picks
@@ -251,19 +270,22 @@ class PrettyPicksView(generic.TemplateView):
         return context
 
     @staticmethod
-    def get_incomplete_games(completed_games):
-        all_games = Game.objects.order_by('datetime')
+    def get_incomplete_games(completed_games, season):
+        all_games = Game.objects.filter(season=season).order_by('datetime')
         complete_set = set(completed_games)
         return [ x for x in all_games if x not in complete_set ]
 
     @staticmethod
-    def get_completed_games():
-        return [ x.participant.game
-                for x in Winner.objects.order_by('participant__game__datetime') ]
+    def get_completed_games(season):
+        return [x.participant.game
+                for x in Winner.objects.filter(
+                    participant__teamseason__season=season).order_by(
+                        'participant__game__datetime')]
 
-    def generate_pick_summaries(self):
-        completed_games = self.get_completed_games()
-        return completed_games, self.get_incomplete_games(completed_games)
+    def generate_pick_summaries(self, season):
+        completed_games = self.get_completed_games(season)
+        return completed_games, self.get_incomplete_games(completed_games,
+                                                          season)
 
     @staticmethod
     def get_last_completed_game():
@@ -315,7 +337,7 @@ class PickSummary:
         get_user_wager = user_wager_function(self.game)
         result = OrderedDict( [ (str(part.teamseason), []) for part in participants ] )
         for selection in selections:
-            result[str(selection.participant.team)].append(
+            result[str(selection.participant.teamseason)].append(
                     get_user_wager(selection.user))
         for key, value in result.items():
             value.sort(key=lambda x: x.amount, reverse=True)
@@ -342,7 +364,8 @@ def pretty_time(datetime):
 def select_all(request, year):
     '''GET and POST logic for the page where selections occur
     '''
-    selection_form_items, fixed_value_games = all_games_as_forms()
+    season = get_object_or_404(Season, year=year)
+    selection_form_items, fixed_value_games = all_games_as_forms(season)
     error = None
     if not pickem_started(timezone.now()) and request.method == 'POST':
         # Data is sent in the form as a single json string object summarizing
@@ -396,14 +419,14 @@ class SelectionFormItem:
         self.wager = wager
 
 
-def all_games_as_forms():
+def all_games_as_forms(season):
     def game_form(fixed_value_games):
         if fixed_value_games:
-            games = Game.objects.exclude(fixed_wager_amount=0)
+            games = Game.objects.filter(season=season).exclude(fixed_wager_amount=0)
         else:
-            games = Game.objects.filter(fixed_wager_amount=0)
+            games = Game.objects.filter(fixed_wager_amount=0, season=season)
         for game in games:
-            teams = [p.team for p in game.participants]
+            teams = [p.teamseason for p in game.participants]
             yield SelectionFormItem(game=game, teams=teams)
     return list(game_form(False)), list(game_form(True))
 
