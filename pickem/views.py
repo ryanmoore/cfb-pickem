@@ -46,7 +46,7 @@ class GameView(generic.DetailView):
     template_name = 'pickem/bowl.html'
 
 def pickem_started(reference_time, season):
-    if settings.PICKEM_START_TIME.year != season:
+    if settings.PICKEM_START_TIME.year != season.year:
         return True
     return reference_time >= settings.PICKEM_START_TIME
 
