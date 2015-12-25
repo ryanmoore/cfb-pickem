@@ -38,7 +38,7 @@ class Game(models.Model):
 
 class Team(models.Model):
     name = models.CharField(max_length=200, primary_key=True)
-    site = models.CharField(max_length=200)
+    site = models.CharField(max_length=200, null=True)
     #abbreviation = models.CharField(max_length=32)
 
     def __str__(self):
@@ -48,7 +48,7 @@ class Team(models.Model):
 class TeamSeason(models.Model):
     season = models.ForeignKey(Season)
     team = models.ForeignKey(Team)
-    record = models.CharField(max_length=64)
+    record = models.CharField(max_length=64, null=True)
     rank = models.IntegerField(null=True)
 
     def __str__(self):
