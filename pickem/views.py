@@ -379,7 +379,8 @@ def select_all(request, year):
             game = Game.objects.get(id=game_pk)
             wager = len(ordering)-idx
             if pick is not None:
-                participant = Participant.objects.get(game=game, team_id=pick)
+                participant = Participant.objects.get(game=game,
+                                                      teamseason__team_id=pick)
                 update_selection_or_create(request.user, participant)
                 # always update wager in case the list has been reordered
             update_wager_or_create(request.user, game, wager)
@@ -391,7 +392,8 @@ def select_all(request, year):
             if pick is not None:
                 logger.info('Updating fixed value wager for: {}'.format(game.game))
                 logger.info('Pick is: {}'.format(pick))
-                participant = Participant.objects.get(game=game.game, team_id=pick)
+                participant = Participant.objects.get(game=game.game,
+                                                      teamseason__team_id=pick)
                 logger.info('New selection: {}'.format(participant))
                 update_selection_or_create(request.user, participant)
             else:
