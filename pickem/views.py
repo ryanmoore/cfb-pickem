@@ -451,7 +451,7 @@ def update_selection_form_list(user, selection_form_items):
                     participant__game=form_item.game)
             # add 1 because the checked field will index from 1 not 0
             form_item.checked = form_item.teams.index(
-                    selection.participant.team) + 1
+                    selection.participant.teamseason) + 1
         except Selection.DoesNotExist:
             form_item.checked = 0
         except Wager.DoesNotExist:
