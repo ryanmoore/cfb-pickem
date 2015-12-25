@@ -45,7 +45,9 @@ class GameView(generic.DetailView):
     model = Game
     template_name = 'pickem/bowl.html'
 
-def pickem_started(reference_time):
+def pickem_started(reference_time, season):
+    if settings.PICKEM_START_TIME.year != season:
+        return True
     return reference_time >= settings.PICKEM_START_TIME
 
 class ScoreView(generic.TemplateView):
@@ -58,7 +60,7 @@ class ScoreView(generic.TemplateView):
         context = super().get_context_data(**kwargs)
         season = get_object_or_404(Season, year=year)
         context['start_time'] = settings.PICKEM_START_TIME
-        context['started'] = pickem_started(timezone.now())
+        context['started'] = pickem_started(timezone.now(), season)
         context['score_headers'], context[
             'score_table'] = self.make_score_table(season)
 
@@ -205,7 +207,7 @@ class PicksView(generic.TemplateView):
         season = get_object_or_404(Season, year=year)
         context['picks_headers'], context['picks_table'] = make_picks_table(
             season)
-        context['started'] = pickem_started(timezone.now())
+        context['started'] = pickem_started(timezone.now(), season)
         context['start_time'] = settings.PICKEM_START_TIME
         return context
 
@@ -261,11 +263,11 @@ class PrettyPicksView(generic.TemplateView):
 
         context['complete_picks'] = complete_picks
         context['incomplete_picks'] = incomplete_picks
-        context['started'] = pickem_started(timezone.now())
+        context['started'] = pickem_started(timezone.now(), season)
         context['start_time'] = settings.PICKEM_START_TIME
         if not context['started']:
             context['user_progress'] = sorted(
-                    self.get_user_progresses(percentage=True).items(),
+                    self.get_user_progresses(True, season).items(),
                     key=lambda x:(x[1], x[0].username))
         return context
 
@@ -293,20 +295,20 @@ class PrettyPicksView(generic.TemplateView):
                 'participant__game__datetime').participant.game
 
     @staticmethod
-    def get_user_completed_percentage(user):
-        missing = num_missing_picks_user(user)
-        games = Game.objects.all().count()
+    def get_user_completed_percentage(user, season):
+        missing = num_missing_picks_user(user, season)
+        games = Game.objects.filter(season=season).count()
         return round((games-missing)/games, 2)
 
     @staticmethod
-    def get_user_progresses(percentage=False):
+    def get_user_progresses(percentage, season):
         multiple = 1
         if percentage:
             multiple = 100
         users = User.objects.all().order_by('username')
-        return dict( [ (user,
-            multiple*PrettyPicksView.get_user_completed_percentage(user))
-            for user in users ] )
+        return dict([(user, multiple *
+                      PrettyPicksView.get_user_completed_percentage(
+                          user, season)) for user in users])
 
 
 class PickSummary:
@@ -367,7 +369,7 @@ def select_all(request, year):
     season = get_object_or_404(Season, year=year)
     selection_form_items, fixed_value_games = all_games_as_forms(season)
     error = None
-    if not pickem_started(timezone.now()) and request.method == 'POST':
+    if not pickem_started(timezone.now(), season) and request.method == 'POST':
         # Data is sent in the form as a single json string object summarizing
         # all picks and orders
         ordering = json.loads(request.POST['matchup_ordering'])
@@ -399,13 +401,14 @@ def select_all(request, year):
         error = 'Submission failed. Pickem has already started.'
     update_selection_form_list(request.user, selection_form_items)
     update_selection_form_list(request.user, fixed_value_games)
-    return render(request, 'pickem/select_all.html',
-                  {'selection_form_items': selection_form_items,
-                      'fixed_value_games' : fixed_value_games,
-                      'all_games' : selection_form_items+fixed_value_games,
-                      'missing_count' : num_missing_picks_user(request.user),
-                      'started' : pickem_started(timezone.now()),
-                      'error' : error })
+    return render(
+        request, 'pickem/select_all.html',
+        {'selection_form_items': selection_form_items,
+         'fixed_value_games': fixed_value_games,
+         'all_games': selection_form_items + fixed_value_games,
+         'missing_count': num_missing_picks_user(request.user, season),
+         'started': pickem_started(timezone.now(), season),
+         'error': error})
 
 class SelectionFormItem:
     def __init__(self, game, teams, checked=0, wager=0):
@@ -457,9 +460,10 @@ def update_selection_form_list(user, selection_form_items):
             form_item.wager = i
     selection_form_items.sort(key=lambda x: x.wager, reverse=True)
 
-def num_missing_picks_user(user):
-    num_games = Game.objects.all().count()
-    num_user_picks = user.selection_set.all().count()
+def num_missing_picks_user(user, season):
+    num_games = Game.objects.filter(season=season).count()
+    num_user_picks = user.selection_set.filter(
+        participant__teamseason__season=season).count()
     return num_games - num_user_picks
 
 def update_selection_or_create(user, participant):
