@@ -337,9 +337,10 @@ class PickSummary:
                 wagers = Wager.objects.filter(game=self.game)
                 return lambda user: wagers.get(user=user)
         get_user_wager = user_wager_function(self.game)
-        result = OrderedDict( [ (str(part.teamseason), []) for part in participants ] )
+        result = OrderedDict([(str(part.teamseason.team), [])
+                              for part in participants])
         for selection in selections:
-            result[str(selection.participant.teamseason)].append(
+            result[str(selection.participant.teamseason.team)].append(
                     get_user_wager(selection.user))
         for key, value in result.items():
             value.sort(key=lambda x: x.amount, reverse=True)
