@@ -9,7 +9,9 @@ import logging
 import datetime
 import re
 import itertools
+import sys
 from pickem.views import ScoreTable
+from pickem.models import Season
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -17,18 +19,24 @@ logger.setLevel(logging.DEBUG)
 class Command(BaseCommand):
     ''' Deriving as such adds __name__ as a manage.py command
     '''
-    args = '<output>'
     help = 'Writes current status and future pick info to file as json'
+
+    def add_arguments(self, parser):
+        parser.add_argument('season', type=int, help='Season to summarize')
+        parser.add_argument('output',
+                            type=str,
+                            help='File to write resulting JSON')
 
     def __init__(self):
         super().__init__()
-        self.score_table = ScoreTable(User.objects.all())
 
     def handle(self, *args, **options):
         ''' Main function manage calls. Reads json and adds to database
         '''
-        assert len(args) == 1
-        filename = args[0]
+        self.score_table = ScoreTable(User.objects.all(),
+                                      Season.objects.get(
+                                          year=options['season']))
+        filename = options['output']
 
         with transaction.atomic():
             scores = self.score_table.scores_as_table()
@@ -37,7 +45,8 @@ class Command(BaseCommand):
             matchups = self.remaining_matchups()
             matchup_ids = [ ( x.id, y.id ) for x,y in matchups ]
             participants = list(itertools.chain(*matchups))
-            teams = dict( [ (part.id, part.team.name) for part in participants] )
+            teams = dict([(part.id, part.teamseason.team.name)
+                          for part in participants])
             picks = list(self.get_picks(participants))
             data = {
                     'users' : users,
@@ -48,6 +57,7 @@ class Command(BaseCommand):
                     }
             with open(filename, 'w') as outfile:
                 json.dump(data, outfile, indent=4)
+            sys.stdout.write(self.style.SUCCESS('Wrote {}.\n'.format(filename)))
 
     def remaining_matchups(self):
         games = self.score_table.unplayed_games()
@@ -71,5 +81,3 @@ class Command(BaseCommand):
 
 def game_participants(game):
     return game.participant_set.all()
-
-
