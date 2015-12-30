@@ -80,6 +80,7 @@
                     <ul class="dropdown-menu">
                         {% if user.is_superuser %}
                         <li><a href="{% url 'admin:index' %}">Admin</a></li>
+                        <li><a href="{% url 'pickem:admin_pick_winners' year %}">Add Winner (Admin)</a></li>
                         {% endif %}
                         <li><a href="{% url 'pickem:select_all' year %}">Picks</a></li>
                         <li><a href="{% url 'pickem:logout' %}">Logout</a></li>

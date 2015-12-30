@@ -3,12 +3,15 @@ import logging
 
 from django.shortcuts import render, get_object_or_404
 from django.views import generic
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
+from django.utils.decorators import method_decorator
 from django.db import transaction
 from django.conf import settings
 import django.utils.timezone as timezone
 from django.db.models import Max as DjangoMax
+from django.http import HttpResponseRedirect
+from django.core.urlresolvers import reverse
 
 from pickem.models import Game, Selection, Participant, Wager, Winner, Season
 from collections import defaultdict, OrderedDict
@@ -250,7 +253,12 @@ class PrettyPicksView(generic.TemplateView):
     '''List all games with users sorted under team chosen
     '''
     template_name = 'pickem/pretty_picks.html'
-    def get_context_data(self, year, **kwargs):
+    def get_context_data(self,
+                         year,
+                         add_winner_buttons=False,
+                         winner_added=None,
+                         winner_create_success=False,
+                         **kwargs):
         context = super().get_context_data(**kwargs)
         season = get_object_or_404(Season, year=year)
 
@@ -265,6 +273,7 @@ class PrettyPicksView(generic.TemplateView):
         context['incomplete_picks'] = incomplete_picks
         context['started'] = pickem_started(timezone.now(), season)
         context['start_time'] = settings.PICKEM_START_TIME
+        context['add_winner_buttons'] = add_winner_buttons
         if not context['started']:
             context['user_progress'] = sorted(
                     self.get_user_progresses(True, season).items(),
@@ -337,10 +346,10 @@ class PickSummary:
                 wagers = Wager.objects.filter(game=self.game)
                 return lambda user: wagers.get(user=user)
         get_user_wager = user_wager_function(self.game)
-        result = OrderedDict([(str(part.teamseason.team), [])
+        result = OrderedDict([(part.teamseason, [])
                               for part in participants])
         for selection in selections:
-            result[str(selection.participant.teamseason.team)].append(
+            result[selection.participant.teamseason].append(
                     get_user_wager(selection.user))
         for key, value in result.items():
             value.sort(key=lambda x: x.amount, reverse=True)
@@ -491,3 +500,22 @@ def update_wager_or_create(user, game, amount):
     if not created:
         wager.amount = amount
         wager.save()
+
+
+
+
+@method_decorator(user_passes_test(lambda u: u.is_superuser), name='dispatch')
+class AddWinner(generic.View):
+
+    def post(self, request, year, teamseason_id, *args, **kwargs):
+        season = get_object_or_404(Season, year=year)
+        participant = get_object_or_404(Participant, teamseason__id=teamseason_id)
+        winner, created = Winner.objects.get_or_create(participant=participant)
+        return HttpResponseRedirect(
+            reverse('pickem:picks',
+                    kwargs={'year': year}),
+            # TODO: still need to appropriately route these to the picks page
+            # for the message to display. As an admin-only feature, can
+            # add later
+            {'winner_create_success': created,
+             'winner_added': winner.participant.teamseason.team,})

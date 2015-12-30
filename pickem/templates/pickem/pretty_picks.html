@@ -8,6 +8,15 @@
 {% endblock %}
 
 {% block content %}
+
+{% if winner_added %}
+    {% if winner_create_success %}
+        <div class="alert alert-success"><p>Added {{ winner_added }} as new winner</p></div>
+    {% else %}
+        <div class="alert alert-warning"><p>{{ winner_added }} already a winner</p></div>
+    {% endif %}
+{% endif %}
+
 {% if started == False %}
 <div class="alert alert-danger">
     <p>
@@ -42,14 +51,14 @@
 {% else %}
 {% for pick_summary in incomplete_picks %}
 <div class="row matchup-row">
-    {% for team, picks in pick_summary.picks.items %}
+    {% for teamseason, picks in pick_summary.picks.items %}
     <div class="col-xs-4 team">
         {% if forloop.counter0 == 0 %}
         <table class="picklist-left">
         {% else %}
         <table class="picklist-right">
         {% endif %}
-            <thead><tr><th class="team" colspan="2">{{ team }}</th></tr></thead>
+            <thead><tr><th class="team" colspan="2">{{ teamseason.team }}</th></tr></thead>
                 <tbody>
                     {% for pick in picks %}
                     <tr>
@@ -70,6 +79,16 @@
                         {% endif %}
                     </tr>
                     {% endfor %}
+                    {% if add_winner_buttons %}
+                    <tr>
+                        <td>
+                            <form action="{% url 'pickem:add_winner' year teamseason.id %}" method="post">
+                                {% csrf_token %}
+                                <button type='submit' class='btn btn-primary' style='margin-bottom: 10px'>Add winner</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
@@ -88,7 +107,7 @@
 <div class="row"><h3>Completed games</h3></div>
 {% for pick_summary in complete_picks %}
 <div class="row matchup-row">
-    {% for team, picks in pick_summary.picks.items %}
+    {% for teamseason, picks in pick_summary.picks.items %}
     {% if forloop.counter0 == pick_summary.winner_index %}
     <div class="col-xs-4 team winning-pick">
     {% else %}
@@ -99,7 +118,7 @@
         {% else %}
         <table class="picklist-right">
         {% endif %}
-            <thead><tr><th class="team" colspan="2">{{ team }}</th></tr></thead>
+            <thead><tr><th class="team" colspan="2">{{ teamseason.team }}</th></tr></thead>
             <tbody>
                 {% for pick in picks %}
                 <tr>
