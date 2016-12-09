@@ -1,3 +1,4 @@
+import sys
 
 try:
     # Suggestion: At the top of local_settings.py:
@@ -5,6 +6,7 @@ try:
     # and override as needed within
     from cfb_pickem.local_settings import *
 except ImportError:
-    print("Unable to import local settings. Falling back to default_settings.py")
+    print(('Unable to import local settings.'
+           ' Falling back to default_settings.py'),
+          file=sys.stderr)
     from cfb_pickem.default_settings import *
-

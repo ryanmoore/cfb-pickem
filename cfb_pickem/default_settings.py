@@ -34,7 +34,7 @@ except ImportError:
     print('Created new secret key: {}'.format(DEST))
 
 
-ALLOWED_HOSTS = [ 'localhost' ]
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
