@@ -30,43 +30,43 @@ class MatchupData {
 class Pick extends Component {
     render() {
         return (
-                <Col xs={4} className="matchup-col btn btn-default">
+            <Col xs={4} className="matchup-col btn btn-default">
                 <label className="pick-button" htmlFor={this.props.pickdata.id}>
-                {this.props.pickdata.toString()}
+                    {this.props.pickdata.toString()}
                 </label>
-                </Col>
-               );
+            </Col>
+        );
     }
 }
 
 class MatchupHandle extends Component {
     render() {
         return (
-                <Col xs={4} className="handle matchup-col">
-                    <span className="handle-grip">::</span>
-                    <span className="matchup-wager">{this.props.wager}</span>
-                    <span className="matchup-info">
-                        <Button className="matchup-info-btn" bsStyle="default"> 
-                            <Glyphicon glyph="info-sign"/>
-                        </Button>
-                        <span className="hidden-xs">
-                            Name // TODO
-                        </span>
+            <Col xs={4} className="handle matchup-col">
+                <span className="handle-grip">::</span>
+                <span className="matchup-wager">{this.props.wager}</span>
+                <span className="matchup-info">
+                    <Button className="matchup-info-btn" bsStyle="default">
+                        <Glyphicon glyph="info-sign"/>
+                    </Button>
+                    <span className="hidden-xs">
+                        Name // TODO
                     </span>
-                </Col>
-               );
+                </span>
+            </Col>
+        );
     }
 }
 
 class Matchup extends Component {
     render() {
         return (
-                <Row>
+            <Row>
                 <MatchupHandle wager={this.props.wager}/>
                 <Pick pickdata={this.props.left}/>
                 <Pick pickdata={this.props.right}/>
-                </Row>
-               );
+            </Row>
+        );
     }
 }
 
