@@ -5,9 +5,9 @@ import './App.css';
 import { DragDropContext } from 'react-dnd';
 import { default as TouchBackend } from 'react-dnd-touch-backend';
 import HTML5Backend from 'react-dnd-html5-backend';
-import Matchup, { MatchupData, PickData, DragableMatchup } from './Matchup.jsx';
+import Matchup, { MatchupData, PickData, DragableMatchup } from './Matchup';
 import { Grid } from 'react-bootstrap';
-import ItemPreview from './ItemPreview.jsx';
+import ItemPreview from './ItemPreview';
 
 class MatchupList extends Component {
     static propTypes = {
