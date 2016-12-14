@@ -34,6 +34,12 @@ class MatchupData {
 }
 
 class Pick extends Component {
+    static propTypes = {
+        pickdata: PropTypes.shape({
+            id: PropTypes.number.isRequired,
+            toString: PropTypes.func.isRequired
+        }),
+    }
     render() {
         return (
             <Col xs={4} className="matchup-col btn btn-default">
@@ -46,6 +52,9 @@ class Pick extends Component {
 }
 
 class MatchupHandle extends Component {
+    static propTypes = {
+        wager: PropTypes.number.isRequired,
+    }
     render() {
         return (
             <Col xs={4} className="handle matchup-col">

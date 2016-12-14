@@ -10,6 +10,14 @@ import { Grid } from 'react-bootstrap';
 import ItemPreview from './ItemPreview.jsx';
 
 class MatchupList extends Component {
+    static propTypes = {
+        matchups: React.PropTypes.arrayOf(React.PropTypes.shape({
+            id: React.PropTypes.number.isRequired,
+            left: React.PropTypes.object.isRequired,
+            right: React.PropTypes.object.isRequired,
+        }).isRequired
+        )
+    };
     constructor(props) {
         super(props);
         this.useCustomPreview = ('ontouchstart' in window);
@@ -57,7 +65,7 @@ class MatchupList extends Component {
                     left={preview.left}
                     right={preview.right}/> }
             </ItemPreview>
-            </Grid>
+        </Grid>
         );
     }
 }
