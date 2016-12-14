@@ -1,82 +1,64 @@
 
 import React, { Component } from 'react';
-//import logo from './logo.svg';
+import update from 'react/lib/update';
 import './App.css';
-import {Button, Grid, Row, Col, Glyphicon} from 'react-bootstrap';
-
-class PickData {
-    constructor(id, name, rank) {
-        this.id = id;
-        this.name = name;
-        this.rank = rank;
-    }
-    toString() {
-        var str = this.name;
-        if(this.rank) {
-            str = "(" + this.rank.toString() + ") " + str;
-        }
-        return str;
-    }
-}
-
-class MatchupData {
-    constructor(id, left, right) {
-        this.id = id;
-        this.left = left;
-        this.right = right;
-    }
-}
-
-class Pick extends Component {
-    render() {
-        return (
-            <Col xs={4} className="matchup-col btn btn-default">
-                <label className="pick-button" htmlFor={this.props.pickdata.id}>
-                    {this.props.pickdata.toString()}
-                </label>
-            </Col>
-        );
-    }
-}
-
-class MatchupHandle extends Component {
-    render() {
-        return (
-            <Col xs={4} className="handle matchup-col">
-                <span className="handle-grip">::</span>
-                <span className="matchup-wager">{this.props.wager}</span>
-                <span className="matchup-info">
-                    <Button className="matchup-info-btn" bsStyle="default">
-                        <Glyphicon glyph="info-sign"/>
-                    </Button>
-                    <span className="hidden-xs">
-                        Name // TODO
-                    </span>
-                </span>
-            </Col>
-        );
-    }
-}
-
-class Matchup extends Component {
-    render() {
-        return (
-            <Row>
-                <MatchupHandle wager={this.props.wager}/>
-                <Pick pickdata={this.props.left}/>
-                <Pick pickdata={this.props.right}/>
-            </Row>
-        );
-    }
-}
+import { DragDropContext } from 'react-dnd';
+import { default as TouchBackend } from 'react-dnd-touch-backend';
+import HTML5Backend from 'react-dnd-html5-backend';
+import Matchup, { MatchupData, PickData, DragableMatchup } from './Matchup.jsx';
+import { Grid } from 'react-bootstrap';
+import ItemPreview from './ItemPreview.jsx';
 
 class MatchupList extends Component {
+    constructor(props) {
+        super(props);
+        this.useCustomPreview = ('ontouchstart' in window);
+        this.state = { matchups: props.matchups, previewIndex: null };
+        this.moveMatchup = this.moveMatchup.bind(this);
+        this.setPreview = this.setPreview.bind(this);
+    }
+
+    moveMatchup(dragIndex, hoverIndex) {
+        const { matchups } = this.state;
+        const draggedMatchup = matchups[dragIndex];
+        this.setState(update(this.state, {
+            matchups: { $splice: [
+                [dragIndex, 1],
+                [hoverIndex, 0, draggedMatchup]
+            ]},
+            previewIndex: { $set: hoverIndex }
+        }));
+    }
+
+    setPreview(index) {
+        this.setState(update(this.state, {previewIndex: {$set: index }}));
+    }
+
     render() {
-        const matchups = this.props.matchups.map((matchup, index) => {
-            return <Matchup key={matchup.id} wager={index+1} left={matchup.left} right={matchup.right}/>
-        }
+        const { matchups, previewIndex } = this.state;
+        const matchupRows = matchups.map((matchup, index) => {
+            return <DragableMatchup
+                key={matchup.id}
+                id={matchup.id}
+                index={index}
+                wager={index+1}
+                left={matchup.left}
+                right={matchup.right}
+                moveMatchup={this.moveMatchup}
+                setPreview={this.setPreview}
+            />
+        });
+        const preview = previewIndex !== null && matchups[previewIndex];
+        return (<Grid>
+            {matchupRows}
+            <ItemPreview key="__preview">
+                { preview && <Matchup id={preview.id}
+                    wager={previewIndex+1}
+                    left={preview.left}
+                    right={preview.right}/> }
+            </ItemPreview>
+            </Grid>
         );
-        return (<Grid>{matchups}</Grid>);
     }
 }
 
@@ -90,5 +72,10 @@ class App extends Component {
         return <MatchupList matchups={matchups}/>;
     }
 }
+if( 'ontouchstart' in window) {
+    App = DragDropContext(TouchBackend)(App);
+} else {
+    App = DragDropContext(HTML5Backend)(App);
+}
+
 export default App;
-export { PickData };
