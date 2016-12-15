@@ -1,0 +1,73 @@
+exports[`ItemPreview should be hidden/null when not dragging 1`] = `null`;
+
+exports[`ItemPreview should be hidden/null when not dragging even with known offset 1`] = `null`;
+
+exports[`ItemPreview should be hidden/null when offset is unknown 1`] = `
+<div
+  style={
+    Object {
+      "height": "100%",
+      "left": 0,
+      "pointerEvents": "none",
+      "position": "fixed",
+      "top": 0,
+      "width": "100%",
+      "zIndex": 100,
+    }
+  }>
+  <div
+    style={
+      Object {
+        "display": "none",
+      }
+    } />
+</div>
+`;
+
+exports[`ItemPreview should take the value of the current offset when dragging 1`] = `
+<div
+  style={
+    Object {
+      "height": "100%",
+      "left": 0,
+      "pointerEvents": "none",
+      "position": "fixed",
+      "top": 0,
+      "width": "100%",
+      "zIndex": 100,
+    }
+  }>
+  <div
+    style={
+      Object {
+        "WebkitTransform": "translate(0px, 0px)",
+        "pointerEvents": "none",
+        "transform": "translate(0px, 0px)",
+      }
+    } />
+</div>
+`;
+
+exports[`ItemPreview should transform to match current offset when dragging 1`] = `
+<div
+  style={
+    Object {
+      "height": "100%",
+      "left": 0,
+      "pointerEvents": "none",
+      "position": "fixed",
+      "top": 0,
+      "width": "100%",
+      "zIndex": 100,
+    }
+  }>
+  <div
+    style={
+      Object {
+        "WebkitTransform": "translate(1px, 2px)",
+        "pointerEvents": "none",
+        "transform": "translate(1px, 2px)",
+      }
+    } />
+</div>
+`;

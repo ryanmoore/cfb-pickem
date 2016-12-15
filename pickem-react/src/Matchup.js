@@ -19,7 +19,7 @@ class PickData {
     toString() {
         var str = this.name;
         if(this.rank) {
-            str = "(" + this.rank.toString() + ") " + str;
+            str = '(' + this.rank.toString() + ') ' + str;
         }
         return str;
     }
@@ -140,7 +140,8 @@ class Matchup extends Component {
             wager,
             left,
             right } = this.props;
-        const connectHandle = this.props.connectHandle || function (children) { return children; };
+        const identity = elt => elt;
+        const connectHandle = this.props.connectHandle || identity;
         // The whole object is the target and serves as the
         // DragPreview (what the user sees as faded near their cursor)
         // We assign just the handle as the drag source so button clikcing and
@@ -168,6 +169,7 @@ class DragableMatchup extends Component {
         right: PropTypes.any.isRequired,
         moveMatchup: PropTypes.func.isRequired,
         setPreview: PropTypes.func.isRequired,
+        isDragging: PropTypes.bool.isRequired
     }
 
     componentDidMount() {
@@ -203,9 +205,14 @@ class DragableMatchup extends Component {
     }
 }
 
+// TODO: Update to decorators once stabilized 
+// Use class assign until Decorators stabilize
+// eslint-disable-next-line no-class-assign
 DragableMatchup = DropTarget(Types.MATCHUP, matchupTarget, connect => ({
     connectDropTarget: connect.dropTarget()
 }))(DragableMatchup);
+// Use class assign until Decorators stabilize
+// eslint-disable-next-line no-class-assign
 DragableMatchup = DragSource(Types.MATCHUP, matchupSource, collect)(DragableMatchup);
 
 export default Matchup;
