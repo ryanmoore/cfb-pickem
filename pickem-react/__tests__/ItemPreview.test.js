@@ -1,6 +1,6 @@
 
 import React from 'react';
-import ItemPreview from '../src/ItemPreview';
+import ItemPreview from '../src/Components/ItemPreview';
 import renderer from 'react-test-renderer';
 
 describe('ItemPreview', () => {

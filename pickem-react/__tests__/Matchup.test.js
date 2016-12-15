@@ -1,4 +1,4 @@
-import { PickData } from '../src/Matchup';
+import { PickData } from '../src/Components/Matchup';
 
 describe('PickData', () => {
     it('should display unranked team', () => {
