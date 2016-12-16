@@ -1,7 +1,7 @@
 
 import React, { Component } from 'react';
 import Matchup, { DragableMatchup } from './Matchup';
-import { Grid } from 'react-bootstrap';
+import { Grid, Row, Col } from 'react-bootstrap';
 import ItemPreview from './ItemPreview';
 
 class MatchupList extends Component {
@@ -40,12 +40,16 @@ class MatchupList extends Component {
         const preview = previewIndex !== null && matchups[previewIndex];
         return (<Grid>
             {matchupRows}
-            <ItemPreview key="__preview">
-                { preview && <Matchup id={preview.id}
-                    wager={previewIndex+1}
-                    left={preview.left}
-                    right={preview.right}/> }
-            </ItemPreview>
+            <Row>
+                <Col xs={12}>
+                    <ItemPreview key="__preview">
+                        { preview && <Matchup id={preview.id}
+                            wager={previewIndex+1}
+                            left={preview.left}
+                            right={preview.right}/> }
+                    </ItemPreview>
+                </Col>
+            </Row>
         </Grid>
         );
     }

@@ -7,6 +7,9 @@
     table-layout: fixed;
     padding: 0;
     padding-right: 2px;
+    border: none;
+    box-shadow: none;
+    background-image: none;
 }
 
 /* Previously: team-button 
