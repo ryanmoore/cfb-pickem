@@ -24,6 +24,15 @@ import {
     Navbar,
     NavItem
 } from 'react-bootstrap';
+import {
+    Router,
+    Route,
+    IndexRoute,
+    browserHistory
+} from 'react-router';
+import {
+    LinkContainer
+} from 'react-router-bootstrap';
 
 const initialState = {
     data: {
@@ -95,7 +104,7 @@ let store = createStore(matchupPicker, initialState
     //,window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
 );
 
-class App extends Component {
+class PickemApp extends Component {
     render() {
         return (
             <div>
@@ -108,16 +117,18 @@ class App extends Component {
                     </Navbar.Header>
                     <Navbar.Collapse>
                         <Nav>
-                            <NavItem eventKey={1} href='#'>Home</NavItem>
+                            <LinkContainer to='/'>
+                                <NavItem eventKey={1}>Home</NavItem>
+                            </LinkContainer>
                             <NavItem eventKey={2} href='#'>Picks</NavItem>
                             <NavItem eventKey={3} href='#'>Scores</NavItem>
-                            <NavItem eventKey={4} href='#'>MakePicks</NavItem>
+                            <LinkContainer to='/picks'>
+                                <NavItem eventKey={4}>MakePicks</NavItem>
+                            </LinkContainer>
                         </Nav>
                     </Navbar.Collapse>
                 </Navbar>
-                <Provider store={store}>
-                    <DisplayedMatchupList />
-                </Provider>
+                { this.props.children }
            </div>
         );
     }
@@ -127,15 +138,30 @@ class App extends Component {
 // TODO: Seems we rarely take the html5 backend. Not working in chrome at
 // least on dev machine
 if ('ontouchstart' in window) {
-// TODO: Update to decorators once stabilized 
-// Use class assign until Decorators stabilize
-// eslint-disable-next-line no-class-assign
-    App = DragDropContext(TouchBackend({
+    // TODO: Update to decorators once stabilized 
+    // Use class assign until Decorators stabilize
+    // eslint-disable-next-line no-class-assign
+    PickemApp = DragDropContext(TouchBackend({
         enableMouseEvents: true
-    }))(App);
+    }))(PickemApp);
 } else {
-// eslint-disable-next-line no-class-assign
-    App = DragDropContext(HTML5Backend)(App);
+    // eslint-disable-next-line no-class-assign
+    PickemApp = DragDropContext(HTML5Backend)(PickemApp);
+}
+
+class App extends Component {
+    render() {
+        return (
+            <Provider store={store}>
+                <Router history={browserHistory}>
+                    <Route path='/' component={PickemApp}>
+                        <IndexRoute component={GameIndex} />
+                        <Route path='picks' component={DisplayedMatchupList} />
+                    </Route>
+                </Router>
+            </Provider>
+        );
+    }
 }
 
 export default App;
