@@ -104,7 +104,7 @@ const matchupTarget = {
             return;
         }
 
-        props.moveMatchup(dragIndex, hoverIndex);
+        props.moveMatchup(1, dragIndex, hoverIndex);
 
         // From react-dnd example, they insist this is an okay time to mutate
         // monitor for the sake of performance to avoid index computations via
