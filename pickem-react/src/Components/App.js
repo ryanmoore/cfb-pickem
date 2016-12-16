@@ -14,6 +14,7 @@ import {
 } from 'redux';
 import matchupPicker from '../reducers';
 import DisplayedMatchupList from '../Containers/DisplayedMatchupList';
+import GameIndex from '../Containers/GameIndex';
 import {
     Provider
 } from 'react-redux';
