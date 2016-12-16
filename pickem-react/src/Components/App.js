@@ -71,8 +71,10 @@ class App extends Component {
     }
 }
 
+// TODO: Seems we rarely take the html5 backend. Not working in chrome at
+// least on dev machine
 if ('ontouchstart' in window) {
-    App = DragDropContext(TouchBackend)(App);
+    App = DragDropContext(TouchBackend({ enableMouseEvents: true }))(App);
 } else {
     App = DragDropContext(HTML5Backend)(App);
 }
