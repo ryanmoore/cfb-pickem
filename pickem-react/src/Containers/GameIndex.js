@@ -45,14 +45,13 @@ const getGameList = (games) => {
     return display;
 }
 
-//const mapStateToProps = (state) => {
-//    return {
-//        //games: getMatchupList(state.data.matchupOrders[state.ui.currentUser].ordering,
-//        //    state.data.matchups, state.data.teams),
-//    };
-//}
-
 class GameIndex extends Component {
+    static propTypes = {
+        dispatch: React.PropTypes.func.isRequired,
+        season: React.PropTypes.number.isRequired,
+        games: React.PropTypes.array.isRequierd,
+        ready: React.PropTypes.bool.isRequired,
+    }
     constructor(props) {
         super(props);
     }
@@ -60,9 +59,9 @@ class GameIndex extends Component {
     componentDidMount() {
         const {
             dispatch,
-            year
+            season
         } = this.props;
-        dispatch(loadPickemGames(year));
+        dispatch(loadPickemGames(season));
     }
 
     render() {
@@ -82,10 +81,18 @@ class GameIndex extends Component {
 const mapStateToProps = (state) => {
     return {
         games: getGameList(state.entities.games),
-        year: 'TODO',
+        season: 3,
         ready: !!state.entities.games,
     }
 }
+
+//const mapStateToProps = (state) => {
+//    return {
+//        //games: getMatchupList(state.data.matchupOrders[state.ui.currentUser].ordering,
+//        //    state.data.matchups, state.data.teams),
+//    };
+//}
+
 
 //const GameIndex = connect(
 //    mapStateToProps,
