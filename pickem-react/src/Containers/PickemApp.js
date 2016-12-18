@@ -32,9 +32,11 @@ class PickemApp extends Component {
                             <LinkContainer to='/'>
                                 <NavItem eventKey={1}>Home</NavItem>
                             </LinkContainer>
-                            <NavItem eventKey={2} href='#'>Picks</NavItem>
-                            <NavItem eventKey={3} href='#'>Scores</NavItem>
                             <LinkContainer to='/picks'>
+                                <NavItem eventKey={2}>Picks</NavItem>
+                            </LinkContainer>
+                            <NavItem eventKey={3} href='#'>Scores</NavItem>
+                            <LinkContainer to='/makepicks'>
                                 <NavItem eventKey={4}>MakePicks</NavItem>
                             </LinkContainer>
                         </Nav>
