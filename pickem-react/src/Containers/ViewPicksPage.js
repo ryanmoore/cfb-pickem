@@ -158,6 +158,16 @@ const stateIsReadyForPicksPage = (state, season) => {
     return required.every((type) => state.fetchState[type] === FETCH_STATES.READY);
 }
 
+const sortTransformedPicksByDate = (arr) => {
+    const getDate = (elt) => elt.gameDetails.date;
+    arr.sort((a, b) => {
+        if (getDate(a) < getDate(b)) return -1;
+        if (getDate(a) > getDate(b)) return 1;
+        return 0
+    });
+
+}
+
 const collectAndTransformPicksForSeason = (state, season) => {
     if(!stateIsReadyForPicksPage(state, season)) {
         return [];
@@ -181,6 +191,7 @@ const collectAndTransformPicksForSeason = (state, season) => {
             },
         });
     });
+    sortTransformedPicksByDate(output);
     return output;
 }
 
