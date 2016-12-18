@@ -1,7 +1,4 @@
-import {
-    SWAP_MATCHUP_ORDER,
-    SET_MATCHUP_PREVIEW
-} from './actions'
+import * as ActionTypes from './actions';
 import {
     combineReducers
 } from 'redux';
@@ -75,7 +72,7 @@ function copyAndMoveEltFromTo(array, src, dst) {
 function swapMatchupOrder(state = initialState, action) {
     const id = action.id || 1;
     switch (action.type) {
-        case SWAP_MATCHUP_ORDER:
+        case ActionTypes.SWAP_MATCHUP_ORDER:
             return {...state,
                 matchupOrders: {
                     ...state.matchupOrders,
@@ -102,8 +99,8 @@ function setMatchupPreview(state = {
     previewIndex: 1
 }, action) {
     switch (action.type) {
-        case SWAP_MATCHUP_ORDER:
-        case SET_MATCHUP_PREVIEW:
+        case ActionTypes.SWAP_MATCHUP_ORDER:
+        case ActionTypes.SET_MATCHUP_PREVIEW:
             return {...state,
                 previewIndex: action.dst
             };
@@ -112,9 +109,41 @@ function setMatchupPreview(state = {
     }
 }
 
+const defaultFetchState = {};
+
+const fetchState = (state = defaultFetchState, action) => {
+    switch(action.type) {
+        case ActionTypes.PICKEM_API_GAME_REQUEST:
+            return { ...state, games: ActionTypes.FETCH_STATES.IN_PROGRESS };
+        case ActionTypes.PICKEM_API_GAME_FAILURE:
+            return { ...state, games: ActionTypes.FETCH_STATES.FAILED };
+        case ActionTypes.PICKEM_API_GAME_SUCCESS:
+            return { ...state, games: ActionTypes.FETCH_STATES.READY };
+        default:
+            return state;
+    }
+}
+
+
+const defaultEntityState = {
+    games: {}
+};
+
+// Update entity cache for any response which has the field
+// response.entities
+const entities = (state = defaultEntityState, action) => {
+    if(action.response && action.response.entities) {
+        return { ...state, ...action.response.entities };
+    }
+    return state;
+}
+
 const matchupPicker = combineReducers({
-    data: swapMatchupOrder,
-    ui: setMatchupPreview,
-});
+        data: swapMatchupOrder,
+        ui: setMatchupPreview,
+        entities,
+        fetchState,
+    },
+);
 
 export default matchupPicker;

@@ -1,6 +1,12 @@
+import React, {
+    Component
+} from 'react';
 import {
     connect
 } from 'react-redux';
+import {
+    loadPickemGames
+} from '../actions';
 import GameTable from '../Components/GameTable';
 import {
     MatchupData,
@@ -23,15 +29,68 @@ const getMatchupList = (ordering, matchups, teams) => {
     return ordering.map((idx) => createMatchupData(matchups[idx], teams));
 }
 
-const mapStateToProps = (state) => {
-    return {
-        games: getMatchupList(state.data.matchupOrders[state.ui.currentUser].ordering,
-            state.data.matchups, state.data.teams),
-    };
+const getGameList = (games) => {
+    if(!games) {
+        return [];
+    }
+    var display = [];
+    Object.keys(games).forEach((key) => {
+        console.log(key);
+        console.log(games[key]);
+        display.push({
+            id: games[key].id,
+            date: games[key].datetime,
+            name: games[key].event
+        });
+    });
+    return display;
 }
 
-const GameIndex = connect(
-    mapStateToProps
-)(GameTable);
+//const mapStateToProps = (state) => {
+//    return {
+//        //games: getMatchupList(state.data.matchupOrders[state.ui.currentUser].ordering,
+//        //    state.data.matchups, state.data.teams),
+//    };
+//}
 
-export default GameIndex;
+class GameIndex extends Component {
+    constructor(props) {
+        super(props);
+    }
+
+    componentDidMount() {
+        const {
+            dispatch,
+            year
+        } = this.props;
+        dispatch(loadPickemGames(year));
+    }
+
+    render() {
+        const {
+            games,
+            ready
+        } = this.props;
+        if (!ready) {
+            return null;
+        }
+        return (
+            <GameTable games={games} />
+        );
+    }
+}
+
+const mapStateToProps = (state) => {
+    return {
+        games: getGameList(state.entities.games),
+        year: 'TODO',
+        ready: !!state.entities.games,
+    }
+}
+
+//const GameIndex = connect(
+//    mapStateToProps,
+//    mapDispatchToProps
+//)(GameTable);
+
+export default connect(mapStateToProps)(GameIndex);

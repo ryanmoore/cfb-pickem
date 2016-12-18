@@ -31,15 +31,26 @@ class GameTable extends Component {
         const {
             games
         } = this.props;
+        if(!games) {
+            return <div>Fetching...</div>;
+        }
+        console.log(games);
         const gameRows = games.map((game) => {
-            return <GameRow
-                    key={game.id}
-                    id={game.id}
-                    left={game.left}
-                    right={game.right}
-                    date='TODO'
-                    name='TODO'
-            />
+            return (
+                <tr key={game.id}>
+                    <td>{game.date}</td>
+                    <td>{game.name}</td>
+                </tr>
+            );
+
+            //    <GameRow
+            //        key={game.id}
+            //        id={game.id}
+            //        left={game.left}
+            //        right={game.right}
+            //        date='TODO'
+            //        name='TODO'
+            ///>
         });
         return (
             <Table>

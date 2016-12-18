@@ -10,8 +10,11 @@ import {
 } from 'react-dnd-touch-backend';
 import HTML5Backend from 'react-dnd-html5-backend';
 import {
-    createStore
+    compose,
+    createStore,
+    applyMiddleware
 } from 'redux';
+import thunkMiddleware from 'redux-thunk';
 import matchupPicker from '../reducers';
 import DisplayedMatchupList from '../Containers/DisplayedMatchupList';
 import GameIndex from '../Containers/GameIndex';
@@ -33,9 +36,20 @@ import {
 import {
     LinkContainer
 } from 'react-router-bootstrap';
+import pickemAPIMiddleware from '../middleware/pickemapi';
+import createLogger from 'redux-logger';
 
 const initialState = {
     data: {
+        games: [
+            {
+                datetime: '2013-12-30T16:45:00Z',
+                event: 'http://127.0.0.1:8000/api/events/Bell%20Helicopter%20Armed%20Forces%20Bowl/',
+                fixed_wager_amount: 0,
+                season: 'http://127.0.0.1:8000/api/seasons/1/',
+                url: 'http://127.0.0.1:8000/api/games/10/'
+            },
+        ],
         matchups: {
             '1': {
                 id: 1,
@@ -100,7 +114,11 @@ const initialState = {
     }
 };
 
-let store = createStore(matchupPicker, initialState
+const composeEnhancer = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+let store = createStore(matchupPicker,
+    composeEnhancer(applyMiddleware(
+        thunkMiddleware, pickemAPIMiddleware, createLogger()
+    ))
     //,window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
 );
 
