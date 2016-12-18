@@ -32,19 +32,19 @@ export const PICKEM_API_GAME_REQUEST = 'PICKEM_API_GAME_REQUEST';
 export const PICKEM_API_GAME_SUCCESS = 'PICKEM_API_GAME_SUCCESS';
 export const PICKEM_API_GAME_FAILURE = 'PICKEM_API_GAME_FAILURE';
 
-const fetchPickemGames = (year) => {
+const fetchPickemGames = (season) => {
     return {
         [CALL_PICKEM_API]: {
             types: [PICKEM_API_GAME_REQUEST, PICKEM_API_GAME_SUCCESS,
                 PICKEM_API_GAME_FAILURE
             ],
-            endpoint: `games/?limit=100&year=${year}`,
+            endpoint: `games/?limit=100&season=${season}`,
             schema: pickemSchema.GAME_ARRAY
         }
     };
 }
 
-const shouldFetchPickemGames = (state, year) => {
+const shouldFetchPickemGames = (state, season) => {
     const games = state.fetchState.games;
     if(!games || games !== FETCH_STATES.READY) {
         return true;
@@ -53,9 +53,9 @@ const shouldFetchPickemGames = (state, year) => {
 }
 
 
-export const loadPickemGames = (year) => (dispatch, getState) => {
-    if(shouldFetchPickemGames(getState(), year)) {
-        return dispatch(fetchPickemGames(year));
+export const loadPickemGames = (season) => (dispatch, getState) => {
+    if(shouldFetchPickemGames(getState(), season)) {
+        return dispatch(fetchPickemGames(season));
     }
     return null;
 }

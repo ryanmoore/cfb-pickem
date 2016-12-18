@@ -9,8 +9,16 @@ import {
 } from '../actions';
 import GameTable from '../Components/GameTable';
 
+const sortDatesMostRecentFirst = (arr) => {
+    arr.sort((a, b) => {
+        if (a.date < b.date) return -1;
+        if (a.date > b.date) return 1;
+        return 0
+    });
+}
+
 const getGameList = (games) => {
-    if(!games) {
+    if (!games) {
         return [];
     }
     var display = [];
@@ -21,6 +29,7 @@ const getGameList = (games) => {
             name: games[key].event
         });
     });
+    sortDatesMostRecentFirst(display);
     return display;
 }
 
@@ -28,11 +37,8 @@ class GameIndex extends Component {
     static propTypes = {
         dispatch: React.PropTypes.func.isRequired,
         season: React.PropTypes.number.isRequired,
-        games: React.PropTypes.array.isRequierd,
+        games: React.PropTypes.array.isRequired,
         ready: React.PropTypes.bool.isRequired,
-    }
-    constructor(props) {
-        super(props);
     }
 
     componentDidMount() {
