@@ -4,63 +4,61 @@ import React, {
 import {
     Table
 } from 'react-bootstrap';
+import moment from 'moment';
 
 class GameRow extends Component {
+    static propTypes = {
+        name: React.PropTypes.string.isRequired,
+        date: React.PropTypes.string.isRequired,
+    };
+
     render() {
         const {
-            id,
-            left,
-            right,
+            name,
             date,
-            name
         } = this.props;
         return (
             <tr>
-                <td>{id}</td>
                 <td>{date}</td>
                 <td>{name}</td>
-                <td>{left.toString()}</td>
-                <td>{right.toString()}</td>
             </tr>
         );
     }
 }
 
 class GameTable extends Component {
+    static propTypes = {
+        games: React.PropTypes.arrayOf(
+            React.PropTypes.shape({
+                id: React.PropTypes.any,
+                name: React.PropTypes.string,
+                date: React.PropTypes.instanceOf(Date),
+            })
+        )
+    };
+
     render() {
         const {
             games
         } = this.props;
-        if(!games) {
+        if (!games) {
             return <div>Fetching...</div>;
         }
-        console.log(games);
         const gameRows = games.map((game) => {
             return (
-                <tr key={game.id}>
-                    <td>{game.date}</td>
-                    <td>{game.name}</td>
-                </tr>
+                <GameRow
+                key={game.id}
+                name={game.name}
+                date={moment(game.date).format('lll')}
+                />
             );
-
-            //    <GameRow
-            //        key={game.id}
-            //        id={game.id}
-            //        left={game.left}
-            //        right={game.right}
-            //        date='TODO'
-            //        name='TODO'
-            ///>
         });
         return (
             <Table>
                 <thead>
                     <tr>
-                        <th>id</th>
-                        <th>Date</th>
                         <th>Name</th>
-                        <th>Left</th>
-                        <th>Right</th>
+                        <th>Date</th>
                     </tr>
                 </thead>
                 <tbody>

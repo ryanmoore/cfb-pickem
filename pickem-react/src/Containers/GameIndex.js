@@ -29,17 +29,16 @@ const getMatchupList = (ordering, matchups, teams) => {
     return ordering.map((idx) => createMatchupData(matchups[idx], teams));
 }
 
+
 const getGameList = (games) => {
     if(!games) {
         return [];
     }
     var display = [];
     Object.keys(games).forEach((key) => {
-        console.log(key);
-        console.log(games[key]);
         display.push({
             id: games[key].id,
-            date: games[key].datetime,
+            date: new Date(games[key].datetime),
             name: games[key].event
         });
     });
