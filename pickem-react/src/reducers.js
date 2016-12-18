@@ -138,7 +138,7 @@ const entities = (state = defaultEntityState, action) => {
     return state;
 }
 
-const matchupPicker = combineReducers({
+const rootReducer = combineReducers({
         data: swapMatchupOrder,
         ui: setMatchupPreview,
         entities,
@@ -146,4 +146,4 @@ const matchupPicker = combineReducers({
     },
 );
 
-export default matchupPicker;
+export default rootReducer;
