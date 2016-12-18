@@ -4,11 +4,7 @@ import {
     arrayOf,
 } from 'normalizr';
 
-const datetime = new Schema('datetime');
-//const event = new Schema('event');
-const fixedWagerAmount = new Schema('fixed_wager_amount');
-const url = new Schema('url');
-const season = new Schema('season');
+const season = new Schema('seasons');
 
 // Events are poorly designed server side since their PK is the event name
 // which can have dots and spaces. We don't need to normalize them for now,
@@ -22,15 +18,42 @@ const gameSchema = new Schema('games', {
 });
 
 gameSchema.define({
-    datetime: datetime,
-    fixedWagerAmount: fixedWagerAmount,
     season: season,
-    url: url
+});
+
+const userSchema = new Schema('users');
+const participantSchema = new Schema('participants');
+const teamseasonSchema = new Schema('teamseasons');
+const wagerSchema = new Schema('wagers');
+const selectionSchema = new Schema('selections');
+
+participantSchema.define({
+    teamseason: teamseasonSchema,
+});
+
+wagerSchema.define({
+    user: userSchema,
+    game: gameSchema,
+});
+
+selectionSchema.define({
+    user: userSchema,
+    participant: participantSchema,
 });
 
 const Schemas = {
     GAME: gameSchema,
     GAME_ARRAY: arrayOf(gameSchema),
+    USER: userSchema,
+    USER_ARRAY: arrayOf(userSchema),
+    PARTICIPANT: participantSchema,
+    PARTICIPANT_ARRAY: arrayOf(participantSchema),
+    TEAMSEASON: teamseasonSchema,
+    TEAMSEASON_ARRAY: arrayOf(teamseasonSchema),
+    SELECTION: selectionSchema,
+    SELECTION_ARRAY: arrayOf(selectionSchema),
+    WAGER: wagerSchema,
+    WAGER_ARRAY: arrayOf(wagerSchema),
 };
 
 export default Schemas;

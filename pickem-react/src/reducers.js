@@ -119,6 +119,36 @@ const fetchState = (state = defaultFetchState, action) => {
             return { ...state, games: ActionTypes.FETCH_STATES.FAILED };
         case ActionTypes.PICKEM_API_GAME_SUCCESS:
             return { ...state, games: ActionTypes.FETCH_STATES.READY };
+        case ActionTypes.PICKEM_API_USER_REQUEST:
+            return { ...state, users: ActionTypes.FETCH_STATES.IN_PROGRESS };
+        case ActionTypes.PICKEM_API_USER_FAILURE:
+            return { ...state, users: ActionTypes.FETCH_STATES.FAILED };
+        case ActionTypes.PICKEM_API_USER_SUCCESS:
+            return { ...state, users: ActionTypes.FETCH_STATES.READY };
+        case ActionTypes.PICKEM_API_TEAMSEASON_REQUEST:
+            return { ...state, teamseasons: ActionTypes.FETCH_STATES.IN_PROGRESS };
+        case ActionTypes.PICKEM_API_TEAMSEASON_FAILURE:
+            return { ...state, teamseasons: ActionTypes.FETCH_STATES.FAILED };
+        case ActionTypes.PICKEM_API_TEAMSEASON_SUCCESS:
+            return { ...state, teamseasons: ActionTypes.FETCH_STATES.READY };
+        case ActionTypes.PICKEM_API_PARTICIPANT_REQUEST:
+            return { ...state, participants: ActionTypes.FETCH_STATES.IN_PROGRESS };
+        case ActionTypes.PICKEM_API_PARTICIPANT_FAILURE:
+            return { ...state, participants: ActionTypes.FETCH_STATES.FAILED };
+        case ActionTypes.PICKEM_API_PARTICIPANT_SUCCESS:
+            return { ...state, participants: ActionTypes.FETCH_STATES.READY };
+        case ActionTypes.PICKEM_API_WAGER_REQUEST:
+            return { ...state, wagers: ActionTypes.FETCH_STATES.IN_PROGRESS };
+        case ActionTypes.PICKEM_API_WAGER_FAILURE:
+            return { ...state, wagers: ActionTypes.FETCH_STATES.FAILED };
+        case ActionTypes.PICKEM_API_WAGER_SUCCESS:
+            return { ...state, wagers: ActionTypes.FETCH_STATES.READY };
+        case ActionTypes.PICKEM_API_SELECTION_REQUEST:
+            return { ...state, selections: ActionTypes.FETCH_STATES.IN_PROGRESS };
+        case ActionTypes.PICKEM_API_SELECTION_FAILURE:
+            return { ...state, selections: ActionTypes.FETCH_STATES.FAILED };
+        case ActionTypes.PICKEM_API_SELECTION_SUCCESS:
+            return { ...state, selections: ActionTypes.FETCH_STATES.READY };
         default:
             return state;
     }
