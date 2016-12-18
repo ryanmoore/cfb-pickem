@@ -9,6 +9,9 @@
     "eslint-plugin-standard": "^2.0.1",
     "react-scripts": "0.8.3",
     "react-test-renderer": "^15.4.1",
+    "redux-devtools": "^3.3.1",
+    "redux-devtools-dock-monitor": "^1.1.1",
+    "redux-devtools-log-monitor": "^1.1.1",
     "redux-logger": "^2.7.4"
   },
   "dependencies": {

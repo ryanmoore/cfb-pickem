@@ -1,6 +1,5 @@
 import React, { Component, PropTypes } from 'react';
 import { Button, Row, Col, Glyphicon } from 'react-bootstrap';
-import './App.css';
 
 import { DropTarget, DragSource } from 'react-dnd';
 import { findDOMNode } from 'react-dom';

@@ -7,15 +7,17 @@ import thunkMiddleware from 'redux-thunk';
 import rootReducer from '../reducers';
 import pickemAPIMiddleware from '../middleware/pickemapi';
 import createLogger from 'redux-logger';
+import DevTools from '../Containers/DevTools';
 
 const configureStore = preloadedState => {
 
-    const composer = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+    const composer = compose;
     const store = createStore(
         rootReducer,
         composer(applyMiddleware(
-            thunkMiddleware, pickemAPIMiddleware, createLogger()
-        ))
+                thunkMiddleware, pickemAPIMiddleware, createLogger()
+            ),
+            DevTools.instrument())
     );
     return store;
 }
