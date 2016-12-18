@@ -4,7 +4,7 @@ import logging
 from django.shortcuts import render, get_object_or_404
 from django.views import generic
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.utils.decorators import method_decorator
 from django.db import transaction
 from django.conf import settings
@@ -13,8 +13,11 @@ from django.db.models import Max as DjangoMax
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 
-from pickem.models import Game, Selection, Participant, Wager, Winner, Season
+from pickem.models import Game, Selection, Participant, Wager, Winner, Season, Event, Team, TeamSeason
 from collections import defaultdict, OrderedDict
+import pickem.serializers
+from rest_framework import viewsets
+from rest_framework import permissions as rest_permissions
 
 # pylint: disable=too-many-ancestors
 
@@ -519,3 +522,118 @@ class AddWinner(generic.View):
             # add later
             {'winner_create_success': created,
              'winner_added': winner.participant.teamseason.team,})
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    ''' API endpoint that allows users to be viewed or edited
+    '''
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = pickem.serializers.UserSerializer
+    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+
+
+class GroupViewSet(viewsets.ModelViewSet):
+    ''' API endpoint that allows groups to be viewed or edited
+    '''
+    queryset = Group.objects.all()
+    serializer_class = pickem.serializers.GroupSerializer
+    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+
+
+class EventViewSet(viewsets.ModelViewSet):
+    ''' API endpoint that allows events to be viewed or edited
+    '''
+    lookup_value_regex = '[^/]+'
+    queryset = Event.objects.all()
+    serializer_class = pickem.serializers.EventSerializer
+    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+
+
+class SeasonViewSet(viewsets.ModelViewSet):
+    ''' API endpoint that allows seasons to be viewed or edited
+    '''
+    queryset = Season.objects.all()
+    serializer_class = pickem.serializers.SeasonSerializer
+    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+
+
+class GameViewSet(viewsets.ModelViewSet):
+    ''' API endpoint that allows games to be viewed or edited
+    '''
+    serializer_class = pickem.serializers.GameSerializer
+    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+
+    def get_queryset(self):
+        '''Filter selected games based on the optional season parameter
+        '''
+        queryset = Game.objects.all()
+        season = self.request.query_params.get('season', None)
+        if season is not None:
+            queryset = queryset.filter(season=season)
+        return queryset
+
+
+
+class TeamViewSet(viewsets.ModelViewSet):
+    ''' API endpoint that allows teams to be viewed or edited
+    '''
+    # TODO: .+ Seems very broad for regex, but we are stuck with something
+    # quite broad as a consequence of using team names as pks.
+    # Would like to change Team and Events to use surrogate pks for better
+    # handling here and overall (it's reasonable we want to change names for
+    # both - initial schema was too aggresive designating those pks)
+    lookup_value_regex = '.+'
+    queryset = Team.objects.all()
+    serializer_class = pickem.serializers.TeamSerializer
+    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+
+
+class TeamSeasonViewSet(viewsets.ModelViewSet):
+    ''' API endpoint that allows teamseasons to be viewed or edited
+    '''
+    queryset = TeamSeason.objects.all()
+    serializer_class = pickem.serializers.TeamSeasonSerializer
+    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+
+
+class ParticipantViewSet(viewsets.ModelViewSet):
+    ''' API endpoint that allows participants to be viewed or edited
+    '''
+    queryset = Participant.objects.all()
+    serializer_class = pickem.serializers.ParticipantSerializer
+    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+
+
+class WinnerViewSet(viewsets.ModelViewSet):
+    ''' API endpoint that allows winners to be viewed or edited
+    '''
+    queryset = Winner.objects.all()
+    serializer_class = pickem.serializers.WinnerSerializer
+    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+
+
+class SelectionViewSet(viewsets.ModelViewSet):
+    ''' API endpoint that allows selections to be viewed or edited
+    '''
+    queryset = Selection.objects.all()
+    serializer_class = pickem.serializers.SelectionSerializer
+    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+
+
+class WagerViewSet(viewsets.ModelViewSet):
+    ''' API endpoint that allows wagers to be viewed or edited
+    '''
+    queryset = Wager.objects.all()
+    serializer_class = pickem.serializers.WagerSerializer
+    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]

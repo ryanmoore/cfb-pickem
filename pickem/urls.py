@@ -3,7 +3,6 @@
 from django.conf.urls import patterns, url, include
 import django.contrib.auth.views
 from django.views.generic import RedirectView
-
 from pickem import views
 
 # pylint: disable=E1120
