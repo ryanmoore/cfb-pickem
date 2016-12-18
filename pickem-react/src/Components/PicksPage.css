@@ -4,6 +4,8 @@
 
 .picklist-left th.team {
     text-align: right;
+    border: none;
+    padding: 0;
 }
 
 .picklist-right {
@@ -12,6 +14,8 @@
 
 .picklist-right th.team {
     text-align: left;
+    border: none;
+    padding: 0;
 }
 
 td.wager {
@@ -26,20 +30,26 @@ td.user {
 
 .picklist-left td.user {
     text-align: right;
+    border: none;
+    padding: 0;
 }
 
 .picklist-left td.wager{
     text-align: left;
-    padding-left: 5px;
+    padding: 0px 0px 0px 5px;
+    border: none;
 }
 
 .picklist-right td.user {
     text-align: left;
+    border: none;
+    padding: 0;
 }
 
 .picklist-right td.wager{
     text-align: right;
-    padding-right: 5px;
+    padding: 0px 5px 0px 0px;
+    border: none;
 }
 
 .game-details {

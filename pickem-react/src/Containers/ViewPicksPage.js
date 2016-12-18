@@ -17,28 +17,6 @@ import PicksPage from '../Components/PicksPage';
 import forOwn from 'lodash/forOwn';
 import keys from 'lodash/keys';
 
-const sampleData = [{
-    left: {
-        picks: [{
-            username: 'Ryan',
-            wager: 1
-        }],
-        teamName: 'Left1'
-    },
-    right: {
-        picks: [{
-            username: 'Dan',
-            wager: 2
-        }],
-        teamName: 'Right1'
-    },
-    gameDetails: {
-        eventName: 'Game1',
-        date: new Date(Date.now())
-    },
-    id: 1,
-}];
-
 class ViewPicksPage extends Component {
     static propTypes = {
         dispatch: React.PropTypes.func.isRequired,
@@ -191,7 +169,7 @@ const collectAndTransformPicksForSeason = (state, season) => {
         const leftMatchup = data.matchup[partid1];
         const rightMatchup = data.matchup[partid2];
         output.push({
-            id: parseInt(id),
+            id: parseInt(id, 10),
             gameDetails: data.gameDetails,
             left: {
                 picks: zipWagersToPicks(state, data.wagers, leftMatchup.picks),
