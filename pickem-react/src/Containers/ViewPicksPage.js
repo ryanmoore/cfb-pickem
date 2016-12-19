@@ -11,8 +11,12 @@ import {
     loadPickemTeamSeasons,
     loadPickemSelections,
     loadPickemWagers,
-    FETCH_STATES,
 } from '../actions';
+import {
+    selectGamesForSeason,
+    selectAllParticipantsForGames,
+    APIDataIsReadyForSeason,
+} from '../Selectors/index';
 import PicksPage from '../Components/PicksPage';
 import forOwn from 'lodash/forOwn';
 import keys from 'lodash/keys';
@@ -50,41 +54,10 @@ class ViewPicksPage extends Component {
     }
 }
 
-const selectGamesForSeason = (state, season) => {
-    var games = {}
-    forOwn(state.entities.games, (game, id) => {
-        if (game.season === season) {
-            games[id] = {
-                gameDetails: {
-                    eventName: game.event,
-                    date: new Date(game.datetime),
-                },
-                wagers: {},
-                matchup: {}
-            }
-        }
-    });
-    return games;
-}
-
-const selectTeamNamefromTeamSeason = (state, id) => {
-    return state.entities.teamseasons[id].team;
-}
-
-const selectAllParticipantsForGames = (state, games) => {
-    forOwn(state.entities.participants, (participant, id) => {
-        if (participant.game in games) {
-            games[participant.game].matchup[id] = {
-                picks: [],
-                teamName: selectTeamNamefromTeamSeason(
-                    state,
-                    participant.teamseason)
-            };
-        }
-    });
-}
-
 const selectAllWagersForGames = (state, games) => {
+    forOwn(games, (game) => {
+        game.wagers = {};
+    });
     forOwn(state.entities.wagers, (wager) => {
         if (wager.game in games) {
             games[wager.game].wagers[wager.user] = wager.amount;
@@ -150,12 +123,12 @@ const stateIsReadyForPicksPage = (state, season) => {
     const required = [
         'participants',
         'teamseasons',
-        'wagers',   
+        'wagers',
         'games',
         'users',
         'selections'
     ];
-    return required.every((type) => state.fetchState[type] === FETCH_STATES.READY);
+    return APIDataIsReadyForSeason(state, required, season);
 }
 
 const sortTransformedPicksByDate = (arr) => {
@@ -169,7 +142,7 @@ const sortTransformedPicksByDate = (arr) => {
 }
 
 const collectAndTransformPicksForSeason = (state, season) => {
-    if(!stateIsReadyForPicksPage(state, season)) {
+    if (!stateIsReadyForPicksPage(state, season)) {
         return [];
     }
     const gamedata = selectAllPicksForSeason(state, season);

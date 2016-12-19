@@ -10,10 +10,11 @@ const Types = {
 }
 
 class PickData {
-    constructor(id, name, rank) {
+    constructor(id, name, rank, selected) {
         this.id = id;
         this.name = name;
         this.rank = rank;
+        this.selected = selected;
     }
     toString() {
         var str = this.name;
@@ -25,8 +26,9 @@ class PickData {
 }
 
 class MatchupData {
-    constructor(id, left, right) {
+    constructor(id, name, left, right) {
         this.id = id;
+        this.name = name;
         this.left = left;
         this.right = right;
     }
@@ -53,6 +55,7 @@ class Pick extends Component {
 class MatchupHandle extends Component {
     static propTypes = {
         wager: PropTypes.number.isRequired,
+        name: PropTypes.string.isRequired
     }
     render() {
         return (
@@ -64,7 +67,7 @@ class MatchupHandle extends Component {
                         <Glyphicon glyph="info-sign"/>
                     </Button>
                     <span className="hidden-xs">
-                        Name // TODO
+                        { this.props.name }
                     </span>
                 </span>
             </Col>
@@ -133,6 +136,7 @@ class Matchup extends Component {
         wager: PropTypes.number.isRequired,
         left: PropTypes.any.isRequired,
         right: PropTypes.any.isRequired,
+        name: PropTypes.string.isRequired,
     };
     render() {
         const { id,
@@ -148,7 +152,9 @@ class Matchup extends Component {
         // If the Matchup is not draggable, connectHandle won't do anything
         return (
             <Row id={ id }>
-                { connectHandle(<div> <MatchupHandle wager={ wager }/></div>) }
+                { connectHandle(
+                    <div> <MatchupHandle wager={ wager } name={ name }/></div>
+                )}
                 <Pick pickdata={ left }/>
                 <Pick pickdata={ right }/>
             </Row>
@@ -166,6 +172,7 @@ class DragableMatchup extends Component {
         id: PropTypes.any.isRequired,
         left: PropTypes.any.isRequired,
         right: PropTypes.any.isRequired,
+        name: PropTypes.string.isRequired,
         moveMatchup: PropTypes.func.isRequired,
         setPreview: PropTypes.func.isRequired,
         isDragging: PropTypes.bool.isRequired
@@ -194,11 +201,13 @@ class DragableMatchup extends Component {
         const { id,
             wager,
             left,
-            right } = this.props;
+            right,
+            name } = this.props;
         return (<Matchup id={id}
             wager={wager}
             left={left}
             right={right}
+            name={name}
             connectHandle={connectDragSource}/>
         );
     }

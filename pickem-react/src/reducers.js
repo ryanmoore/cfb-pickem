@@ -2,6 +2,7 @@ import * as ActionTypes from './actions';
 import {
     combineReducers
 } from 'redux';
+import forOwn from 'lodash/forOwn';
 
 const initialState = {
     matchups: {
@@ -69,18 +70,57 @@ function copyAndMoveEltFromTo(array, src, dst) {
     return arrCopy;
 }
 
-function swapMatchupOrder(state = initialState, action) {
+const selectAndSortUserWagers = (wagers, user) => {
+    var ordering = [];
+    var weights = {};
+    forOwn(wagers, (wager) => {
+        if (wager.user === user) {
+            ordering.push(wager.game)
+            weights[wager.game] = wager.amount;
+        }
+    });
+    ordering.sort((gameA, gameB) => {
+        const a = weights[gameA];
+        const b = weights[gameB];
+        if (a < b) return 1;
+        if (a > b) return -1;
+        return 0;
+    });
+    return ordering;
+}
+
+const matchupInitialState = {
+    matchupOrders: {},
+    currentUser: 1,
+};
+
+function setMatchupOrder(state = matchupInitialState, action) {
+    switch (action.type) {
+        case ActionTypes.SWAP_MATCHUP_ORDER:
+            return swapMatchupOrder(state, action);
+        case ActionTypes.PICKEM_API_WAGER_SUCCESS:
+            return {...state,
+                matchupOrders: {
+                    ...state.matchupOrders,
+                    //TODO: CurrentUser
+                    '1': selectAndSortUserWagers(
+                        action.response.entities.wagers, state.currentUser)
+                }
+            };
+        default:
+            return state;
+    }
+}
+
+function swapMatchupOrder(state, action) {
     const id = action.id || 1;
     switch (action.type) {
         case ActionTypes.SWAP_MATCHUP_ORDER:
             return {...state,
                 matchupOrders: {
                     ...state.matchupOrders,
-                    '1': {
-                        ...state.matchupOrders[id],
-                        ordering: copyAndMoveEltFromTo(
-                            state.matchupOrders[id].ordering, action.src, action.dst)
-                    }
+                    '1': copyAndMoveEltFromTo(
+                        state.matchupOrders[id], action.src, action.dst)
                 }
             };
             //return update(state, {
@@ -109,46 +149,83 @@ function setMatchupPreview(state = {
     }
 }
 
+
 const defaultFetchState = {};
 
 const fetchState = (state = defaultFetchState, action) => {
-    switch(action.type) {
+    switch (action.type) {
         case ActionTypes.PICKEM_API_GAME_REQUEST:
-            return { ...state, games: ActionTypes.FETCH_STATES.IN_PROGRESS };
+            return {...state,
+                games: ActionTypes.FETCH_STATES.IN_PROGRESS
+            };
         case ActionTypes.PICKEM_API_GAME_FAILURE:
-            return { ...state, games: ActionTypes.FETCH_STATES.FAILED };
+            return {...state,
+                games: ActionTypes.FETCH_STATES.FAILED
+            };
         case ActionTypes.PICKEM_API_GAME_SUCCESS:
-            return { ...state, games: ActionTypes.FETCH_STATES.READY };
+            return {...state,
+                games: ActionTypes.FETCH_STATES.READY
+            };
         case ActionTypes.PICKEM_API_USER_REQUEST:
-            return { ...state, users: ActionTypes.FETCH_STATES.IN_PROGRESS };
+            return {...state,
+                users: ActionTypes.FETCH_STATES.IN_PROGRESS
+            };
         case ActionTypes.PICKEM_API_USER_FAILURE:
-            return { ...state, users: ActionTypes.FETCH_STATES.FAILED };
+            return {...state,
+                users: ActionTypes.FETCH_STATES.FAILED
+            };
         case ActionTypes.PICKEM_API_USER_SUCCESS:
-            return { ...state, users: ActionTypes.FETCH_STATES.READY };
+            return {...state,
+                users: ActionTypes.FETCH_STATES.READY
+            };
         case ActionTypes.PICKEM_API_TEAMSEASON_REQUEST:
-            return { ...state, teamseasons: ActionTypes.FETCH_STATES.IN_PROGRESS };
+            return {...state,
+                teamseasons: ActionTypes.FETCH_STATES.IN_PROGRESS
+            };
         case ActionTypes.PICKEM_API_TEAMSEASON_FAILURE:
-            return { ...state, teamseasons: ActionTypes.FETCH_STATES.FAILED };
+            return {...state,
+                teamseasons: ActionTypes.FETCH_STATES.FAILED
+            };
         case ActionTypes.PICKEM_API_TEAMSEASON_SUCCESS:
-            return { ...state, teamseasons: ActionTypes.FETCH_STATES.READY };
+            return {...state,
+                teamseasons: ActionTypes.FETCH_STATES.READY
+            };
         case ActionTypes.PICKEM_API_PARTICIPANT_REQUEST:
-            return { ...state, participants: ActionTypes.FETCH_STATES.IN_PROGRESS };
+            return {...state,
+                participants: ActionTypes.FETCH_STATES.IN_PROGRESS
+            };
         case ActionTypes.PICKEM_API_PARTICIPANT_FAILURE:
-            return { ...state, participants: ActionTypes.FETCH_STATES.FAILED };
+            return {...state,
+                participants: ActionTypes.FETCH_STATES.FAILED
+            };
         case ActionTypes.PICKEM_API_PARTICIPANT_SUCCESS:
-            return { ...state, participants: ActionTypes.FETCH_STATES.READY };
+            return {...state,
+                participants: ActionTypes.FETCH_STATES.READY
+            };
         case ActionTypes.PICKEM_API_WAGER_REQUEST:
-            return { ...state, wagers: ActionTypes.FETCH_STATES.IN_PROGRESS };
+            return {...state,
+                wagers: ActionTypes.FETCH_STATES.IN_PROGRESS
+            };
         case ActionTypes.PICKEM_API_WAGER_FAILURE:
-            return { ...state, wagers: ActionTypes.FETCH_STATES.FAILED };
+            return {...state,
+                wagers: ActionTypes.FETCH_STATES.FAILED
+            };
         case ActionTypes.PICKEM_API_WAGER_SUCCESS:
-            return { ...state, wagers: ActionTypes.FETCH_STATES.READY };
+            return {...state,
+                wagers: ActionTypes.FETCH_STATES.READY
+            };
         case ActionTypes.PICKEM_API_SELECTION_REQUEST:
-            return { ...state, selections: ActionTypes.FETCH_STATES.IN_PROGRESS };
+            return {...state,
+                selections: ActionTypes.FETCH_STATES.IN_PROGRESS
+            };
         case ActionTypes.PICKEM_API_SELECTION_FAILURE:
-            return { ...state, selections: ActionTypes.FETCH_STATES.FAILED };
+            return {...state,
+                selections: ActionTypes.FETCH_STATES.FAILED
+            };
         case ActionTypes.PICKEM_API_SELECTION_SUCCESS:
-            return { ...state, selections: ActionTypes.FETCH_STATES.READY };
+            return {...state,
+                selections: ActionTypes.FETCH_STATES.READY
+            };
         default:
             return state;
     }
@@ -162,18 +239,21 @@ const defaultEntityState = {
 // Update entity cache for any response which has the field
 // response.entities
 const entities = (state = defaultEntityState, action) => {
-    if(action.response && action.response.entities) {
-        return { ...state, ...action.response.entities };
+    if (action.response && action.response.entities) {
+        return {...state,
+            ...action.response.entities
+        };
     }
     return state;
 }
 
 const rootReducer = combineReducers({
-        data: swapMatchupOrder,
-        ui: setMatchupPreview,
-        entities,
-        fetchState,
-    },
-);
+    ui: combineReducers({
+        makePicksOrdering: setMatchupOrder,
+        matchupPreview: setMatchupPreview
+    }),
+    entities,
+    fetchState,
+}, );
 
 export default rootReducer;

@@ -9,6 +9,7 @@ class MatchupList extends Component {
     static propTypes = {
         matchups: React.PropTypes.arrayOf(React.PropTypes.shape({
             id: React.PropTypes.number.isRequired,
+            name: React.PropTypes.string.isRequired,
             left: React.PropTypes.object.isRequired,
             right: React.PropTypes.object.isRequired,
         }).isRequired
@@ -33,6 +34,7 @@ class MatchupList extends Component {
                 wager={index+1}
                 left={matchup.left}
                 right={matchup.right}
+                name={matchup.name}
                 moveMatchup={moveMatchup}
                 setPreview={setPreview}
             />
@@ -46,7 +48,8 @@ class MatchupList extends Component {
                         { preview && <Matchup id={preview.id}
                             wager={previewIndex+1}
                             left={preview.left}
-                            right={preview.right}/> }
+                            right={preview.right}
+                            name={preview.name}/> }
                     </ItemPreview>
                 </Col>
             </Row>
