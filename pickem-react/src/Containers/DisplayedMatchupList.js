@@ -20,76 +20,87 @@ import {
     PickData
 } from '../Components/Matchup';
 import {
-    selectGamesForSeason,
-    selectAllParticipantsForGames,
+    selectParticipants,
+    selectCurrentUser,
+    selectGamesWithParticipantsForCurrentSeason,
+    selectWagersForCurrentUser,
+    selectAllSelectionsForCurrentUser,
     APIDataIsReadyForSeason,
 } from '../Selectors/index';
 import forOwn from 'lodash/forOwn';
 import keys from 'lodash/keys';
+import cloneDeep from 'lodash/cloneDeep';
+import { createSelector } from 'reselect';
 
-const selectWagersForUser = (state, user, games) => {
-    forOwn(state.entities.wagers, (wager) => {
-        if (wager.user === user && wager.game in games) {
-            games[wager.game].wager = wager.amount;
-
-        }
-    });
-}
-
-const selectSelectionsForUser = (state, user, games) => {
-    forOwn(state.entities.selections, (selection) => {
-        if (selection.user === user) {
-            const participant = state.entities.participants[selection.participant];
-            if (participant.game in games) {
-                games[participant.game].selection = participant.id;
+const selectAndTieWagersToGamesForCurrentSeason = createSelector(
+    [selectGamesWithParticipantsForCurrentSeason,
+        selectWagersForCurrentUser],
+    (games, wagers) => {
+        var output = cloneDeep(games);
+        forOwn(wagers, (wager) => {
+            if (wager.game in games) {
+                output[wager.game].wager = wager.amount;
+            } else {
+                throw new Error('Wager not found in games');
             }
-        }
-    });
+        });
+        return output;
+    }
+);
+
+const selectAllPicksForCurrentUserAndSeason = createSelector(
+    [selectAndTieWagersToGamesForCurrentSeason,
+        selectAllSelectionsForCurrentUser,
+        selectParticipants],
+    (gamedata, selections, participants) => {
+        var output = cloneDeep(gamedata);
+        forOwn(selections, (selection) => {
+            const participant = participants[selection.participant];
+            if (participant.game in gamedata) {
+                output[participant.game].selection = participant.id;
+            }
+        });
+        return output;
+    }
+);
+
+const selectMatchupOrderings = (state) => state.ui.makePicksOrdering.matchupOrders;
+
+const selectMatchupOrderingForGivenUser = (state, user) => {
+    return selectMatchupOrderings(state)[user];
 }
 
-// Output:
-// {
-//      <game_id>: {
-//          gameDetails: {
-//              eventName: str,
-//              date: date,
-//          },
-//          wager: <amount>,
-//          matchup: {
-//              <participant id>: {
-//                  teamName: <str>,
-//              }
-//          }
-//          selection: <participant id>,
-//      }
-//      ...
-// }
+const selectMatchupOrderingForCurrentUser = createSelector(
+    [selectCurrentUser, selectMatchupOrderings],
+    (user, matchupOrderings) => {
+        return matchupOrderings[user];
+    }
+);
 
-const selectMatchupDataForUser = (state, user, season) => {
-    var games = selectGamesForSeason(state, season);
-    selectAllParticipantsForGames(state, games);
-    selectWagersForUser(state, user, games);
-    selectSelectionsForUser(state, user, games);
-    return games;
-}
+const selectAndArrangePicksForCurrentUserAndSeason = createSelector(
+    [selectAllPicksForCurrentUserAndSeason],
+    (pickdata) => {
+        var arranged = {};
+        forOwn(pickdata, (gameinfo, id) => {
+            const [partid1, partid2] = keys(gameinfo.matchup);
+            const leftPart = gameinfo.matchup[partid1];
+            const rightPart = gameinfo.matchup[partid2];
+            arranged[id] = new MatchupData(parseInt(id, 10), gameinfo.gameDetails.eventName,
+                new PickData(parseInt(partid1, 10), leftPart.teamName, '?', leftPart.id === gameinfo.selection),
+                new PickData(parseInt(partid2, 10), rightPart.teamName, '?', rightPart.id === gameinfo.selection),
+            );
+        });
+        return arranged;
+    }
+);
 
-const selectMatchupOrdering = (state, user) => {
-    return state.ui.makePicksOrdering.matchupOrders[user];
-}
-
-const transformMatchups = (state, user, data) => {
-    var arranged = {};
-    forOwn(data, (gameinfo, id) => {
-        const [partid1, partid2] = keys(gameinfo.matchup);
-        const leftPart = gameinfo.matchup[partid1];
-        const rightPart = gameinfo.matchup[partid2];
-        arranged[id] = new MatchupData(parseInt(id, 10), gameinfo.gameDetails.eventName,
-            new PickData(parseInt(partid1, 10), leftPart.teamName, '?', leftPart.id === gameinfo.selection),
-            new PickData(parseInt(partid2, 10), rightPart.teamName, '?', rightPart.id === gameinfo.selection),
-        );
-    });
-    return selectMatchupOrdering(state, user).map((id) => arranged[id]);
-}
+const selectAllMatchupDataForCurrentUserAndSeason = createSelector(
+    [selectAndArrangePicksForCurrentUserAndSeason,
+        selectMatchupOrderingForCurrentUser],
+    (pickdata, ordering) => {
+        return ordering.map((id) => pickdata[id]);
+    }
+)
 
 const stateIsReadyForMakePicksPage = (state, user, season) => {
     const required = [
@@ -100,7 +111,7 @@ const stateIsReadyForMakePicksPage = (state, user, season) => {
         'users',
         'selections'
     ];
-    const orderingIsReady = !!selectMatchupOrdering(state, user);
+    const orderingIsReady = !!selectMatchupOrderingForGivenUser(state, user);
     return APIDataIsReadyForSeason(state, required, season)
             && orderingIsReady;
 }
@@ -109,8 +120,7 @@ const collectAndTransformMatchups = (state, user, season) => {
     if (!stateIsReadyForMakePicksPage(state, user, season)) {
         return [];
     }
-    const data = selectMatchupDataForUser(state, user, season);
-    return transformMatchups(state, user, data);
+    return selectAllMatchupDataForCurrentUserAndSeason(state);
 }
 
 class DisplayedMatchupList extends Component {
@@ -154,10 +164,6 @@ class DisplayedMatchupList extends Component {
                 previewIndex={previewIndex}
             />
     }
-}
-
-const selectCurrentUser = (state) => {
-    return state.ui.makePicksOrdering.currentUser;
 }
 
 const mapStateToProps = (state) => {

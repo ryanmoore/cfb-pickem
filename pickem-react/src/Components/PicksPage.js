@@ -31,9 +31,9 @@ class PicksCol extends Component {
             const wager = <td className='wager'>{ pick.wager }</td>;
             const user = <td className='user'>{ pick.username }</td>;
             if (left) {
-                return <tr key={user}>{ user }{ wager }</tr>
+                return <tr key={pick.username}>{ user }{ wager }</tr>
             } else {
-                return <tr key={user}>{ wager }{ user }</tr>
+                return <tr key={pick.username}>{ wager }{ user }</tr>
             }
         });
         return (<Col xs={4}>

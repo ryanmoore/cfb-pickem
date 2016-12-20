@@ -247,10 +247,16 @@ const entities = (state = defaultEntityState, action) => {
     return state;
 }
 
+const setCurrentSeason = (state = 3, action) => {
+    return state;
+}
+
 const rootReducer = combineReducers({
     ui: combineReducers({
         makePicksOrdering: setMatchupOrder,
-        matchupPreview: setMatchupPreview
+        matchupPreview: setMatchupPreview,
+        currentSeason: setCurrentSeason,
+        currentUser: (state) => 1,
     }),
     entities,
     fetchState,

@@ -13,8 +13,7 @@ import {
     loadPickemWagers,
 } from '../actions';
 import {
-    selectGamesForSeason,
-    selectAllParticipantsForGames,
+    selectGamesWithParticipantsForCurrentSeason,
     APIDataIsReadyForSeason,
 } from '../Selectors/index';
 import PicksPage from '../Components/PicksPage';
@@ -103,8 +102,7 @@ const selectAllSelectionsForGames = (state, games) => {
 //      ...
 // }
 const selectAllPicksForSeason = (state, season) => {
-    var games = selectGamesForSeason(state, season);
-    selectAllParticipantsForGames(state, games);
+    var games = selectGamesWithParticipantsForCurrentSeason(state);
     selectAllWagersForGames(state, games);
     selectAllSelectionsForGames(state, games);
     return games;
