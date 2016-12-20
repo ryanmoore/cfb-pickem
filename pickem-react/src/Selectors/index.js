@@ -99,16 +99,21 @@ export const selectAllSelectionsForCurrentUser = createSelector(
     }
 )
 
-const selectAllWagersForGames = (state, games) => {
-    forOwn(games, (game) => {
-        game.wagers = {};
-    });
-    forOwn(state.entities.wagers, (wager) => {
-        if (wager.game in games) {
-            games[wager.game].wagers[wager.user] = wager.amount;
-        }
-    });
-}
+const selectAllGamesWithWagersForCurrentSeason = createSelector(
+    [selectGamesWithParticipantsForCurrentSeason, selectWagers],
+    (games, wagers) => {
+        var output = cloneDeep(games);
+        forOwn(output, (game) => {
+            game.wagers = {};
+        });
+        forOwn(wagers, (wager) => {
+            if (wager.game in games) {
+                output[wager.game].wagers[wager.user] = wager.amount;
+            }
+        });
+        return output;
+    }
+);
 
 export const selectUsernameFromId = (state, id) => {
     return state.entities.users[id].username;
@@ -150,8 +155,7 @@ const selectAllSelectionsForGames = (state, games) => {
 const selectAllPicksForSeason = (state, season) => {
     // TODO: Refactor to avoid this deep copy by making other 2 functions
     // pure
-    var games = cloneDeep(selectGamesWithParticipantsForCurrentSeason(state));
-    selectAllWagersForGames(state, games);
+    var games = cloneDeep(selectAllGamesWithWagersForCurrentSeason(state));
     selectAllSelectionsForGames(state, games);
     return games;
 }
