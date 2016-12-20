@@ -31,6 +31,7 @@ import forOwn from 'lodash/forOwn';
 import keys from 'lodash/keys';
 import cloneDeep from 'lodash/cloneDeep';
 import { createSelector } from 'reselect';
+import LoadingSpinner from '../Components/LoadingSpinner';
 
 const selectAndTieWagersToGamesForCurrentSeason = createSelector(
     [selectGamesWithParticipantsForCurrentSeason,
@@ -156,7 +157,7 @@ class DisplayedMatchupList extends Component {
             previewIndex,
         } = this.props;
         if (loading) {
-            return <div>Loading...</div>;
+            return (<LoadingSpinner />);
         }
         return <MatchupList matchups={matchups}
                 moveMatchup={moveMatchup}

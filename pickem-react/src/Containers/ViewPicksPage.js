@@ -19,6 +19,7 @@ import {
 import PicksPage from '../Components/PicksPage';
 import forOwn from 'lodash/forOwn';
 import keys from 'lodash/keys';
+import LoadingSpinner from '../Components/LoadingSpinner';
 
 class ViewPicksPage extends Component {
     static propTypes = {
@@ -47,7 +48,7 @@ class ViewPicksPage extends Component {
             ready
         } = this.props;
         if (!ready) {
-            return null;
+            return <LoadingSpinner />
         }
         return <PicksPage matchupPicks={matchupPicks} />;
     }

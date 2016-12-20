@@ -1,0 +1,12 @@
+.col-centered {
+    float: none;
+    margin: 0 auto;
+}
+
+.spinner {
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    float: none;
+    width: 54px;
+}
