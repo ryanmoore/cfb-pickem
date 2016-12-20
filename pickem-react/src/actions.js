@@ -219,3 +219,35 @@ export const loadPickemWagers = (season) => (dispatch, getState) => {
     }
     return null;
 }
+
+export const PICKEM_API_WINNER_REQUEST = 'PICKEM_API_WINNER_REQUEST';
+export const PICKEM_API_WINNER_SUCCESS = 'PICKEM_API_WINNER_SUCCESS';
+export const PICKEM_API_WINNER_FAILURE = 'PICKEM_API_WINNER_FAILURE';
+
+const fetchPickemWinners = (season) => {
+    return {
+        [CALL_PICKEM_API]: {
+            types: [PICKEM_API_WINNER_REQUEST, PICKEM_API_WINNER_SUCCESS,
+                PICKEM_API_WINNER_FAILURE
+            ],
+            endpoint: `winners/?limit=1000&season=${season}`,
+            schema: pickemSchema.WINNER_ARRAY
+        }
+    };
+}
+
+const shouldFetchPickemWinners  = (state, season) => {
+    const winners = state.fetchState.winners;
+    if(!winners || winners !== FETCH_STATES.READY) {
+        return true;
+    }
+    return false;
+}
+
+
+export const loadPickemWinners = (season) => (dispatch, getState) => {
+    if(shouldFetchPickemWinners(getState(season))) {
+        return dispatch(fetchPickemWinners(season));
+    }
+    return null;
+}

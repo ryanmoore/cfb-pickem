@@ -226,6 +226,18 @@ const fetchState = (state = defaultFetchState, action) => {
             return {...state,
                 selections: ActionTypes.FETCH_STATES.READY
             };
+        case ActionTypes.PICKEM_API_WINNER_REQUEST:
+            return {...state,
+                winners: ActionTypes.FETCH_STATES.IN_PROGRESS
+            };
+        case ActionTypes.PICKEM_API_WINNER_FAILURE:
+            return {...state,
+                winners: ActionTypes.FETCH_STATES.FAILED
+            };
+        case ActionTypes.PICKEM_API_WINNER_SUCCESS:
+            return {...state,
+                winners: ActionTypes.FETCH_STATES.READY
+            };
         default:
             return state;
     }
