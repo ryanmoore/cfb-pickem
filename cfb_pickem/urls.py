@@ -17,7 +17,7 @@ router.register(r'teams', views.TeamViewSet)
 router.register(r'teamseasons', views.TeamSeasonViewSet)
 router.register(r'participants', views.ParticipantViewSet)
 router.register(r'winners', views.WinnerViewSet)
-router.register(r'selections', views.SelectionViewSet)
+router.register(r'selections', views.SelectionViewSet, base_name='selection')
 router.register(r'wagers', views.WagerViewSet)
 
 

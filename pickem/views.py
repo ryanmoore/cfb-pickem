@@ -18,6 +18,7 @@ from collections import defaultdict, OrderedDict
 import pickem.serializers
 from rest_framework import viewsets
 from rest_framework import permissions as rest_permissions
+import django_filters
 
 # pylint: disable=too-many-ancestors
 
@@ -564,19 +565,11 @@ class SeasonViewSet(viewsets.ModelViewSet):
 class GameViewSet(viewsets.ModelViewSet):
     ''' API endpoint that allows games to be viewed or edited
     '''
+    queryset = Game.objects.all()
     serializer_class = pickem.serializers.GameSerializer
     permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
-
-    def get_queryset(self):
-        '''Filter selected games based on the optional season parameter
-        '''
-        queryset = Game.objects.all()
-        season = self.request.query_params.get('season', None)
-        if season is not None:
-            queryset = queryset.filter(season=season)
-        return queryset
-
+    filter_fields = ('season',)
 
 
 class TeamViewSet(viewsets.ModelViewSet):
@@ -601,6 +594,14 @@ class TeamSeasonViewSet(viewsets.ModelViewSet):
     serializer_class = pickem.serializers.TeamSeasonSerializer
     permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+    filter_fields = ('season',)
+
+
+class ParticipantFilter(django_filters.rest_framework.FilterSet):
+    season = django_filters.NumberFilter(name='teamseason__season')
+    class Meta:
+        model = Participant
+        fields = ('season',)
 
 
 class ParticipantViewSet(viewsets.ModelViewSet):
@@ -610,6 +611,7 @@ class ParticipantViewSet(viewsets.ModelViewSet):
     serializer_class = pickem.serializers.ParticipantSerializer
     permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+    filter_class = ParticipantFilter
 
 
 class WinnerViewSet(viewsets.ModelViewSet):
@@ -621,6 +623,13 @@ class WinnerViewSet(viewsets.ModelViewSet):
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
 
 
+class SelectionFilter(django_filters.rest_framework.FilterSet):
+    season = django_filters.NumberFilter(name='participant__teamseason__season')
+    class Meta:
+        model = Selection
+        fields = ('season',)
+
+
 class SelectionViewSet(viewsets.ModelViewSet):
     ''' API endpoint that allows selections to be viewed or edited
     '''
@@ -628,6 +637,14 @@ class SelectionViewSet(viewsets.ModelViewSet):
     serializer_class = pickem.serializers.SelectionSerializer
     permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+    filter_class = SelectionFilter
+
+
+class WagerFilter(django_filters.rest_framework.FilterSet):
+    season = django_filters.NumberFilter(name='game__season')
+    class Meta:
+        model = Wager
+        fields = ('season',)
 
 
 class WagerViewSet(viewsets.ModelViewSet):
@@ -637,3 +654,4 @@ class WagerViewSet(viewsets.ModelViewSet):
     serializer_class = pickem.serializers.WagerSerializer
     permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+    filter_class = WagerFilter
