@@ -24,7 +24,9 @@ class PickemApp extends Component {
                 <Navbar bsStyle='default' fixedTop collapseOnSelect >
                     <Navbar.Header>
                         <Navbar.Brand>
-                            <a href='#'>Pickem</a>
+                            <IndexLinkContainer to='/'>
+                                <a> Pickem</a>
+                            </IndexLinkContainer>
                         </Navbar.Brand>
                         <Navbar.Toggle />
                     </Navbar.Header>
