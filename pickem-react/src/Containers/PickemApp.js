@@ -1,4 +1,6 @@
-import React, { Component } from 'react';
+import React, {
+    Component
+} from 'react';
 import {
     Nav,
     Navbar,
@@ -9,12 +11,36 @@ import {
     IndexLinkContainer,
 } from 'react-router-bootstrap';
 import {
+    IndexLink,
+} from 'react-router';
+import {
     DragDropContext
 } from 'react-dnd';
 import {
     default as TouchBackend
 } from 'react-dnd-touch-backend';
+import {
+    connect,
+} from 'react-redux';
 import HTML5Backend from 'react-dnd-html5-backend';
+import {
+    VisibleWhenAuth
+} from '../auth';
+
+class UserGreeting extends Component {
+    static propTypes = {
+        name: React.PropTypes.string,
+    };
+    render() {
+        const {
+            name
+        } = this.props;
+        return (<Navbar.Text pullRight>Logged in as: {name}</Navbar.Text>);
+    }
+}
+const DisplayUserGreeting = VisibleWhenAuth(connect((state) => ({
+    name: state.auth.user.username,
+}))(UserGreeting));
 
 
 class PickemApp extends Component {
@@ -24,13 +50,12 @@ class PickemApp extends Component {
                 <Navbar bsStyle='default' fixedTop collapseOnSelect >
                     <Navbar.Header>
                         <Navbar.Brand>
-                            <IndexLinkContainer to='/'>
-                                <a> Pickem</a>
-                            </IndexLinkContainer>
+                            <IndexLink to='/'>Pickem</IndexLink>
                         </Navbar.Brand>
                         <Navbar.Toggle />
                     </Navbar.Header>
                     <Navbar.Collapse>
+                        <DisplayUserGreeting/>
                         <Nav>
                             <IndexLinkContainer to='/'>
                                 <NavItem eventKey={1}>Home</NavItem>
@@ -72,4 +97,3 @@ if ('ontouchstart' in window) {
 }
 
 export default PickemApp;
-
