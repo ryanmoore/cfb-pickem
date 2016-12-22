@@ -27,6 +27,7 @@ const teamseasonSchema = new Schema('teamseasons');
 const wagerSchema = new Schema('wagers');
 const selectionSchema = new Schema('selections');
 const winnerSchema= new Schema('winners');
+const authTokenSchema = new Schema('auth');
 
 participantSchema.define({
     teamseason: teamseasonSchema,
@@ -46,6 +47,10 @@ winnerSchema.define({
     participant: participantSchema,
 });
 
+authTokenSchema.define({
+    user: userSchema,
+});
+
 const Schemas = {
     GAME: gameSchema,
     GAME_ARRAY: arrayOf(gameSchema),
@@ -61,6 +66,7 @@ const Schemas = {
     WAGER_ARRAY: arrayOf(wagerSchema),
     WINNER: winnerSchema,
     WINNER_ARRAY: arrayOf(winnerSchema),
+    AUTH_TOKEN_RESPONSE: authTokenSchema,
 };
 
 export default Schemas;

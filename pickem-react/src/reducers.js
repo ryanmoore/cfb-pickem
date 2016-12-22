@@ -263,13 +263,37 @@ const setCurrentSeason = (state = 3, action) => {
     return state;
 }
 
+const authStateReducer = (state={}, action) => {
+    switch(action.type) {
+        case ActionTypes.PICKEM_API_AUTH_SUCCESS:
+            return { ...action.response };
+        case ActionTypes.SET_PICKEM_API_AUTH_TOKEN:
+            return { ...state, token: action.token };
+        default:
+            return state;
+    }
+}
+
+const loginFormReducer = (state={}, action) => {
+    switch(action.type) {
+        case ActionTypes.LOGIN_FORM_PASSWORD_UPDATE:
+            return {...state, password: action.value };
+        case ActionTypes.LOGIN_FORM_USERNAME_UPDATE:
+            return {...state, username: action.value };
+        default:
+            return state;
+    }
+}
+
 const rootReducer = combineReducers({
     ui: combineReducers({
         makePicksOrdering: setMatchupOrder,
         matchupPreview: setMatchupPreview,
         currentSeason: setCurrentSeason,
-        currentUser: (state) => 1,
+        currentUser: () => 1,
+        loginForm: loginFormReducer,
     }),
+    auth: authStateReducer,
     entities,
     fetchState,
 }, );

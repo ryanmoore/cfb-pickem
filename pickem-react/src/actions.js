@@ -249,5 +249,73 @@ export const loadPickemWinners = (season) => (dispatch, getState) => {
     if(shouldFetchPickemWinners(getState(season))) {
         return dispatch(fetchPickemWinners(season));
     }
-    return null;
+
+}
+
+export const PICKEM_API_AUTH_REQUEST = 'PICKEM_API_AUTH_REQUEST';
+export const PICKEM_API_AUTH_SUCCESS = 'PICKEM_API_AUTH_SUCCESS';
+export const PICKEM_API_AUTH_FAILURE = 'PICKEM_API_AUTH_FAILURE';
+
+export const SET_PICKEM_API_AUTH_TOKEN = 'SET_PICKEM_API_AUTH_TOKEN';
+export const SET_PICKEM_API_AUTH_USER = 'SET_PICKEM_API_AUTH_USER';
+export const SET_PICKEM_API_AUTH_USER_AND_TOKEN = 'SET_PICKEM_API_AUTH_USER_AND_TOKEN';
+
+const setPickemAuthToken = (token) => {
+    return  {
+        type: SET_PICKEM_API_AUTH_TOKEN,
+        token: token,
+    };
+}
+
+const setCurrentAuthUserData = (data) => {
+    return {
+        type: SET_PICKEM_API_AUTH_USER,
+        username: data.username,
+    };
+}
+
+const handleAuthLoginTokenResponse = (response) => {
+    return {
+        token: response.token,
+        user: response.user,
+    };
+}
+
+export const fetchPickemAuthToken = (credentials) => {
+    console.log('Logging in with: '+credentials);
+    console.log(credentials);
+    const authPayload = btoa(`${credentials.username}:${credentials.password}`);
+    return {
+        [CALL_PICKEM_API]: {
+            types: [PICKEM_API_AUTH_REQUEST, PICKEM_API_AUTH_SUCCESS,
+                PICKEM_API_AUTH_FAILURE
+            ],
+            endpoint: 'auth/login/',
+            schema: pickemSchema.AUTH_TOKEN_RESPONSE,
+            headers: { 'Authorization': 'Basic ' + authPayload },
+            method: 'POST',
+            callback: handleAuthLoginTokenResponse,
+        }
+    };
+}
+
+
+export const pickemAuthLogin = (credentials) => (dispatch) => {
+    return dispatch(fetchPickemAuthToken(credentials));
+}
+
+export const LOGIN_FORM_USERNAME_UPDATE = 'LOGIN_FORM_USERNAME_UPDATE'
+export const LOGIN_FORM_PASSWORD_UPDATE = 'LOGIN_FORM_PASSWORD_UPDATE'
+export const loginFormUpdateUsername = (value) => {
+    return {
+        type: LOGIN_FORM_USERNAME_UPDATE,
+        value: value,
+    };
+}
+
+export const loginFormUpdatePassword = (value) => {
+    return {
+        type: LOGIN_FORM_PASSWORD_UPDATE,
+        value: value,
+    };
 }

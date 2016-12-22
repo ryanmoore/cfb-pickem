@@ -31,18 +31,20 @@ const joinUrls = (root, endpoint) => {
     return root + endpoint;
 }
 
-const callPickemApi = (endpoint, schema) => {
+const callPickemApi = (endpoint, schema, method = 'GET', headers = {}, callback) => {
     const fullUrl = joinUrls(API_ROOT_URL, endpoint);
     // TODO: Real auth
     return fetch(fullUrl, {
-            headers: {
-                'Authorization': 'Basic ' + btoa('Admin:admin')
-            }
+            method,
+            headers,
         })
         .then(response =>
             response.json().then(json => {
                 if (!response.ok) {
                     return Promise.reject(json);
+                }
+                if (callback) {
+                    return callback(json);
                 }
                 return normalize(json.results, schema);
             })
@@ -83,7 +85,10 @@ export default store => next => action => {
     } = callAPIAction;
     const {
         schema,
-        types
+        types,
+        method,
+        headers,
+        callback,
     } = callAPIAction;
 
     if (typeof endpoint === 'function') {
@@ -123,5 +128,6 @@ export default store => next => action => {
     };
 
     // Perform API call and create action based on result (success or failure)
-    return callPickemApi(endpoint, schema).then(handleResponse, handleError);
+    return callPickemApi(endpoint, schema, method, headers, callback).then(
+        handleResponse, handleError);
 }
