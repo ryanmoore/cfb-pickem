@@ -8,18 +8,17 @@ import {
 
 import {
     Router,
-    browserHistory
 } from 'react-router';
 import routes from '../routes';
 import configureStore from '../store/configureStore';
 
-let store = configureStore();
+let { store, history }  = configureStore();
 
 class App extends Component {
     render() {
         return (
             <Provider store={store}>
-                <Router history={browserHistory} routes={ routes } />
+                <Router history={history} routes={ routes } />
             </Provider>
         );
     }

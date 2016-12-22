@@ -2,6 +2,9 @@ import * as ActionTypes from './actions';
 import {
     combineReducers
 } from 'redux';
+import {
+    routerReducer,
+} from 'react-router-redux';
 import forOwn from 'lodash/forOwn';
 
 const initialState = {
@@ -296,6 +299,7 @@ const rootReducer = combineReducers({
     auth: authStateReducer,
     entities,
     fetchState,
-}, );
+    routing: routerReducer,
+},);
 
 export default rootReducer;
