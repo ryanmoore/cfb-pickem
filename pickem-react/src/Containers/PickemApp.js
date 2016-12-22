@@ -5,7 +5,8 @@ import {
     NavItem
 } from 'react-bootstrap';
 import {
-    LinkContainer
+    LinkContainer,
+    IndexLinkContainer,
 } from 'react-router-bootstrap';
 import {
     DragDropContext
@@ -29,9 +30,9 @@ class PickemApp extends Component {
                     </Navbar.Header>
                     <Navbar.Collapse>
                         <Nav>
-                            <LinkContainer to='/'>
+                            <IndexLinkContainer to='/'>
                                 <NavItem eventKey={1}>Home</NavItem>
-                            </LinkContainer>
+                            </IndexLinkContainer>
                             <LinkContainer to='/picks'>
                                 <NavItem eventKey={2}>Picks</NavItem>
                             </LinkContainer>
