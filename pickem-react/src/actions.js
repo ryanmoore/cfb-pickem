@@ -319,3 +319,10 @@ export const loginFormUpdatePassword = (value) => {
         value: value,
     };
 }
+
+export const LOG_USER_OUT = 'LOG_USER_OUT';
+export const logUserOut = () => {
+    return {
+        type: LOG_USER_OUT,
+    }
+}

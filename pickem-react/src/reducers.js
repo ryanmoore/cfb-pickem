@@ -272,6 +272,8 @@ const authStateReducer = (state={}, action) => {
             return { ...action.response };
         case ActionTypes.SET_PICKEM_API_AUTH_TOKEN:
             return { ...state, token: action.token };
+        case ActionTypes.LOG_USER_OUT:
+            return {};
         default:
             return state;
     }

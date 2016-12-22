@@ -9,6 +9,7 @@ import GameIndex from './Containers/GameIndex';
 import DisplayedMatchupList from './Containers/DisplayedMatchupList';
 import ViewScoresPage from './Containers/ViewScoresPage';
 import LoginPage from './Containers/LoginPage';
+import LogoutPage from './Containers/LogoutPage';
 import { UserIsAuthenticated, UserIsNotAuthenticated } from './auth.js';
 
 export default (
@@ -18,5 +19,6 @@ export default (
         <Route path='picks' component={ViewPicksPage} />
         <Route path='scores' component={ViewScoresPage} />
         <Route path='login' component={UserIsNotAuthenticated(LoginPage)} />
+        <Route path='logout' component={UserIsAuthenticated(LogoutPage)} />
     </Route>
 );

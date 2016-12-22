@@ -24,3 +24,9 @@ export const VisibleWhenAuth = UserAuthWrapper({
     wrapperDisplayName: 'VisibleWhenAuth',
     FailureComponent: null,
 });
+
+export const UserIsAuthOrElse = (Component, FailureComponent) => UserAuthWrapper({
+    authSelector,
+    wrapperDisplayName: 'UserIsAuthOrElse',
+    FailureComponent,
+})(Component);

@@ -24,7 +24,8 @@ import {
 } from 'react-redux';
 import HTML5Backend from 'react-dnd-html5-backend';
 import {
-    VisibleWhenAuth
+    VisibleWhenAuth,
+    UserIsAuthOrElse,
 } from '../auth';
 
 class UserGreeting extends Component {
@@ -41,6 +42,14 @@ class UserGreeting extends Component {
 const DisplayUserGreeting = VisibleWhenAuth(connect((state) => ({
     name: state.auth.user.username,
 }))(UserGreeting));
+
+const LogoutLink = () => (<LinkContainer to='/logout'>
+                            <NavItem eventKey={5}>Logout</NavItem>
+                        </LinkContainer>);
+const LoginLink = () => (<LinkContainer to='/login'>
+                            <NavItem eventKey={6}>Login</NavItem>
+                        </LinkContainer>);
+const LoginOrOutLink = UserIsAuthOrElse(LogoutLink, LoginLink);
 
 
 class PickemApp extends Component {
@@ -69,9 +78,7 @@ class PickemApp extends Component {
                             <LinkContainer to='/makepicks'>
                                 <NavItem eventKey={4}>MakePicks</NavItem>
                             </LinkContainer>
-                            <LinkContainer to='/login'>
-                                <NavItem eventKey={5}>Login</NavItem>
-                            </LinkContainer>
+                            <LoginOrOutLink/>
                         </Nav>
                     </Navbar.Collapse>
                 </Navbar>
