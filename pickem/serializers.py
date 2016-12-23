@@ -3,6 +3,11 @@ from django.contrib.auth.models import User, Group
 from rest_framework import serializers
 import pickem.models
 
+class UserAuthSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'groups')
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -75,3 +80,17 @@ class WagerSerializer(serializers.ModelSerializer):
     class Meta:
         model = pickem.models.Wager
         fields = ('url', 'id', 'user', 'game', 'amount')
+
+
+#class MakePicksWagerSerializer(serializer.Serializer):
+#
+#class MakePicksWagerSerializer(serializer.Serializer):
+#    game =  serializer.IntegerField()
+#    selection =  serializer.IntegerField()
+
+
+#class MakePicksWagerListSerializer(serializers.ListSerializer):
+
+
+#class MakePicksSerializer(serializers.Serializer):
+

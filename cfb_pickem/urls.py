@@ -31,6 +31,8 @@ urlpatterns = [
     url(r'^pickem/', include('pickem.urls', namespace='pickem')),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^api/', include(router.urls)),
+    url(r'^api/makepicks/', views.MakePicksView.as_view()),
+    url(r'^api/auth/', include('knox.urls')),
     ]
 
 if not settings.DEBUG:

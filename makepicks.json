@@ -1,0 +1,29 @@
+{
+    "season": 3,
+    "fixed": [
+        {
+            "game": 55,
+            "selection": {
+                "id": 24,
+                "participant": 1
+            }
+        }
+    ],
+    "wagered": [
+        {
+            "game": 56,
+            "selection": {
+                "id": 25,
+                "participant": 123
+            }
+        },
+        {
+            "game": 200,
+            "selection": {
+                "id": 43,
+                "participant": 27
+            }
+        }
+    ]
+}
+

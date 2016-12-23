@@ -11,7 +11,7 @@ Needed packages: lxml
 
 On Debian:
 ```sh
-    sudo apt install libxml2-dev libxslt-dev python-dev
+    sudo apt install libxml2-dev libxslt-dev python-dev libssl-dev libffi-dev
 ```
 
 Installation

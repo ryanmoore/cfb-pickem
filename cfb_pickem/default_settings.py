@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 import os
 import datetime
 from pytz import timezone
+from corsheaders.defaults import default_headers as cors_default_headers
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
@@ -50,11 +51,17 @@ INSTALLED_APPS = (
     'pickem',
     'rest_framework',
     'corsheaders',
+    'knox',
 )
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAdminUser',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'knox.auth.TokenAuthentication',
     ],
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
@@ -76,6 +83,14 @@ CORS_ORIGIN_WHITELIST = (
     'localhost:3000',
     'localhost:9000',
 )
+
+CORS_ALLOW_HEADERS = cors_default_headers + (
+    'if-modified-since',
+)
+
+REST_KNOX = {
+    'USER_SERIALIZER': 'pickem.serializers.UserAuthSerializer',
+}
 
 ROOT_URLCONF = 'cfb_pickem.urls'
 
@@ -139,6 +154,6 @@ TEMPLATES = [
             },
         ]
 
-PICKEM_START_TIME = datetime.datetime(year=2014, month=12, day=24,
+PICKEM_START_TIME = datetime.datetime(year=2016, month=12, day=24,
         hour=11, minute=55, tzinfo=timezone('US/Eastern'))
 

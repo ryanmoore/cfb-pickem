@@ -10,14 +10,17 @@ from django.db import transaction
 from django.conf import settings
 import django.utils.timezone as timezone
 from django.db.models import Max as DjangoMax
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.core.urlresolvers import reverse
 
 from pickem.models import Game, Selection, Participant, Wager, Winner, Season, Event, Team, TeamSeason
 from collections import defaultdict, OrderedDict
 import pickem.serializers
+from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import permissions as rest_permissions
+from rest_framework.response import Response
+from rest_framework import exceptions as rest_exceptions
 import django_filters
 
 # pylint: disable=too-many-ancestors
@@ -53,8 +56,8 @@ class GameView(generic.DetailView):
     template_name = 'pickem/bowl.html'
 
 def pickem_started(reference_time, season):
-    if settings.PICKEM_START_TIME.year != season.year:
-        return True
+    #if settings.PICKEM_START_TIME.year != season.year:
+    #    return True
     return reference_time >= settings.PICKEM_START_TIME
 
 class ScoreView(generic.TemplateView):
@@ -530,8 +533,7 @@ class UserViewSet(viewsets.ModelViewSet):
     '''
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = pickem.serializers.UserSerializer
-    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
-                   rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
+    permission_classes = [rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -539,7 +541,7 @@ class GroupViewSet(viewsets.ModelViewSet):
     '''
     queryset = Group.objects.all()
     serializer_class = pickem.serializers.GroupSerializer
-    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
 
 
@@ -549,7 +551,7 @@ class EventViewSet(viewsets.ModelViewSet):
     lookup_value_regex = '[^/]+'
     queryset = Event.objects.all()
     serializer_class = pickem.serializers.EventSerializer
-    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
 
 
@@ -558,7 +560,7 @@ class SeasonViewSet(viewsets.ModelViewSet):
     '''
     queryset = Season.objects.all()
     serializer_class = pickem.serializers.SeasonSerializer
-    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
 
 
@@ -567,7 +569,7 @@ class GameViewSet(viewsets.ModelViewSet):
     '''
     queryset = Game.objects.all()
     serializer_class = pickem.serializers.GameSerializer
-    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
     filter_fields = ('season',)
 
@@ -583,7 +585,7 @@ class TeamViewSet(viewsets.ModelViewSet):
     lookup_value_regex = '.+'
     queryset = Team.objects.all()
     serializer_class = pickem.serializers.TeamSerializer
-    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
 
 
@@ -592,7 +594,7 @@ class TeamSeasonViewSet(viewsets.ModelViewSet):
     '''
     queryset = TeamSeason.objects.all()
     serializer_class = pickem.serializers.TeamSeasonSerializer
-    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
     filter_fields = ('season',)
 
@@ -609,7 +611,7 @@ class ParticipantViewSet(viewsets.ModelViewSet):
     '''
     queryset = Participant.objects.all()
     serializer_class = pickem.serializers.ParticipantSerializer
-    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
     filter_class = ParticipantFilter
 
@@ -619,7 +621,7 @@ class WinnerViewSet(viewsets.ModelViewSet):
     '''
     queryset = Winner.objects.all()
     serializer_class = pickem.serializers.WinnerSerializer
-    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
 
 
@@ -635,7 +637,7 @@ class SelectionViewSet(viewsets.ModelViewSet):
     '''
     queryset = Selection.objects.all()
     serializer_class = pickem.serializers.SelectionSerializer
-    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
     filter_class = SelectionFilter
 
@@ -652,6 +654,65 @@ class WagerViewSet(viewsets.ModelViewSet):
     '''
     queryset = Wager.objects.all()
     serializer_class = pickem.serializers.WagerSerializer
-    permissions = [rest_permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
     filter_class = WagerFilter
+
+
+class MakePicksView(APIView):
+    '''View to make pickem selections and change wagers
+    '''
+    # TODO: Should be checking this incoming data more and probably using
+    # DRF built-in serializers. This is very fragile right now to poorly
+    # formatted incoming data
+
+    permission_classes = [rest_permissions.IsAuthenticated,]
+
+    @staticmethod
+    def validate_data(request):
+        '''Checks the input data and returns (games, participants) where
+        games is the ordered list of games.
+            i.e. games[0] has a wager of 1
+        '''
+        seasonid = int(request.data['picks']['season'])
+        season = get_object_or_404(Season, id=seasonid)
+        print(season)
+        started = pickem_started(timezone.now(), season)
+        if started:
+            raise rest_exceptions.PermissionDenied('Pickem has started.')
+        fixed_picks = request.data['picks']['fixed']
+        weighted_picks = request.data['picks']['wagered']
+
+        all_game_ids = [data['game'] for data in fixed_picks+weighted_picks]
+        all_participant_ids = [data['selection']['participant'] for data in fixed_picks+weighted_picks]
+        games = Game.objects.in_bulk(all_game_ids)
+        participants = Participant.objects.in_bulk(all_participant_ids)
+
+        for elt in fixed_picks+weighted_picks:
+            game = games[elt['game']]
+            if game.season != season:
+                raise rest_exceptions.ValidationError(
+                    'Game(id={}) not in specified season'.format(game.id))
+            participant = participant[elt['selection']['particpant']]
+            if participant.game != game:
+                raise rest_exceptions.ValidationError(
+                    'Participant(id={}) does not match game'.format(participant.id))
+            if elt in weighted_picks:
+                if game.fixed_wager_amount != 0:
+                    raise rest_exceptions.ValidationError(
+                        'Game(id={}) not allowed as weighted pick'.format(game.id))
+
+        ordered_weighted = [games[elt['game']] for elt in weighted_picks]
+        return (ordered_weighted, participants)
+
+    def put(self, request):
+        (games, participants) = self.validate_data(request)
+
+        #participant = Participant.objects.get(game=game,
+        #                                        teamseason__team_id=pick)
+        #update_selection_or_create(request.user, participant)
+        ## always update wager in case the list has been reordered
+        #update_wager_or_create(request.user, game, wager)
+        print(fixed_picks)
+        print(weighted_picks)
+        return Response('Hi')
