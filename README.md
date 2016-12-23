@@ -22,3 +22,26 @@ Installation
     python manage.py migrate
     python manage.py runserver
 ```
+
+JS Setup
+--------
+
+Install [nvm](https://github.com/creationix/nvm) as recommended. Usually:
+
+```sh
+    curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
+```
+
+Then grab node, npm, and install the packages for the project:
+
+```sh
+    nvm install node
+    cd pickem-react
+    npm install
+```
+
+If you have the Django server running, you should be ready to launch from that folder with:
+
+```sh
+    npm start
+```
