@@ -733,7 +733,7 @@ class MakePicksView(APIView):
                         'Game(id={}) not allowed as weighted pick'.format(game.id))
 
         ordered_weighted = [games[elt['game']] for elt in weighted_picks]
-        return (ordered_weighted, participants)
+        return (ordered_weighted, participants.values())
 
     def put(self, request):
         (games, participants) = self.validate_data(request)
@@ -742,4 +742,11 @@ class MakePicksView(APIView):
             update_selection_or_create(request.user, participant)
         for wager, game in enumerate(games, start=1):
             update_wager_or_create(request.user, game, wager)
+
+        for game in games:
+            if game.id == 86:
+                for part in Participant.objects.filter(game=game):
+                    print(part)
+                    print(part.id)
+
         return Response()
