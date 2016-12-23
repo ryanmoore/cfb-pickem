@@ -669,14 +669,40 @@ class MakePicksView(APIView):
     permission_classes = [rest_permissions.IsAuthenticated,]
 
     @staticmethod
-    def validate_data(request):
+    def dbg_print_gameids(games):
+        for game in season_games:
+            if game.fixed_wager_amount:
+                print('{}*'.format(game.id))
+            else:
+                print('{}'.format(game.id))
+
+    @staticmethod
+    def get_selected_participants_from_raw(data):
+        for game in data:
+            try:
+                yield game['selection']['participant']
+            except KeyError:
+                pass
+
+    @staticmethod
+    def validate_participant_in_game(game, pick, participants):
+        try:
+            participant_id = pick['selection']['participant']
+        except KeyError:
+            return None
+        participant = participants[participant_id]
+        if participant.game != game:
+            raise rest_exceptions.ValidationError(
+                'Participant(id={}) does not match Game(id={})'.format(participant.id,
+                                                                game.id))
+
+    def validate_data(self, request):
         '''Checks the input data and returns (games, participants) where
         games is the ordered list of games.
             i.e. games[0] has a wager of 1
         '''
         seasonid = int(request.data['picks']['season'])
         season = get_object_or_404(Season, id=seasonid)
-        print(season)
         started = pickem_started(timezone.now(), season)
         if started:
             raise rest_exceptions.PermissionDenied('Pickem has started.')
@@ -684,7 +710,14 @@ class MakePicksView(APIView):
         weighted_picks = request.data['picks']['wagered']
 
         all_game_ids = [data['game'] for data in fixed_picks+weighted_picks]
-        all_participant_ids = [data['selection']['participant'] for data in fixed_picks+weighted_picks]
+        all_participant_ids = self.get_selected_participants_from_raw(
+            fixed_picks + weighted_picks)
+        season_games = list(Game.objects.filter(season=season))
+        if len(season_games) != len(all_game_ids):
+            raise rest_exceptions.ValidationError(
+                'Expected {} games for this season. Found: {}'.format(
+                    len(season_games), len(all_game_ids)))
+
         games = Game.objects.in_bulk(all_game_ids)
         participants = Participant.objects.in_bulk(all_participant_ids)
 
@@ -693,10 +726,7 @@ class MakePicksView(APIView):
             if game.season != season:
                 raise rest_exceptions.ValidationError(
                     'Game(id={}) not in specified season'.format(game.id))
-            participant = participant[elt['selection']['particpant']]
-            if participant.game != game:
-                raise rest_exceptions.ValidationError(
-                    'Participant(id={}) does not match game'.format(participant.id))
+            self.validate_participant_in_game(game, elt, participants)
             if elt in weighted_picks:
                 if game.fixed_wager_amount != 0:
                     raise rest_exceptions.ValidationError(
@@ -708,11 +738,8 @@ class MakePicksView(APIView):
     def put(self, request):
         (games, participants) = self.validate_data(request)
 
-        #participant = Participant.objects.get(game=game,
-        #                                        teamseason__team_id=pick)
-        #update_selection_or_create(request.user, participant)
-        ## always update wager in case the list has been reordered
-        #update_wager_or_create(request.user, game, wager)
-        print(fixed_picks)
-        print(weighted_picks)
-        return Response('Hi')
+        for participant in participants:
+            update_selection_or_create(request.user, participant)
+        for wager, game in enumerate(games, start=1):
+            update_wager_or_create(request.user, game, wager)
+        return Response()
