@@ -1,0 +1,39 @@
+.score-label {
+    background-color: rgb(245, 245, 245);
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1) inset;
+    color: #000;
+    font-weight: bold;
+    background-image: none;
+}
+
+.score-username {
+    text-align: right;
+    padding: 0px;
+    font-weight: bold;
+}
+
+.totals {
+    padding-left: 0px;
+    font-weight: bold;
+}
+
+.remainder-bar {
+    text-align: right;
+}
+
+.example-panel {
+    padding: 15px;
+}
+
+.example-label {
+    display: inline-block;
+    float: left;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.example-bar {
+    width: 150px;
+    display: inline-block;
+    float: left;
+}

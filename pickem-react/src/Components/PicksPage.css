@@ -1,0 +1,75 @@
+.picklist-left {
+    float: right;
+}
+
+.picklist-left th.team {
+    text-align: right;
+    border: none;
+    padding: 0;
+}
+
+.picklist-right {
+    float: left;
+}
+
+.picklist-right th.team {
+    text-align: left;
+    border: none;
+    padding: 0;
+}
+
+td.wager {
+    width: 20px;
+    text-align: right;
+    font-weight: bold;
+}
+
+td.user {
+    width: auto;
+}
+
+.picklist-left td.user {
+    text-align: right;
+    border: none;
+    padding: 0;
+}
+
+.picklist-left td.wager{
+    text-align: left;
+    padding: 0px 0px 0px 5px;
+    border: none;
+}
+
+.picklist-right td.user {
+    text-align: left;
+    border: none;
+    padding: 0;
+}
+
+.picklist-right td.wager{
+    text-align: right;
+    padding: 0px 5px 0px 0px;
+    border: none;
+}
+
+.game-details {
+    text-align: center;
+}
+
+.matchup-row:nth-of-type(odd) {
+    background-color: #f4f4f4;
+}
+
+.matchup-row {
+    border-top: 1px solid #ddd;
+    padding-top: 4px;
+    padding-bottom: 20px;
+}
+
+.winning-pick table {
+    color: #008B00;
+}
+
+.losing-pick table {
+    color: #E3170D;
+}
