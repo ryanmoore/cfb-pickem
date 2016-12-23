@@ -124,7 +124,7 @@ const collectAndTransformMatchups = (state, user, season) => {
     return selectAllMatchupDataForCurrentUserAndSeason(state);
 }
 
-class DisplayedMatchupList extends Component {
+class MakePicksPage extends Component {
     static propTypes = {
         dispatch: React.PropTypes.func.isRequired,
         season: React.PropTypes.number.isRequired,
@@ -196,4 +196,4 @@ const mapDispatchToProps = (dispatch) => {
 //    mapDispatchToProps
 //)(MatchupList);
 
-export default connect(mapStateToProps, mapDispatchToProps)(DisplayedMatchupList);
+export default connect(mapStateToProps, mapDispatchToProps)(MakePicksPage);
