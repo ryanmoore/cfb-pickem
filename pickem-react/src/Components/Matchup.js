@@ -4,6 +4,7 @@ import { Button, Row, Col, Glyphicon } from 'react-bootstrap';
 import { DropTarget, DragSource } from 'react-dnd';
 import { findDOMNode } from 'react-dom';
 import { getEmptyImage } from 'react-dnd-html5-backend';
+import './Matchup.css';
 
 const Types = {
     MATCHUP: 'matchup'
@@ -23,6 +24,9 @@ class PickData {
         }
         return str;
     }
+    getButtonId() {
+        return `pick=${this.id}`;
+    }
 }
 
 class MatchupData {
@@ -40,12 +44,33 @@ class Pick extends Component {
             id: PropTypes.number.isRequired,
             toString: PropTypes.func.isRequired
         }),
+        gameid: PropTypes.number.isRequired,
+        makePick: PropTypes.func.isRequired,
     }
+
+    constructor(props) {
+        super(props);
+        this.handleOnChange = this.handleOnChange.bind(this);
+    }
+
+    handleOnChange(e) {
+        this.props.makePick(this.props.gameid, e.target.value);
+    }
+
     render() {
+        const { gameid, pickdata } = this.props;
         return (
             <Col xs={4} className="matchup-col btn btn-default">
-                <label className="pick-button" htmlFor={this.props.pickdata.id}>
-                    {this.props.pickdata.toString()}
+                <input className='pick-radio'
+                    type='radio'
+                    name={`game=${gameid}`}
+                    value={pickdata.id}
+                    id={pickdata.getButtonId()}
+                    onChange={this.handleOnChange}
+                />
+                <label className="pick-button"
+                    htmlFor={pickdata.getButtonId()}>
+                    {pickdata.toString()}
                 </label>
             </Col>
         );
@@ -137,12 +162,14 @@ class Matchup extends Component {
         left: PropTypes.any.isRequired,
         right: PropTypes.any.isRequired,
         name: PropTypes.string.isRequired,
+        makePick: PropTypes.func.isRequired,
     };
     render() {
         const { id,
             wager,
             left,
-            right } = this.props;
+            right,
+            makePick } = this.props;
         const identity = elt => elt;
         const connectHandle = this.props.connectHandle || identity;
         // The whole object is the target and serves as the
@@ -155,8 +182,8 @@ class Matchup extends Component {
                 { connectHandle(
                     <div> <MatchupHandle wager={ wager } name={ name }/></div>
                 )}
-                <Pick pickdata={ left }/>
-                <Pick pickdata={ right }/>
+                <Pick pickdata={ left } gameid={id} makePick={makePick}/>
+                <Pick pickdata={ right } gameid={id} makePick={makePick}/>
             </Row>
         );
     }
@@ -175,6 +202,7 @@ class DragableMatchup extends Component {
         name: PropTypes.string.isRequired,
         moveMatchup: PropTypes.func.isRequired,
         setPreview: PropTypes.func.isRequired,
+        makePick: PropTypes.func.isRequired,
         isDragging: PropTypes.bool.isRequired
     }
 
@@ -202,12 +230,14 @@ class DragableMatchup extends Component {
             wager,
             left,
             right,
-            name } = this.props;
+            name,
+            makePick } = this.props;
         return (<Matchup id={id}
             wager={wager}
             left={left}
             right={right}
             name={name}
+            makePick={makePick}
             connectHandle={connectDragSource}/>
         );
     }

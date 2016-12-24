@@ -6,6 +6,7 @@ import {
 export const SWAP_MATCHUP_ORDER = 'SWAP_MATCHUP_ORDER';
 export const SET_MATCHUP_PREVIEW = 'SET_MATCHUP_PREVIEW';
 export const SET_INITIAL_MATCHUP_ORDERING = 'SET_INITIAL_MATCHUP_ORDERING';
+export const MAKE_PICK = 'MAKE_PICK';
 
 export function swapMatchupOrder(id, src, dst) {
     return {
@@ -27,6 +28,14 @@ export function setInitialMatchupOrdering(ordering) {
     return {
         type: SET_INITIAL_MATCHUP_ORDERING,
         ordering
+    };
+}
+
+export function makePick(game, participant) {
+    return { 
+        type: MAKE_PICK,
+        game,
+        participant,
     };
 }
 

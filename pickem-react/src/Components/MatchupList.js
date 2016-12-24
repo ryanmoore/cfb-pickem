@@ -18,6 +18,7 @@ class MatchupList extends Component {
         previewIndex: React.PropTypes.number,
         moveMatchup: React.PropTypes.func.isRequired,
         setPreview: React.PropTypes.func.isRequired,
+        makePick: React.PropTypes.func.isRequired,
         dispatch: React.PropTypes.func.isRequired,
     };
 
@@ -36,7 +37,7 @@ class MatchupList extends Component {
     }
 
     render() {
-        const { matchups, previewIndex, moveMatchup, setPreview } = this.props;
+        const { matchups, previewIndex, moveMatchup, setPreview, makePick } = this.props;
         const matchupRows = matchups.map((matchup, index) => {
             return <DragableMatchup
                 key={matchup.id}
@@ -48,6 +49,7 @@ class MatchupList extends Component {
                 name={matchup.name}
                 moveMatchup={moveMatchup}
                 setPreview={setPreview}
+                makePick={makePick}
             />
         });
         const preview = previewIndex !== null && matchups[previewIndex];
@@ -60,7 +62,9 @@ class MatchupList extends Component {
                             wager={previewIndex+1}
                             left={preview.left}
                             right={preview.right}
-                            name={preview.name}/> }
+                            name={preview.name}
+                            makePick={makePick}
+                        /> }
                     </ItemPreview>
                 </Col>
             </Row>

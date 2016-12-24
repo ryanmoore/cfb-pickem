@@ -7,6 +7,7 @@ import {
 import {
     setMatchupPreview,
     swapMatchupOrder,
+    makePick,
     loadPickemGames,
     loadPickemUsers,
     loadPickemParticipants,
@@ -83,7 +84,7 @@ const computeMatchupOrderingForCurrentUser = createSelector(
             const intId = parseInt(id, 10);
             if(!picked.has(intId)) {
                 while(output[i]) {
-                    i = i+1;
+                    i += 1;
                 }
                 output[i] = intId;
             }
@@ -159,6 +160,7 @@ class MakePicksPage extends Component {
         matchups: React.PropTypes.array.isRequired,
         moveMatchup: React.PropTypes.func.isRequired,
         setPreview: React.PropTypes.func.isRequired,
+        makePick: React.PropTypes.func.isRequired,
         previewIndex: React.PropTypes.number,
     }
 
@@ -182,17 +184,23 @@ class MakePicksPage extends Component {
             moveMatchup,
             setPreview,
             previewIndex,
+            makePick,
             dispatch,
         } = this.props;
         if (loading) {
             return (<LoadingSpinner />);
         }
-        return <MatchupList matchups={matchups}
-                moveMatchup={moveMatchup}
-                setPreview={setPreview}
-                previewIndex={previewIndex}
-                dispatch={dispatch}
-            />
+        return (
+            <form>
+                <MatchupList matchups={matchups}
+                    moveMatchup={moveMatchup}
+                    setPreview={setPreview}
+                    previewIndex={previewIndex}
+                    makePick={makePick}
+                    dispatch={dispatch}
+                />
+            </form>
+        );
     }
 }
 
@@ -217,6 +225,9 @@ const mapDispatchToProps = (dispatch) => {
             dispatch(setMatchupPreview(dst))
         },
         dispatch: dispatch,
+        makePick: (game, participant) => {
+            dispatch(makePick(game, participant))
+        },
     };
 }
 

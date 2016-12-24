@@ -94,6 +94,7 @@ const selectAndSortUserWagers = (wagers, user) => {
 
 const matchupInitialState = {
     matchupOrdering: [],
+    picks: {},
 };
 
 function setMatchupOrder(state = matchupInitialState, action) {
@@ -102,6 +103,14 @@ function setMatchupOrder(state = matchupInitialState, action) {
             return swapMatchupOrder(state, action);
         case ActionTypes.SET_INITIAL_MATCHUP_ORDERING:
             return { ...state, matchupOrdering: action.ordering };
+        case ActionTypes.MAKE_PICK:
+            return { 
+                ...state,
+                picks: {
+                    ...state.picks,
+                    [action.game]: action.participant 
+                }
+            };
         default:
             return state;
     }
