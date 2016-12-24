@@ -60,11 +60,11 @@ export const selectGamesWithParticipantsForCurrentSeason = createSelector(
         var output = cloneDeep(games);
         forOwn(participants, (participant, id) => {
             output[participant.game].matchup = output[participant.game].matchup || {};
+            const teamdata = teamseasons[participant.teamseason];
             output[participant.game].matchup[id] = {
                 picks: [],
-                teamName: selectTeamNamefromTeamSeasons(
-                    teamseasons,
-                    participant.teamseason)
+                teamName: teamdata.team, 
+                rank: teamdata.rank,
             };
         });
         return output;

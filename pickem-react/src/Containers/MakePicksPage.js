@@ -108,15 +108,17 @@ const selectMatchupOrderingForCurrentUser = createSelector(
 
 const selectAndArrangePicksForCurrentUserAndSeason = createSelector(
     [selectAllPicksForCurrentUserAndSeason],
-    (pickdata) => {
+    (pickdata, selections) => {
         var arranged = {};
         forOwn(pickdata, (gameinfo, id) => {
             const [partid1, partid2] = keys(gameinfo.matchup);
             const leftPart = gameinfo.matchup[partid1];
             const rightPart = gameinfo.matchup[partid2];
             arranged[id] = new MatchupData(parseInt(id, 10), gameinfo.gameDetails.eventName,
-                new PickData(parseInt(partid1, 10), leftPart.teamName, '?', leftPart.id === gameinfo.selection),
-                new PickData(parseInt(partid2, 10), rightPart.teamName, '?', rightPart.id === gameinfo.selection),
+                new PickData(parseInt(partid1, 10),leftPart.teamName,
+                    leftPart.rank, leftPart.id === gameinfo.selection),
+                new PickData(parseInt(partid2, 10),rightPart.teamName,
+                    leftPart.rank, rightPart.id === gameinfo.selection),
             );
         });
         return arranged;
