@@ -1,0 +1,8 @@
+.matchup-col input[type="radio"] {
+    display: none;
+}
+
+.matchup-col input[type="radio"]:checked + label {
+    background-color: #428bca;
+    color: #ffffff;
+}

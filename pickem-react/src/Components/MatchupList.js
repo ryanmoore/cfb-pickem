@@ -3,7 +3,18 @@ import React, { Component } from 'react';
 import Matchup, { DragableMatchup } from './Matchup';
 import { Grid, Row, Col } from 'react-bootstrap';
 import ItemPreview from './ItemPreview';
-import { setInitialMatchupOrdering } from '../actions';
+
+const extractPicksFromMatchups = (matchups) => {
+    var out = {};
+    matchups.map((matchup) => {
+        if(matchup.left.selected) {
+            out[matchup.id] = matchup.left.id;
+        } else if(matchup.right.selected) {
+            out[matchup.id] = matchup.right.id;
+        }
+    });
+    return out;
+}
 
 class MatchupList extends Component {
 
@@ -19,7 +30,8 @@ class MatchupList extends Component {
         moveMatchup: React.PropTypes.func.isRequired,
         setPreview: React.PropTypes.func.isRequired,
         makePick: React.PropTypes.func.isRequired,
-        dispatch: React.PropTypes.func.isRequired,
+        setInitialMatchupOrdering: React.PropTypes.func.isRequired,
+        setInitialPicks: React.PropTypes.func.isRequired,
     };
 
     constructor(props) {
@@ -29,11 +41,14 @@ class MatchupList extends Component {
 
     componentDidMount() {
         const { 
-            dispatch,
-            matchups } = this.props;
+            matchups,
+            setInitialMatchupOrdering,
+            setInitialPicks,
+        } = this.props;
         // TODO: Should do this in another component so this one is
         // more focused on data display
-        dispatch(setInitialMatchupOrdering(matchups.map((matchup) => matchup.id)));
+        setInitialMatchupOrdering(matchups.map((matchup) => matchup.id));
+        setInitialPicks(extractPicksFromMatchups(matchups));
     }
 
     render() {
@@ -64,6 +79,7 @@ class MatchupList extends Component {
                             right={preview.right}
                             name={preview.name}
                             makePick={makePick}
+                            preview={true}
                         /> }
                     </ItemPreview>
                 </Col>

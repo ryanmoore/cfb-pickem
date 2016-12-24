@@ -8,6 +8,8 @@ import {
     setMatchupPreview,
     swapMatchupOrder,
     makePick,
+    setInitialPicks,
+    setInitialMatchupOrdering,
     loadPickemGames,
     loadPickemUsers,
     loadPickemParticipants,
@@ -106,8 +108,9 @@ const selectMatchupOrderingForCurrentUser = createSelector(
     }
 );
 
+const selectCurrentUIPicks = (state) => state.ui.makePicksOrdering.picks;
 const selectAndArrangePicksForCurrentUserAndSeason = createSelector(
-    [selectAllPicksForCurrentUserAndSeason],
+    [selectAllPicksForCurrentUserAndSeason, selectCurrentUIPicks],
     (pickdata, selections) => {
         var arranged = {};
         forOwn(pickdata, (gameinfo, id) => {
@@ -116,9 +119,9 @@ const selectAndArrangePicksForCurrentUserAndSeason = createSelector(
             const rightPart = gameinfo.matchup[partid2];
             arranged[id] = new MatchupData(parseInt(id, 10), gameinfo.gameDetails.eventName,
                 new PickData(parseInt(partid1, 10),leftPart.teamName,
-                    leftPart.rank, leftPart.id === gameinfo.selection),
+                    leftPart.rank, parseInt(partid1, 10) === gameinfo.selection),
                 new PickData(parseInt(partid2, 10),rightPart.teamName,
-                    leftPart.rank, rightPart.id === gameinfo.selection),
+                    leftPart.rank, parseInt(partid2, 10) === gameinfo.selection),
             );
         });
         return arranged;
@@ -187,7 +190,8 @@ class MakePicksPage extends Component {
             setPreview,
             previewIndex,
             makePick,
-            dispatch,
+            setInitialMatchupOrdering,
+            setInitialPicks,
         } = this.props;
         if (loading) {
             return (<LoadingSpinner />);
@@ -199,7 +203,8 @@ class MakePicksPage extends Component {
                     setPreview={setPreview}
                     previewIndex={previewIndex}
                     makePick={makePick}
-                    dispatch={dispatch}
+                    setInitialMatchupOrdering={setInitialMatchupOrdering}
+                    setInitialPicks={setInitialPicks}
                 />
             </form>
         );
@@ -226,10 +231,16 @@ const mapDispatchToProps = (dispatch) => {
         setPreview: (dst) => {
             dispatch(setMatchupPreview(dst))
         },
-        dispatch: dispatch,
+        setInitialMatchupOrdering: (ordering) => {
+            dispatch(setInitialMatchupOrdering(ordering))
+        },
+        setInitialPicks: (picks) => {
+            dispatch(setInitialPicks(picks))
+        },
         makePick: (game, participant) => {
             dispatch(makePick(game, participant))
         },
+        dispatch,
     };
 }
 

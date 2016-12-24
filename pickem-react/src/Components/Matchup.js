@@ -5,6 +5,7 @@ import { DropTarget, DragSource } from 'react-dnd';
 import { findDOMNode } from 'react-dom';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import './Matchup.css';
+import { connect } from 'react-redux';
 
 const Types = {
     MATCHUP: 'matchup'
@@ -46,6 +47,8 @@ class Pick extends Component {
         }),
         gameid: PropTypes.number.isRequired,
         makePick: PropTypes.func.isRequired,
+        selected: PropTypes.object.isRequired,
+        preview: PropTypes.bool.isRequired,
     }
 
     constructor(props) {
@@ -54,20 +57,24 @@ class Pick extends Component {
     }
 
     handleOnChange(e) {
-        this.props.makePick(this.props.gameid, e.target.value);
+        this.props.makePick(this.props.gameid, parseInt(e.target.value, 10));
     }
 
     render() {
-        const { gameid, pickdata } = this.props;
+        const { gameid, pickdata, selected, preview } = this.props;
+        const checked = selected && selected[gameid] === pickdata.id;
         return (
             <Col xs={4} className="matchup-col btn btn-default">
-                <input className='pick-radio'
-                    type='radio'
-                    name={`game=${gameid}`}
-                    value={pickdata.id}
-                    id={pickdata.getButtonId()}
-                    onChange={this.handleOnChange}
-                />
+                { preview ? null : 
+                    <input className='pick-radio'
+                        type='radio'
+                        name={`game=${gameid}`}
+                        value={pickdata.id}
+                        id={pickdata.getButtonId()}
+                        onChange={this.handleOnChange}
+                        checked={checked}
+                    />
+                }
                 <label className="pick-button"
                     htmlFor={pickdata.getButtonId()}>
                     {pickdata.toString()}
@@ -76,6 +83,13 @@ class Pick extends Component {
         );
     }
 }
+
+const selectCurrentUIPicks = (state) => state.ui.makePicksOrdering.picks;
+const mapStateToProps = (state) => ({
+    selected: selectCurrentUIPicks(state),
+})
+
+Pick = connect(mapStateToProps)(Pick);
 
 class MatchupHandle extends Component {
     static propTypes = {
@@ -163,13 +177,15 @@ class Matchup extends Component {
         right: PropTypes.any.isRequired,
         name: PropTypes.string.isRequired,
         makePick: PropTypes.func.isRequired,
+        preview: PropTypes.bool.isRequired,
     };
     render() {
         const { id,
             wager,
             left,
             right,
-            makePick } = this.props;
+            makePick,
+            preview } = this.props;
         const identity = elt => elt;
         const connectHandle = this.props.connectHandle || identity;
         // The whole object is the target and serves as the
@@ -182,8 +198,16 @@ class Matchup extends Component {
                 { connectHandle(
                     <div> <MatchupHandle wager={ wager } name={ name }/></div>
                 )}
-                <Pick pickdata={ left } gameid={id} makePick={makePick}/>
-                <Pick pickdata={ right } gameid={id} makePick={makePick}/>
+                <Pick pickdata={ left }
+                    gameid={id}
+                    makePick={makePick}
+                    preview={preview}
+                />
+                <Pick pickdata={ right }
+                    gameid={id}
+                    makePick={makePick}
+                    preview={preview}
+                />
             </Row>
         );
     }
@@ -238,6 +262,7 @@ class DragableMatchup extends Component {
             right={right}
             name={name}
             makePick={makePick}
+            preview={false}
             connectHandle={connectDragSource}/>
         );
     }
@@ -256,3 +281,5 @@ DragableMatchup = DragSource(Types.MATCHUP, matchupSource, collect)(DragableMatc
 export default Matchup;
 //export default Matchup;
 export { PickData, MatchupData, DragableMatchup };
+
+

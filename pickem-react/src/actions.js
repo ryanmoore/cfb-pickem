@@ -6,6 +6,7 @@ import {
 export const SWAP_MATCHUP_ORDER = 'SWAP_MATCHUP_ORDER';
 export const SET_MATCHUP_PREVIEW = 'SET_MATCHUP_PREVIEW';
 export const SET_INITIAL_MATCHUP_ORDERING = 'SET_INITIAL_MATCHUP_ORDERING';
+export const SET_INITIAL_PICKS = 'SET_INITIAL_PICKS';
 export const MAKE_PICK = 'MAKE_PICK';
 
 export function swapMatchupOrder(id, src, dst) {
@@ -36,6 +37,13 @@ export function makePick(game, participant) {
         type: MAKE_PICK,
         game,
         participant,
+    };
+}
+
+export function setInitialPicks(picks) {
+    return {
+        type: SET_INITIAL_PICKS,
+        picks
     };
 }
 
@@ -299,8 +307,6 @@ const handleAuthLoginTokenResponse = (response) => {
 }
 
 export const fetchPickemAuthToken = (credentials) => {
-    console.log('Logging in with: '+credentials);
-    console.log(credentials);
     const authPayload = btoa(`${credentials.username}:${credentials.password}`);
     return {
         [CALL_PICKEM_API]: {

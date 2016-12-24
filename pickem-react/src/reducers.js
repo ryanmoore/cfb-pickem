@@ -111,6 +111,11 @@ function setMatchupOrder(state = matchupInitialState, action) {
                     [action.game]: action.participant 
                 }
             };
+        case ActionTypes.SET_INITIAL_PICKS:
+            return {
+                ...state,
+                picks: action.picks,
+            };
         default:
             return state;
     }
