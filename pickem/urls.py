@@ -10,7 +10,7 @@ from pickem import views
 
 urlpatterns = [
         url(r'^$', views.IndexView.as_view(), name='index-bare',
-            kwargs={'year': '2015'}),
+            kwargs={'year': '2016'}),
         url(r'^(?P<year>\d{4})/$', views.IndexView.as_view(), name='index'),
         url(r'^(?P<year>\d{4})/game/(?P<pk>\d+)/$', views.GameView.as_view(), name='game'),
         url(r'^(?P<year>\d{4})/user/picks/edit/$', views.select_all, name='select_all'),
