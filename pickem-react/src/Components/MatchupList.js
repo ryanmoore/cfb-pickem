@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import Matchup, { DragableMatchup } from './Matchup';
 import { Grid, Row, Col } from 'react-bootstrap';
 import ItemPreview from './ItemPreview';
+import { setInitialMatchupOrdering } from '../actions';
 
 class MatchupList extends Component {
 
@@ -17,11 +18,21 @@ class MatchupList extends Component {
         previewIndex: React.PropTypes.number,
         moveMatchup: React.PropTypes.func.isRequired,
         setPreview: React.PropTypes.func.isRequired,
+        dispatch: React.PropTypes.func.isRequired,
     };
 
     constructor(props) {
         super(props);
         this.useCustomPreview = ('ontouchstart' in window);
+    }
+
+    componentDidMount() {
+        const { 
+            dispatch,
+            matchups } = this.props;
+        // TODO: Should do this in another component so this one is
+        // more focused on data display
+        dispatch(setInitialMatchupOrdering(matchups.map((matchup) => matchup.id)));
     }
 
     render() {
@@ -42,7 +53,7 @@ class MatchupList extends Component {
         const preview = previewIndex !== null && matchups[previewIndex];
         return (<Grid>
             {matchupRows}
-            <Row>
+            <Row key='__preview'>
                 <Col xs={12}>
                     <ItemPreview key="__preview">
                         { preview && <Matchup id={preview.id}

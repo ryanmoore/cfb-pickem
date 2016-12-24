@@ -5,6 +5,7 @@ import {
 
 export const SWAP_MATCHUP_ORDER = 'SWAP_MATCHUP_ORDER';
 export const SET_MATCHUP_PREVIEW = 'SET_MATCHUP_PREVIEW';
+export const SET_INITIAL_MATCHUP_ORDERING = 'SET_INITIAL_MATCHUP_ORDERING';
 
 export function swapMatchupOrder(id, src, dst) {
     return {
@@ -19,6 +20,13 @@ export function setMatchupPreview(dst) {
     return {
         type: SET_MATCHUP_PREVIEW,
         dst
+    };
+}
+
+export function setInitialMatchupOrdering(ordering) {
+    return {
+        type: SET_INITIAL_MATCHUP_ORDERING,
+        ordering
     };
 }
 

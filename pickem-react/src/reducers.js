@@ -93,23 +93,15 @@ const selectAndSortUserWagers = (wagers, user) => {
 }
 
 const matchupInitialState = {
-    matchupOrders: {},
-    currentUser: 1,
+    matchupOrdering: [],
 };
 
 function setMatchupOrder(state = matchupInitialState, action) {
     switch (action.type) {
         case ActionTypes.SWAP_MATCHUP_ORDER:
             return swapMatchupOrder(state, action);
-        case ActionTypes.PICKEM_API_WAGER_SUCCESS:
-            return {...state,
-                matchupOrders: {
-                    ...state.matchupOrders,
-                    //TODO: CurrentUser
-                    '1': selectAndSortUserWagers(
-                        action.response.entities.wagers, state.currentUser)
-                }
-            };
+        case ActionTypes.SET_INITIAL_MATCHUP_ORDERING:
+            return { ...state, matchupOrdering: action.ordering };
         default:
             return state;
     }
@@ -120,11 +112,8 @@ function swapMatchupOrder(state, action) {
     switch (action.type) {
         case ActionTypes.SWAP_MATCHUP_ORDER:
             return {...state,
-                matchupOrders: {
-                    ...state.matchupOrders,
-                    '1': copyAndMoveEltFromTo(
-                        state.matchupOrders[id], action.src, action.dst)
-                }
+                    matchupOrdering: copyAndMoveEltFromTo(
+                        state.matchupOrdering, action.src, action.dst)
             };
             //return update(state, {
             //    ordering: { $splice: [

@@ -22,6 +22,7 @@ import {
 import {
     selectParticipants,
     selectCurrentUser,
+    selectGamesForCurrentSeason,
     selectGamesWithParticipantsForCurrentSeason,
     selectWagersForCurrentUser,
     selectAllSelectionsForCurrentUser,
@@ -30,6 +31,7 @@ import {
 import forOwn from 'lodash/forOwn';
 import keys from 'lodash/keys';
 import cloneDeep from 'lodash/cloneDeep';
+import Set from 'es6-set';
 import { createSelector } from 'reselect';
 import LoadingSpinner from '../Components/LoadingSpinner';
 
@@ -65,16 +67,41 @@ const selectAllPicksForCurrentUserAndSeason = createSelector(
     }
 );
 
-const selectMatchupOrderings = (state) => state.ui.makePicksOrdering.matchupOrders;
+const computeMatchupOrderingForCurrentUser = createSelector(
+    [selectGamesForCurrentSeason, selectWagersForCurrentUser],
+    (games, wagers) => {
+        var output = new Array(keys(games).length);
+        var picked = new Set();
+        forOwn(wagers, (wager) => {
+            if(wager.game in games) {
+                output[wager.amount] = wager.game;
+                picked.add(wager.game);
+            }
+        });
+        var i = 0;
+        forOwn(games, (game, id) => {
+            const intId = parseInt(id, 10);
+            if(!picked.has(intId)) {
+                while(output[i]) {
+                    i = i+1;
+                }
+                output[i] = intId;
+            }
+        });
+        return output;
+    }
+);
 
-const selectMatchupOrderingForGivenUser = (state, user) => {
-    return selectMatchupOrderings(state)[user];
-}
+const selectMatchupOrderings = (state) => state.ui.makePicksOrdering.matchupOrdering;
 
 const selectMatchupOrderingForCurrentUser = createSelector(
-    [selectCurrentUser, selectMatchupOrderings],
-    (user, matchupOrderings) => {
-        return matchupOrderings[user];
+    [selectMatchupOrderings, computeMatchupOrderingForCurrentUser],
+    (uiMatchupOrdering, computedMatchupOrdering) => {
+        const uiOrdering = uiMatchupOrdering;
+        if(uiOrdering.length) {
+            return uiOrdering;
+        }
+        return computedMatchupOrdering;
     }
 );
 
@@ -112,7 +139,7 @@ const stateIsReadyForMakePicksPage = (state, user, season) => {
         'users',
         'selections'
     ];
-    const orderingIsReady = !!selectMatchupOrderingForGivenUser(state, user);
+    const orderingIsReady = !!selectMatchupOrderingForCurrentUser(state).length;
     return APIDataIsReadyForSeason(state, required, season)
             && orderingIsReady;
 }
@@ -155,6 +182,7 @@ class MakePicksPage extends Component {
             moveMatchup,
             setPreview,
             previewIndex,
+            dispatch,
         } = this.props;
         if (loading) {
             return (<LoadingSpinner />);
@@ -163,6 +191,7 @@ class MakePicksPage extends Component {
                 moveMatchup={moveMatchup}
                 setPreview={setPreview}
                 previewIndex={previewIndex}
+                dispatch={dispatch}
             />
     }
 }
