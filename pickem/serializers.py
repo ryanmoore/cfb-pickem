@@ -30,7 +30,7 @@ class EventSerializer(serializers.ModelSerializer):
 class SeasonSerializer(serializers.ModelSerializer):
     class Meta:
         model = pickem.models.Season
-        fields = ('url', 'id', 'year')
+        fields = ('url', 'id', 'year', 'start_time')
 
 
 class EventNameSerializer(serializers.ModelSerializer):

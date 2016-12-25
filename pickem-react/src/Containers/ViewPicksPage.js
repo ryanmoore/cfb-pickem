@@ -11,11 +11,13 @@ import {
     loadPickemTeamSeasons,
     loadPickemSelections,
     loadPickemWagers,
+    loadPickemSeasons,
     pickemAuthLogin,
 } from '../actions';
 import {
     collectAndTransformPicksForSeason,
     stateIsReadyForPicksPage,
+    selectCurrentStartTime,
 } from '../Selectors/index';
 import PicksPage from '../Components/PicksPage';
 import LoadingSpinner from '../Components/LoadingSpinner';
@@ -26,6 +28,7 @@ class ViewPicksPage extends Component {
         season: React.PropTypes.number.isRequired,
         ready: React.PropTypes.bool.isRequired,
         matchupPicks: React.PropTypes.array.isRequired,
+        pickemHasStarted: React.PropTypes.bool.isRequired,
     }
 
     componentDidMount() {
@@ -39,15 +42,20 @@ class ViewPicksPage extends Component {
         dispatch(loadPickemTeamSeasons(season));
         dispatch(loadPickemWagers(season));
         dispatch(loadPickemSelections(season));
+        dispatch(loadPickemSeasons());
     }
 
     render() {
         const {
             matchupPicks,
-            ready
+            ready,
+            pickemHasStarted,
         } = this.props;
         if (!ready) {
             return <LoadingSpinner />
+        }
+        if (!pickemHasStarted) {
+            return <h3>Picks are hidden until pickem starts</h3>
         }
         return <PicksPage matchupPicks={matchupPicks} />;
     }
@@ -80,12 +88,22 @@ class ViewPicksPage extends Component {
 //     id: 1,
 // }];
 
+const pickemHasStarted = (state) => {
+    const start_time = selectCurrentStartTime(state);
+    if(start_time === null) {
+        return false;
+    }
+    console.log(Date.now());
+    console.log(start_time);
+    return Date.now() > new Date(start_time);
+}
 
 const mapStateToProps = (state) => {
     return {
         //matchupPicks: sampleData, //selectAllPicksForSeason(state, season),
         matchupPicks: collectAndTransformPicksForSeason(state, 3),
         ready: stateIsReadyForPicksPage(state, 3),
+        pickemHasStarted: pickemHasStarted(state),
         season: 3,
     }
 }

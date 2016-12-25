@@ -14,6 +14,7 @@ export const selectTeamSeasons = (state) => state.entities.teamseasons;
 export const selectParticipants = (state) => state.entities.participants;
 export const selectWagers = (state) => state.entities.wagers;
 export const selectSelections = (state) => state.entities.selections;
+export const selectSeasons = (state) => state.entities.seasons;
 export const selectCurrentUser = (state) => state.auth.user.id;
 export const selectUsers = (state) => state.entities.users;
 export const selectMatchupOrdering = (state) => state.ui.makePicksOrdering.matchupOrdering;
@@ -84,7 +85,7 @@ export const selectWagersForCurrentUser = createSelector(
     (user, wagers) => {
         var output = {};
         forOwn(wagers, (wager, id) => {
-            if(wager.user == user) {
+            if(wager.user === user) {
                 output[id] = wager;
             }
         });
@@ -227,3 +228,13 @@ export const collectAndTransformPicksForSeason = (state, season) => {
     sortTransformedPicksByDate(output);
     return output;
 }
+
+export const selectCurrentStartTime = createSelector(
+    [selectCurrentSeason, selectSeasons],
+    (currentSeason, seasons) => {
+        if(!seasons) {
+            return null;
+        }
+        return seasons[currentSeason].start_time;
+    }
+);

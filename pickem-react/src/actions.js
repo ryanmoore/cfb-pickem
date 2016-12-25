@@ -410,3 +410,35 @@ export const submitPicksAndWagers = () => (dispatch, getState) => {
         dispatch(fetchPickemSelections(3));
     });
 }
+
+export const PICKEM_API_SEASON_REQUEST = 'PICKEM_API_SEASON_REQUEST';
+export const PICKEM_API_SEASON_SUCCESS = 'PICKEM_API_SEASON_SUCCESS';
+export const PICKEM_API_SEASON_FAILURE = 'PICKEM_API_SEASON_FAILURE';
+
+const fetchPickemSeasons = () => {
+    return {
+        [CALL_PICKEM_API]: {
+            types: [PICKEM_API_SEASON_REQUEST, PICKEM_API_SEASON_SUCCESS,
+                PICKEM_API_SEASON_FAILURE
+            ],
+            endpoint: `seasons/?limit=1000`,
+            schema: pickemSchema.SEASON_ARRAY
+        }
+    };
+}
+
+const shouldFetchPickemSeasons  = (state) => {
+    const seasons = state.fetchState.seasons;
+    if(!seasons || seasons !== FETCH_STATES.READY) {
+        return true;
+    }
+    return false;
+}
+
+
+export const loadPickemSeasons = () => (dispatch, getState) => {
+    if(shouldFetchPickemSeasons(getState())) {
+        return dispatch(fetchPickemSeasons());
+    }
+    return null;
+}
