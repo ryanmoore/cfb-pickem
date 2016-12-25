@@ -1,5 +1,5 @@
 from django.contrib import admin
-from pickem.models import Event, Game, Team, Participant, Winner
+from pickem.models import Event, Game, Team, Participant, Winner, TeamSeason
 
 # pylint: disable=too-many-public-methods
 
@@ -26,10 +26,12 @@ class ParticipantAdmin(admin.ModelAdmin):
 class WinnerAdmin(admin.ModelAdmin):
     model = Winner
 
+class TeamSeasonAdmin(admin.ModelAdmin):
+    model = TeamSeason
 
 admin.site.register(Event, EventAdmin)
 admin.site.register(Game, GameAdmin)
 admin.site.register(Team, TeamAdmin)
 admin.site.register(Participant, ParticipantAdmin)
 admin.site.register(Winner, WinnerAdmin)
-
+admin.site.register(TeamSeason, TeamSeasonAdmin)
