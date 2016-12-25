@@ -31,11 +31,12 @@ class PickData {
 }
 
 class MatchupData {
-    constructor(id, name, left, right) {
+    constructor(id, name, left, right, fixedWagerAmount) {
         this.id = id;
         this.name = name;
         this.left = left;
         this.right = right;
+        this.fixedWagerAmount = fixedWagerAmount;
     }
 }
 

@@ -73,18 +73,19 @@ const selectAllPicksForCurrentUserAndSeason = createSelector(
 const computeMatchupOrderingForCurrentUser = createSelector(
     [selectGamesForCurrentSeason, selectWagersForCurrentUser],
     (games, wagers) => {
-        var output = new Array(keys(games).length);
+        var output = new Array();
         var picked = new Set();
         forOwn(wagers, (wager) => {
             if(wager.game in games) {
-                output[wager.amount] = wager.game;
+                // We subtract 1 to index the array from 0
+                output[wager.amount-1] = wager.game;
                 picked.add(wager.game);
             }
         });
         var i = 0;
         forOwn(games, (game, id) => {
             const intId = parseInt(id, 10);
-            if(!picked.has(intId)) {
+            if(!picked.has(intId) && game.gameDetails.fixedWagerAmount === 0) {
                 while(output[i]) {
                     i += 1;
                 }
@@ -112,19 +113,22 @@ const selectCurrentUIPicks = (state) => state.ui.makePicksOrdering.picks;
 const selectAndArrangePicksForCurrentUserAndSeason = createSelector(
     [selectAllPicksForCurrentUserAndSeason, selectCurrentUIPicks],
     (pickdata, selections) => {
-        var arranged = {};
+        var fixed = {};
+        var wagered = {};
         forOwn(pickdata, (gameinfo, id) => {
             const [partid1, partid2] = keys(gameinfo.matchup);
             const leftPart = gameinfo.matchup[partid1];
             const rightPart = gameinfo.matchup[partid2];
-            arranged[id] = new MatchupData(parseInt(id, 10), gameinfo.gameDetails.eventName,
+            var out = gameinfo.gameDetails.fixedWagerAmount ? fixed : wagered;
+            out[id] = new MatchupData(parseInt(id, 10), gameinfo.gameDetails.eventName,
                 new PickData(parseInt(partid1, 10),leftPart.teamName,
                     leftPart.rank, parseInt(partid1, 10) === gameinfo.selection),
                 new PickData(parseInt(partid2, 10),rightPart.teamName,
                     leftPart.rank, parseInt(partid2, 10) === gameinfo.selection),
+                gameinfo.gameDetails.fixedWagerAmount,
             );
         });
-        return arranged;
+        return {fixed, wagered};
     }
 );
 
@@ -132,7 +136,13 @@ const selectAllMatchupDataForCurrentUserAndSeason = createSelector(
     [selectAndArrangePicksForCurrentUserAndSeason,
         selectMatchupOrderingForCurrentUser],
     (pickdata, ordering) => {
-        return ordering.map((id) => pickdata[id]);
+        var fixed = [];
+        forOwn(pickdata.fixed, (data) => {
+            fixed.push(data);
+        });
+        return { fixed: fixed,
+            wagered: ordering.map((id) => pickdata.wagered[id])
+        };
     }
 )
 
@@ -152,7 +162,7 @@ const stateIsReadyForMakePicksPage = (state, user, season) => {
 
 const collectAndTransformMatchups = (state, user, season) => {
     if (!stateIsReadyForMakePicksPage(state, user, season)) {
-        return [];
+        return { wagered: [], fixed: []};
     }
     return selectAllMatchupDataForCurrentUserAndSeason(state);
 }
@@ -162,7 +172,10 @@ class MakePicksPage extends Component {
         dispatch: React.PropTypes.func.isRequired,
         season: React.PropTypes.number.isRequired,
         loading: React.PropTypes.bool.isRequired,
-        matchups: React.PropTypes.array.isRequired,
+        matchups: React.PropTypes.shape({
+            fixed: React.PropTypes.array.isRequired,
+            wagered: React.PropTypes.array.isRequired,
+        }).isRequired,
         moveMatchup: React.PropTypes.func.isRequired,
         setPreview: React.PropTypes.func.isRequired,
         makePick: React.PropTypes.func.isRequired,
@@ -198,7 +211,8 @@ class MakePicksPage extends Component {
         }
         return (
             <form>
-                <MatchupList matchups={matchups}
+                <MatchupList wagered_matchups={matchups.wagered}
+                    fixed_matchups={matchups.fixed}
                     moveMatchup={moveMatchup}
                     setPreview={setPreview}
                     previewIndex={previewIndex}

@@ -26,6 +26,7 @@ export const selectGamesForCurrentSeason = createSelector(
                 currentGames[id] = {
                     id: id,
                     gameDetails: {
+                        fixedWagerAmount: game.fixed_wager_amount,
                         eventName: game.event,
                         date: new Date(game.datetime),
                     }
