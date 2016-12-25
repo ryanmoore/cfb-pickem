@@ -16,6 +16,9 @@ export const selectWagers = (state) => state.entities.wagers;
 export const selectSelections = (state) => state.entities.selections;
 export const selectCurrentUser = (state) => state.auth.user.id;
 export const selectUsers = (state) => state.entities.users;
+export const selectMatchupOrdering = (state) => state.ui.makePicksOrdering.matchupOrdering;
+export const selectCurrentUIPicks = (state) => state.ui.makePicksOrdering.picks;
+
 
 export const selectGamesForCurrentSeason = createSelector(
     [selectCurrentSeason, selectGames],
@@ -88,6 +91,7 @@ export const selectWagersForCurrentUser = createSelector(
         return output;
     }
 );
+
 
 export const selectAllSelectionsForCurrentUser = createSelector(
     [selectCurrentUser, selectSelections],

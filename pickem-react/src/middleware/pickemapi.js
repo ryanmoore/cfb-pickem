@@ -31,24 +31,30 @@ const joinUrls = (root, endpoint) => {
     return root + endpoint;
 }
 
-const callPickemApi = (endpoint, schema, method = 'GET', headers = {}, callback) => {
+const callPickemApi = (endpoint, schema, method = 'GET', headers = {}, callback, body) => {
     const fullUrl = joinUrls(API_ROOT_URL, endpoint);
     // TODO: Real auth
     return fetch(fullUrl, {
             method,
             headers,
+            body,
         })
-        .then(response =>
-            response.json().then(json => {
-                if (!response.ok) {
-                    return Promise.reject(json);
-                }
-                if (callback) {
-                    return callback(json);
-                }
-                return normalize(json.results, schema);
-            })
-        );
+        .then((response) => {
+            if(method === 'PUT') {
+                return {};
+            }
+            else {
+                return response.json().then(json => {
+                    if (!response.ok) {
+                        return Promise.reject(json);
+                    }
+                    if (callback) {
+                        return callback(json);
+                    }
+                    return normalize(json.results, schema);
+                })
+            }
+        });
 }
 
 const checkPayload = (endpoint, schema, types) => {
@@ -87,6 +93,7 @@ export default store => next => action => {
         schema,
         types,
         method,
+        body,
         headers,
         callback,
     } = callAPIAction;
@@ -128,6 +135,6 @@ export default store => next => action => {
     };
 
     // Perform API call and create action based on result (success or failure)
-    return callPickemApi(endpoint, schema, method, headers, callback).then(
+    return callPickemApi(endpoint, schema, method, headers, callback, body).then(
         handleResponse, handleError);
 }

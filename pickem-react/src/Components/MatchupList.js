@@ -82,26 +82,27 @@ class MatchupList extends Component {
                         />
         });
         const preview = previewIndex !== null && wagered_matchups[previewIndex];
-        return (<Grid>
-            <h2>Championship</h2>
-            {fixedWagerRows}
-            <h2>Bowl Games</h2>
-            {matchupRows.reverse()}
-            <Row key='__preview'>
-                <Col xs={12}>
-                    <ItemPreview key="__preview">
-                        { preview && <Matchup id={preview.id}
-                            wager={previewIndex+1}
-                            left={preview.left}
-                            right={preview.right}
-                            name={preview.name}
-                            makePick={makePick}
-                            preview={true}
-                        /> }
-                    </ItemPreview>
-                </Col>
-            </Row>
-        </Grid>
+        return (
+            <div>
+                <h2>Championship</h2>
+                {fixedWagerRows}
+                <h2>Bowl Games</h2>
+                {matchupRows.reverse()}
+                <Row key='__preview'>
+                    <Col xs={12}>
+                        <ItemPreview key="__preview">
+                            { preview && <Matchup id={preview.id}
+                                wager={previewIndex+1}
+                                left={preview.left}
+                                right={preview.right}
+                                name={preview.name}
+                                makePick={makePick}
+                                preview={true}
+                            /> }
+                        </ItemPreview>
+                    </Col>
+                </Row>
+            </div>
         );
     }
 }

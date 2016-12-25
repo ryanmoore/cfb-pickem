@@ -10,6 +10,7 @@ import {
     makePick,
     setInitialPicks,
     setInitialMatchupOrdering,
+    submitPicksAndWagers,
     loadPickemGames,
     loadPickemUsers,
     loadPickemParticipants,
@@ -29,6 +30,8 @@ import {
     selectGamesWithParticipantsForCurrentSeason,
     selectWagersForCurrentUser,
     selectAllSelectionsForCurrentUser,
+    selectMatchupOrdering,
+    selectCurrentUIPicks,
     APIDataIsReadyForSeason,
 } from '../Selectors/index';
 import forOwn from 'lodash/forOwn';
@@ -37,6 +40,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import Set from 'es6-set';
 import { createSelector } from 'reselect';
 import LoadingSpinner from '../Components/LoadingSpinner';
+import { Grid, Row, Col, Button } from 'react-bootstrap';
 
 const selectAndTieWagersToGamesForCurrentSeason = createSelector(
     [selectGamesWithParticipantsForCurrentSeason,
@@ -96,10 +100,8 @@ const computeMatchupOrderingForCurrentUser = createSelector(
     }
 );
 
-const selectMatchupOrderings = (state) => state.ui.makePicksOrdering.matchupOrdering;
-
 const selectMatchupOrderingForCurrentUser = createSelector(
-    [selectMatchupOrderings, computeMatchupOrderingForCurrentUser],
+    [selectMatchupOrdering, computeMatchupOrderingForCurrentUser],
     (uiMatchupOrdering, computedMatchupOrdering) => {
         const uiOrdering = uiMatchupOrdering;
         if(uiOrdering.length) {
@@ -109,7 +111,6 @@ const selectMatchupOrderingForCurrentUser = createSelector(
     }
 );
 
-const selectCurrentUIPicks = (state) => state.ui.makePicksOrdering.picks;
 const selectAndArrangePicksForCurrentUserAndSeason = createSelector(
     [selectAllPicksForCurrentUserAndSeason, selectCurrentUIPicks],
     (pickdata, selections) => {
@@ -179,6 +180,7 @@ class MakePicksPage extends Component {
         moveMatchup: React.PropTypes.func.isRequired,
         setPreview: React.PropTypes.func.isRequired,
         makePick: React.PropTypes.func.isRequired,
+        submitPickAndWagers: React.PropTypes.func.isRequired,
         previewIndex: React.PropTypes.number,
     }
 
@@ -205,22 +207,33 @@ class MakePicksPage extends Component {
             makePick,
             setInitialMatchupOrdering,
             setInitialPicks,
+            submitPickAndWagers,
         } = this.props;
         if (loading) {
             return (<LoadingSpinner />);
         }
         return (
-            <form>
-                <MatchupList wagered_matchups={matchups.wagered}
-                    fixed_matchups={matchups.fixed}
-                    moveMatchup={moveMatchup}
-                    setPreview={setPreview}
-                    previewIndex={previewIndex}
-                    makePick={makePick}
-                    setInitialMatchupOrdering={setInitialMatchupOrdering}
-                    setInitialPicks={setInitialPicks}
-                />
-            </form>
+            <Grid>
+                <form>
+                    <MatchupList wagered_matchups={matchups.wagered}
+                        fixed_matchups={matchups.fixed}
+                        moveMatchup={moveMatchup}
+                        setPreview={setPreview}
+                        previewIndex={previewIndex}
+                        makePick={makePick}
+                        setInitialMatchupOrdering={setInitialMatchupOrdering}
+                        setInitialPicks={setInitialPicks}
+                    />
+                    <Row>
+                        <Col>
+                            <Button bsSize='large'
+                                onClick={submitPickAndWagers}>
+                                Save
+                            </Button>
+                        </Col>
+                    </Row>
+                </form>
+            </Grid>
         );
     }
 }
@@ -253,6 +266,9 @@ const mapDispatchToProps = (dispatch) => {
         },
         makePick: (game, participant) => {
             dispatch(makePick(game, participant))
+        },
+        submitPickAndWagers: () => {
+            dispatch(submitPicksAndWagers())
         },
         dispatch,
     };

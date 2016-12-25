@@ -2,6 +2,12 @@ import pickemSchema from './middleware/pickemSchema';
 import {
     CALL_PICKEM_API
 } from './middleware/pickemapi';
+import {
+    selectMatchupOrdering,
+    selectGamesForCurrentSeason,
+    selectCurrentUIPicks,
+} from './Selectors/index';
+import forOwn from 'lodash/forOwn';
 
 export const SWAP_MATCHUP_ORDER = 'SWAP_MATCHUP_ORDER';
 export const SET_MATCHUP_PREVIEW = 'SET_MATCHUP_PREVIEW';
@@ -348,4 +354,59 @@ export const logUserOut = () => {
     return {
         type: LOG_USER_OUT,
     }
+}
+
+export const PICKEM_API_SUBMIT_POST = 'PICKEM_API_SUBMIT_POST';
+export const PICKEM_API_SUBMIT_SUCCESS = 'PICKEM_API_SUBMIT_SUCCESS';
+export const PICKEM_API_SUBMIT_FAILURE = 'PICKEM_API_SUBMIT_FAILURE';
+
+const postPicksAndWagers = (data, token) => {
+    return {
+        [CALL_PICKEM_API]: {
+            types: [PICKEM_API_SUBMIT_POST, PICKEM_API_SUBMIT_SUCCESS,
+                PICKEM_API_SUBMIT_FAILURE
+            ],
+            endpoint: `makepicks/`,
+            method: 'PUT',
+            body: JSON.stringify(data),
+            headers: { 'Authorization': 'Token ' + token,
+                'Content-Type': 'application/json',
+            },
+            schema: pickemSchema.SUBMIT_RESPONSE,
+        }
+    };
+}
+
+const formatMakePicksForSubmission = (state)  => {
+    const ordering = selectMatchupOrdering(state);
+    const games = selectGamesForCurrentSeason(state);
+    const picks = selectCurrentUIPicks(state);
+    const season = 3;
+    var submission = { wagered: [], fixed: [], season };
+    forOwn(games, (game, gameid) => {
+        const pick = picks[gameid];
+        const formatted = {
+            game: parseInt(gameid, 10),
+            selection: {
+                participant: pick,
+            }
+        };
+        if(game.gameDetails.fixedWagerAmount === 0) {
+            submission.wagered[ordering.indexOf(parseInt(gameid, 10))] = formatted;
+        } else {
+            submission.fixed.push(formatted);
+        }
+    });
+    return submission;
+}
+
+const selectAuthToken = (state) => state.auth.token;
+
+export const submitPicksAndWagers = () => (dispatch, getState) => {
+    const token = selectAuthToken(getState());
+    const submission = formatMakePicksForSubmission(getState());
+    return dispatch(postPicksAndWagers({ picks: submission}, token)).then(() => {
+        dispatch(fetchPickemWagers(3));
+        dispatch(fetchPickemSelections(3));
+    });
 }
