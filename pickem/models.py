@@ -12,9 +12,10 @@ class Event(models.Model):
 
 class Season(models.Model):
     year = models.PositiveSmallIntegerField()
+    start_time = models.DateTimeField()
 
     def __str__(self):
-        return str(self.year)
+        return '{} (Start: {})'.format(self.year, self.start_time)
 
 
 class Game(models.Model):
