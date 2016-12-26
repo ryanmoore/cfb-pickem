@@ -15,6 +15,7 @@ import {
     loadPickemSelections,
     loadPickemWagers,
     loadPickemWinners,
+    loadPickemSeasons,
 } from '../actions';
 import {
     collectAndTransformPicksForSeason,
@@ -64,6 +65,7 @@ class ViewScoresPage extends Component {
         dispatch(loadPickemWagers(season));
         dispatch(loadPickemSelections(season));
         dispatch(loadPickemWinners(season));
+        dispatch(loadPickemSeasons(season));
     }
 
     render() {
@@ -128,14 +130,6 @@ const chooseWonLostUndecided = (left, right, winners) => {
     }
 }
 
-const wagerOrFixedWager = (wager) => {
-    if(typeof(wager) === 'undefined') {
-        console.log('TODO: Handle fixed wagers.');
-        return 28;
-    }
-    return wager;
-}
-
 const computeScoresForAllUsers = createSelector(
     [selectUsers, collectAndTransformPicksForSeason, selectWinningParticipantSet],
     (users, picklist, winnerParticipants) => {
@@ -152,10 +146,10 @@ const computeScoresForAllUsers = createSelector(
             const [winners, losers, undecideds] = chooseWonLostUndecided(
                 left, right, winnerParticipants);
             winners.forEach((winner) => {
-                output[winner.id].score += wagerOrFixedWager(winner.wager);
+                output[winner.id].score += winner.wager;
             });
             undecideds.forEach((undecided) => {
-                output[undecided.id].remaining += wagerOrFixedWager(undecided.wager);
+                output[undecided.id].remaining += undecided.wager;
             });
         });
         return output;
