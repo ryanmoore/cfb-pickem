@@ -2,7 +2,8 @@ import React, {
     Component
 } from 'react';
 import {
-    Table
+    Table,
+    Grid,
 } from 'react-bootstrap';
 import moment from 'moment';
 
@@ -54,17 +55,19 @@ class GameTable extends Component {
             );
         });
         return (
-            <Table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    { gameRows }
-                </tbody>
-            </Table>
+            <Grid>
+                <Table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        { gameRows }
+                    </tbody>
+                </Table>
+            </Grid>
         );
     }
 }
