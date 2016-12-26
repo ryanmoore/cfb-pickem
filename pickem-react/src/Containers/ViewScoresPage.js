@@ -19,8 +19,10 @@ import {
 import {
     collectAndTransformPicksForSeason,
     selectUsers,
+    selectWinners,
     APIDataIsReadyForSeason,
     selectCurrentSeason,
+    selectWinningParticipantSet,
 } from '../Selectors/index';
 import ScoresPage from '../Components/ScoresPage';
 import forOwn from 'lodash/forOwn';
@@ -75,19 +77,6 @@ class ViewScoresPage extends Component {
         return ( <ScoresPage scores={scores} /> );
     }
 }
-
-const selectWinners = (state) => state.entities.winners;
-
-const selectWinningParticipantSet = createSelector(
-    [selectWinners],
-    (winners) => {
-        var output = new Set();
-        forOwn(winners, (winner) => {
-            output.add(winner.participant);
-        });
-        return output;
-    }
-);
 
 // create a set of winning participants
 // create a set of losing participants

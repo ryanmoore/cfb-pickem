@@ -12,17 +12,20 @@ import {
     loadPickemSelections,
     loadPickemWagers,
     loadPickemSeasons,
-    pickemAuthLogin,
+    loadPickemWinners,
 } from '../actions';
 import {
     collectAndTransformPicksForSeason,
     stateIsReadyForPicksPage,
     selectCurrentStartTime,
     selectCurrentSeason,
+    selectMapGamesToWinners,
 } from '../Selectors/index';
 import PicksPage from '../Components/PicksPage';
 import LoadingSpinner from '../Components/LoadingSpinner';
 import PreStartPickProgress from '../Components/PreStartPickProgress';
+import forOwn from 'lodash/forOwn';
+import cloneDeep from 'lodash/cloneDeep';
 
 class ViewPicksPage extends Component {
     static propTypes = {
@@ -46,6 +49,7 @@ class ViewPicksPage extends Component {
         dispatch(loadPickemWagers(season));
         dispatch(loadPickemSelections(season));
         dispatch(loadPickemSeasons());
+        dispatch(loadPickemWinners());
     }
 
     render() {
@@ -97,16 +101,31 @@ const pickemHasStarted = (state) => {
     if(start_time === null) {
         return false;
     }
-    console.log(Date.now());
-    console.log(start_time);
     return Date.now() > new Date(start_time);
+}
+
+const addAllWinnersToGames = (state, gamedata) => {
+    var data = cloneDeep(gamedata);
+    const winners = selectMapGamesToWinners(state);
+    forOwn(data, (game) => {
+        if(game.id in winners) {
+            game.winner = winners[game.id];
+        }
+    });
+    return data;
+}
+
+const getAllMatchupData = (state) => {
+    const gamedata = collectAndTransformPicksForSeason(state,
+        selectCurrentSeason(state));
+    return addAllWinnersToGames(state, gamedata);
 }
 
 const mapStateToProps = (state) => {
     const currentSeason = selectCurrentSeason(state);
     return {
         //matchupPicks: sampleData, //selectAllPicksForSeason(state, season),
-        matchupPicks: collectAndTransformPicksForSeason(state, currentSeason),
+        matchupPicks: getAllMatchupData(state),
         ready: stateIsReadyForPicksPage(state, currentSeason),
         pickemHasStarted: pickemHasStarted(state),
         season: currentSeason,

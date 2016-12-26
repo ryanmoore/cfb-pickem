@@ -19,6 +19,8 @@ export const selectCurrentUser = (state) => state.auth.user.id;
 export const selectUsers = (state) => state.entities.users;
 export const selectMatchupOrdering = (state) => state.ui.makePicksOrdering.matchupOrdering;
 export const selectCurrentUIPicks = (state) => state.ui.makePicksOrdering.picks;
+export const selectWinners = (state) => state.entities.winners;
+
 
 
 export const selectGamesForCurrentSeason = createSelector(
@@ -137,6 +139,29 @@ const selectAllSelectionsForGames = (state, games) => {
     });
 }
 
+export const selectMapGamesToWinners = createSelector(
+    [selectWinners, selectParticipants],
+    (winners, participants) => {
+        var out = {};
+        forOwn(winners, (winner) => {
+            if(winner.participant in participants) {
+                out[participants[winner.participant].game] = parseInt(winner.participant, 10);
+            }
+        });
+        return out;
+    }
+);
+
+export const selectWinningParticipantSet = createSelector(
+    [selectWinners],
+    (winners) => {
+        var output = new Set();
+        forOwn(winners, (winner) => {
+            output.add(winner.participant);
+        });
+        return output;
+    }
+);
 
 // Output:
 // {
@@ -215,12 +240,12 @@ export const collectAndTransformPicksForSeason = (state, season) => {
             id: parseInt(id, 10),
             gameDetails: data.gameDetails,
             left: {
-                id: partid1,
+                id: parseInt(partid1, 10),
                 picks: zipWagersToPicks(state, data.wagers, leftMatchup.picks),
                 teamName: leftMatchup.teamName,
             },
             right: {
-                id: partid2,
+                id: parseInt(partid2, 10),
                 picks: zipWagersToPicks(state, data.wagers, rightMatchup.picks),
                 teamName: rightMatchup.teamName,
             },
