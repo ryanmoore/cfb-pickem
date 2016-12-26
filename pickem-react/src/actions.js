@@ -6,6 +6,7 @@ import {
     selectMatchupOrdering,
     selectGamesForCurrentSeason,
     selectCurrentUIPicks,
+    selectCurrentSeason,
 } from './Selectors/index';
 import forOwn from 'lodash/forOwn';
 
@@ -381,7 +382,7 @@ const formatMakePicksForSubmission = (state)  => {
     const ordering = selectMatchupOrdering(state);
     const games = selectGamesForCurrentSeason(state);
     const picks = selectCurrentUIPicks(state);
-    const season = 3;
+    const season = selectCurrentSeason(state);
     var submission = { wagered: [], fixed: [], season };
     forOwn(games, (game, gameid) => {
         const pick = picks[gameid];
@@ -406,8 +407,8 @@ export const submitPicksAndWagers = () => (dispatch, getState) => {
     const token = selectAuthToken(getState());
     const submission = formatMakePicksForSubmission(getState());
     return dispatch(postPicksAndWagers({ picks: submission}, token)).then(() => {
-        dispatch(fetchPickemWagers(3));
-        dispatch(fetchPickemSelections(3));
+        dispatch(fetchPickemWagers(selectCurrentSeason(getState())));
+        dispatch(fetchPickemSelections(selectCurrentSeason(getState())));
     });
 }
 

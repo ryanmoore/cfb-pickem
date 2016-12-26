@@ -5,8 +5,11 @@ import {
     connect
 } from 'react-redux';
 import {
-    loadPickemGames
+    loadPickemGames,
 } from '../actions';
+import {
+    selectCurrentSeason,
+} from '../Selectors/index';
 import GameTable from '../Components/GameTable';
 
 const sortDatesMostRecentFirst = (arr) => {
@@ -66,7 +69,7 @@ class GameIndex extends Component {
 const mapStateToProps = (state) => {
     return {
         games: getGameList(state.entities.games),
-        season: 3,
+        season: selectCurrentSeason(state),
         ready: !!state.entities.games,
     }
 }

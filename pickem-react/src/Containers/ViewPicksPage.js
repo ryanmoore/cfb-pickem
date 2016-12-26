@@ -18,6 +18,7 @@ import {
     collectAndTransformPicksForSeason,
     stateIsReadyForPicksPage,
     selectCurrentStartTime,
+    selectCurrentSeason,
 } from '../Selectors/index';
 import PicksPage from '../Components/PicksPage';
 import LoadingSpinner from '../Components/LoadingSpinner';
@@ -99,12 +100,13 @@ const pickemHasStarted = (state) => {
 }
 
 const mapStateToProps = (state) => {
+    const currentSeason = selectCurrentSeason(state);
     return {
         //matchupPicks: sampleData, //selectAllPicksForSeason(state, season),
-        matchupPicks: collectAndTransformPicksForSeason(state, 3),
-        ready: stateIsReadyForPicksPage(state, 3),
+        matchupPicks: collectAndTransformPicksForSeason(state, currentSeason),
+        ready: stateIsReadyForPicksPage(state, currentSeason),
         pickemHasStarted: pickemHasStarted(state),
-        season: 3,
+        season: currentSeason,
     }
 }
 

@@ -195,7 +195,8 @@ export const stateIsReadyForPicksPage = (state, season) => {
         'wagers',
         'games',
         'users',
-        'selections'
+        'selections',
+        'seasons',
     ];
     return APIDataIsReadyForSeason(state, required, season);
 }

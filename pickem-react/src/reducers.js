@@ -7,66 +7,6 @@ import {
 } from 'react-router-redux';
 import forOwn from 'lodash/forOwn';
 
-const initialState = {
-    matchups: {
-        '1': {
-            id: 1,
-            left: 1,
-            right: 2
-        },
-        '2': {
-            id: 2,
-            left: 3,
-            right: 4
-        },
-        '3': {
-            id: 3,
-            left: 5,
-            right: 6
-        }
-    },
-    teams: {
-        '1': {
-            id: 1,
-            name: 'A',
-            rank: 1
-        },
-        '2': {
-            id: 2,
-            name: 'B',
-            rank: 2
-        },
-        '3': {
-            id: 3,
-            name: 'C'
-        },
-        '4': {
-            id: 4,
-            name: 'D'
-        },
-        '5': {
-            id: 5,
-            name: 'E'
-        },
-        '6': {
-            id: 6,
-            name: 'F'
-        }
-    },
-    matchupOrders: {
-        '1': {
-            id: 1,
-            ordering: [1, 2, 3]
-        }
-    },
-    users: {
-        '1': {
-            id: 1,
-            name: 'Ryan'
-        }
-    }
-};
-
 function copyAndMoveEltFromTo(array, src, dst) {
     let arrCopy = [...array.slice(0, src), ...array.slice(src + 1)];
     arrCopy.splice(dst, 0, array[src]);
@@ -243,6 +183,18 @@ const fetchState = (state = defaultFetchState, action) => {
         case ActionTypes.PICKEM_API_WINNER_SUCCESS:
             return {...state,
                 winners: ActionTypes.FETCH_STATES.READY
+            };
+        case ActionTypes.PICKEM_API_SEASON_REQUEST:
+            return {...state,
+                seasons: ActionTypes.FETCH_STATES.IN_PROGRESS
+            };
+        case ActionTypes.PICKEM_API_SEASON_FAILURE:
+            return {...state,
+                seasons: ActionTypes.FETCH_STATES.FAILED
+            };
+        case ActionTypes.PICKEM_API_SEASON_SUCCESS:
+            return {...state,
+                seasons: ActionTypes.FETCH_STATES.READY
             };
         default:
             return state;

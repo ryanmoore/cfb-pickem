@@ -33,6 +33,7 @@ import {
     selectMatchupOrdering,
     selectCurrentUIPicks,
     APIDataIsReadyForSeason,
+    selectCurrentSeason,
 } from '../Selectors/index';
 import forOwn from 'lodash/forOwn';
 import keys from 'lodash/keys';
@@ -240,13 +241,14 @@ class MakePicksPage extends Component {
 
 const mapStateToProps = (state) => {
     const currentUser = selectCurrentUser(state);
+    const currentSeason = selectCurrentSeason(state);
     return {
         //matchups: getMatchupList(state.data.matchupOrders[state.ui.currentUser].ordering,
         //    state.data.matchups, state.data.teams),
-        matchups: collectAndTransformMatchups(state, currentUser, 3),
+        matchups: collectAndTransformMatchups(state, currentUser, currentSeason),
         previewIndex: state.ui.matchupPreview.previewIndex,
-        loading: !stateIsReadyForMakePicksPage(state, currentUser, 3),
-        season: 3,
+        loading: !stateIsReadyForMakePicksPage(state, currentUser, currentSeason),
+        season: currentSeason,
     };
 }
 

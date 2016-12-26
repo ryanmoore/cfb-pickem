@@ -20,6 +20,7 @@ import {
     collectAndTransformPicksForSeason,
     selectUsers,
     APIDataIsReadyForSeason,
+    selectCurrentSeason,
 } from '../Selectors/index';
 import ScoresPage from '../Components/ScoresPage';
 import forOwn from 'lodash/forOwn';
@@ -35,6 +36,7 @@ const scoreDataIsReady = (state, season) => {
         'games',
         'users',
         'selections',
+        'seasons',
         'winners',
     ];
     return APIDataIsReadyForSeason(state, required, season);
@@ -230,10 +232,11 @@ const selectSortedNormalizedScores = createSelector(
 
 
 const mapStateToProps = (state) => {
+    const currentSeason = selectCurrentSeason(state);
     return {
-        scores: scoreDataIsReady(state, 3) ? selectSortedNormalizedScores(state) : [],
-        loading: !scoreDataIsReady(state, 3),
-        season: 3,
+        scores: scoreDataIsReady(state, currentSeason) ? selectSortedNormalizedScores(state) : [],
+        loading: !scoreDataIsReady(state, currentSeason),
+        season: currentSeason,
     }
 }
 
