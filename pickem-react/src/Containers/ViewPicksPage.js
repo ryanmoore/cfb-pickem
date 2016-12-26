@@ -22,6 +22,7 @@ import {
 } from '../Selectors/index';
 import PicksPage from '../Components/PicksPage';
 import LoadingSpinner from '../Components/LoadingSpinner';
+import PreStartPickProgress from '../Components/PreStartPickProgress';
 
 class ViewPicksPage extends Component {
     static propTypes = {
@@ -30,6 +31,7 @@ class ViewPicksPage extends Component {
         ready: React.PropTypes.bool.isRequired,
         matchupPicks: React.PropTypes.array.isRequired,
         pickemHasStarted: React.PropTypes.bool.isRequired,
+        startTime: React.PropTypes.object.isRequired,
     }
 
     componentDidMount() {
@@ -51,12 +53,13 @@ class ViewPicksPage extends Component {
             matchupPicks,
             ready,
             pickemHasStarted,
+            startTime,
         } = this.props;
         if (!ready) {
             return <LoadingSpinner />
         }
         if (!pickemHasStarted) {
-            return <h3>Picks are hidden until pickem starts</h3>
+            return <PreStartPickProgress startTime={ startTime } />;
         }
         return <PicksPage matchupPicks={matchupPicks} />;
     }
@@ -107,6 +110,7 @@ const mapStateToProps = (state) => {
         ready: stateIsReadyForPicksPage(state, currentSeason),
         pickemHasStarted: pickemHasStarted(state),
         season: currentSeason,
+        startTime: selectCurrentStartTime(state),
     }
 }
 
