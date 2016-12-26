@@ -193,6 +193,14 @@ const selectAllPicksForSeason = (state, season) => {
     return games;
 }
 
+const createFixedWagerForAllPicks = (amount, picks) => {
+    var output = {};
+    picks.forEach((id) =>  {
+        output[id] = amount;
+    });
+    return output;
+}
+
 const zipWagersToPicks = (state, wagers, picks) => {
     return picks.map((id) => {
         return {
@@ -236,17 +244,20 @@ export const collectAndTransformPicksForSeason = (state, season) => {
         const [partid1, partid2] = keys(data.matchup);
         const leftMatchup = data.matchup[partid1];
         const rightMatchup = data.matchup[partid2];
+        const wagers = data.gameDetails.fixedWagerAmount ?
+            createFixedWagerForAllPicks(data.gameDetails.fixedWagerAmount,
+                leftMatchup.picks.concat(rightMatchup.picks)) : data.wagers;
         output.push({
             id: parseInt(id, 10),
             gameDetails: data.gameDetails,
             left: {
                 id: parseInt(partid1, 10),
-                picks: zipWagersToPicks(state, data.wagers, leftMatchup.picks),
+                picks: zipWagersToPicks(state, wagers, leftMatchup.picks),
                 teamName: leftMatchup.teamName,
             },
             right: {
                 id: parseInt(partid2, 10),
-                picks: zipWagersToPicks(state, data.wagers, rightMatchup.picks),
+                picks: zipWagersToPicks(state, wagers, rightMatchup.picks),
                 teamName: rightMatchup.teamName,
             },
         });
