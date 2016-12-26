@@ -132,9 +132,9 @@ def parse_datetime(date, time):
     kickoff = '{} {}'.format(date, time)
     result = datetime.datetime.strptime(kickoff, date_format)
     if result.month == 12:
-        result = result.replace(year=2015)
-    else:
         result = result.replace(year=2016)
+    else:
+        result = result.replace(year=2017)
     return django_timezone.make_aware(result,
                                       django_timezone.get_current_timezone())
 

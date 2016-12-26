@@ -155,5 +155,4 @@ TEMPLATES = [
         ]
 
 PICKEM_START_TIME = datetime.datetime(year=2016, month=12, day=26,
-        hour=11, minute=55, tzinfo=timezone('US/Eastern'))
-
+        hour=10, minute=55, tzinfo=timezone('US/Eastern'))
