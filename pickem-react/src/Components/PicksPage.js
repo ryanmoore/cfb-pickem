@@ -8,6 +8,7 @@ import {
     Grid
 } from 'react-bootstrap';
 import './PicksPage.css';
+import moment from 'moment';
 
 
 class PicksCol extends Component {
@@ -108,7 +109,10 @@ class PicksRow extends Component {
         return (
             <Row className='matchup-row'>
                 { createPickCol(left, true) }
-                <GameDetail name={ gameDetails.eventName } date={ gameDetails.date } />
+                <GameDetail 
+                    name={ gameDetails.eventName }
+                    date={ moment(gameDetails.date).format('lll') }
+                />
                 { createPickCol(right, false) }
             </Row>
         );
