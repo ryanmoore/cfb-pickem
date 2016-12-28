@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 
 class Event(models.Model):
@@ -68,8 +69,20 @@ class Participant(models.Model):
         return '{} in {}'.format(str(self.teamseason), str(self.game))
 
 
+def game_still_undecided(participant):
+    '''Confirms that the game that the participant is in does not already
+    have a winner selected.
+    '''
+    game = Game.objects.get(participant=participant)
+    game_decided = Winner.objects.filter(participant__game=game).exists()
+    if game_decided:
+        raise ValidationError(
+            'Game(id={}) already has a winner selected.'.format(game.id))
+
+
 class Winner(models.Model):
-    participant = models.ForeignKey(Participant)
+    participant = models.ForeignKey(Participant,
+                                    validators=[game_still_undecided])
 
     def __str__(self):
         return str(self.participant)
