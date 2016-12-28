@@ -18,7 +18,7 @@ import {
 } from 'normalizr';
 import fetch from 'isomorphic-fetch';
 
-const API_ROOT_URL = 'http://127.0.0.1:8000/api/';
+const API_ROOT_URL = process.env.REACT_APP_PICKEM_API_ROOT;
 
 // If endpoint is a full URL, return it
 // otherwise return root+endpoint

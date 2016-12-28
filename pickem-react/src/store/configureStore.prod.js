@@ -6,17 +6,31 @@ import {
 import thunkMiddleware from 'redux-thunk';
 import rootReducer from '../reducers';
 import pickemAPIMiddleware from '../middleware/pickemapi';
+import {
+    syncHistoryWithStore,
+    routerMiddleware,
+} from 'react-router-redux';
+import { createHistory } from 'history';
+import { useRouterHistory } from 'react-router';
 
 const configureStore = preloadedState => {
 
     const composer = compose;
-    const store = createStore(
-        rootReducer,
+    const browserHistory = useRouterHistory(createHistory)({
+        basename: process.env.REACT_APP_SITE_BASENAME,
+    });
+    const initializedRouterMiddleware = routerMiddleware(browserHistory);
+    const store = createStore(rootReducer,
         composer(applyMiddleware(
-            thunkMiddleware, pickemAPIMiddleware
-        ))
+            thunkMiddleware, pickemAPIMiddleware,
+            initializedRouterMiddleware,
+        )),
     );
-    return store;
+    const history = syncHistoryWithStore(browserHistory, store);
+    return {
+        store,
+        history
+    };
 }
 
 export default configureStore;

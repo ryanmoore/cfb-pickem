@@ -217,7 +217,7 @@ const entities = (state = defaultEntityState, action) => {
     return state;
 }
 
-const setCurrentSeason = (state = 3, action) => {
+const setCurrentSeason = (state = 4, action) => {
     return state;
 }
 

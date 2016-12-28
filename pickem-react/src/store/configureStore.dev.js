@@ -9,16 +9,18 @@ import pickemAPIMiddleware from '../middleware/pickemapi';
 import createLogger from 'redux-logger';
 import DevTools from '../Containers/DevTools';
 import {
-    browserHistory
-} from 'react-router';
-import {
     syncHistoryWithStore,
     routerMiddleware,
 } from 'react-router-redux';
+import { createHistory } from 'history';
+import { useRouterHistory } from 'react-router';
 
 const configureStore = preloadedState => {
 
     const composer = compose;
+    const browserHistory = useRouterHistory(createHistory)({
+        basename: process.env.REACT_APP_SITE_BASENAME,
+    });
     const initializedRouterMiddleware = routerMiddleware(browserHistory);
     const store = createStore(rootReducer,
         composer(applyMiddleware(

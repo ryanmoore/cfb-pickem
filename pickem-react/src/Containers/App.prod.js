@@ -12,7 +12,7 @@ import {
 import routes from '../routes';
 import configureStore from '../store/configureStore';
 
-let { store, history }  = configureStore();
+let { store, history } = configureStore();
 
 class App extends Component {
     render() {
