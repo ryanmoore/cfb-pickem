@@ -31,9 +31,18 @@ class PicksCol extends Component {
             winner,
             decided,
         } = this.props;
+        const sortByWagerDesc = (a, b) => {
+            if(a.wager < b.wager) return 1;
+            if(a.wager > b.wager) return -1;
+            if(a.username < b.username) return 1;
+            if(a.username > b.username) return -1;
+            return 0;
+        };
         const colClass = winner ? 'winning-pick' : decided ? 'losing-pick' : '';
         const tableClass = 'picklist-' + (left ? 'left' : 'right');
-        const tableRows = picks.map((pick) => {
+        var sortedPicks = picks.slice(0);
+        sortedPicks.sort(sortByWagerDesc)
+        const tableRows = sortedPicks.map((pick) => {
             const wager = <td className='wager'>{ pick.wager }</td>;
             const user = <td className='user'>{ pick.username }</td>;
             if (left) {
