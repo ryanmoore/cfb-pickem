@@ -4,7 +4,9 @@ import React, {
 import {
     Nav,
     Navbar,
-    NavItem
+    NavItem,
+    NavDropdown,
+    MenuItem,
 } from 'react-bootstrap';
 import {
     LinkContainer,
@@ -25,6 +27,7 @@ import {
 import HTML5Backend from 'react-dnd-html5-backend';
 import {
     VisibleWhenAuth,
+    VisibleWhenSuperuser,
     UserIsAuthOrElse,
 } from '../auth';
 
@@ -52,6 +55,26 @@ const LoginLink = () => (<LinkContainer to='/login'>
 const LoginOrOutLink = UserIsAuthOrElse(LogoutLink, LoginLink);
 
 
+class AdminMenu extends Component {
+    static propTypes = {
+        baseKey: React.PropTypes.number.isRequired,
+    };
+
+    render() {
+        const { baseKey } = this.props;
+        return (
+            <NavDropdown eventKey={baseKey} title='Admin' id='admin-dropdown'>
+                <LinkContainer to='/admin/addwinner'>
+                    <MenuItem eventKey={baseKey + .1}>Add winner</MenuItem>
+                </LinkContainer>
+                <MenuItem eventKey={baseKey + .2}>Another action</MenuItem>
+            </NavDropdown>
+        );
+    }
+};
+
+const AdminNavItem = VisibleWhenSuperuser(() => <AdminMenu baseKey={5} />);
+
 class PickemApp extends Component {
     render() {
         return (
@@ -78,6 +101,7 @@ class PickemApp extends Component {
                             <LinkContainer to='/makepicks'>
                                 <NavItem eventKey={4}>MakePicks</NavItem>
                             </LinkContainer>
+                            <AdminNavItem />
                             <LoginOrOutLink/>
                         </Nav>
                     </Navbar.Collapse>

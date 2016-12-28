@@ -4,9 +4,12 @@ from rest_framework import serializers
 import pickem.models
 
 class UserAuthSerializer(serializers.ModelSerializer):
+    '''Auth serializer provided to knox for sending back authenticated
+    user info
+    '''
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'groups')
+        fields = ('id', 'username', 'email', 'groups', 'is_superuser')
 
 
 class UserSerializer(serializers.ModelSerializer):

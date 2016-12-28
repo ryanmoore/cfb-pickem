@@ -30,3 +30,10 @@ export const UserIsAuthOrElse = (Component, FailureComponent) => UserAuthWrapper
     wrapperDisplayName: 'UserIsAuthOrElse',
     FailureComponent,
 })(Component);
+
+export const VisibleWhenSuperuser = UserAuthWrapper({
+    authSelector,
+    wrapperDisplayName: 'VisibleWhenSuperuser',
+    FailureComponent: null,
+    predicate: auth => auth.user && auth.user.is_superuser,
+});

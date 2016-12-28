@@ -22,6 +22,9 @@ class PicksCol extends Component {
         left: React.PropTypes.bool.isRequired,
         winner: React.PropTypes.bool.isRequired,
         decided: React.PropTypes.bool.isRequired,
+        admin: React.PropTypes.bool,
+        AdminButton: React.PropTypes.node,
+        participantId: React.PropTypes.number.isRequired,
     }
     render() {
         const {
@@ -30,6 +33,9 @@ class PicksCol extends Component {
             left,
             winner,
             decided,
+            admin,
+            AdminButton,
+            participantId,
         } = this.props;
         const sortByWagerDesc = (a, b) => {
             if(a.wager < b.wager) return 1;
@@ -62,6 +68,9 @@ class PicksCol extends Component {
                     { tableRows }
                 </tbody>
             </Table>
+            { admin && <AdminButton id={participantId}
+                            left={left}
+                            decided={decided}/> }
         </Col>);
     }
 }
@@ -99,6 +108,8 @@ class PicksRow extends Component {
             date: React.PropTypes.instanceOf(Date).isRequired,
         }).isRequired,
         winner: React.PropTypes.number,
+        admin: React.PropTypes.bool,
+        AdminButton: React.PropTypes.node,
     }
     render() {
         const {
@@ -106,13 +117,19 @@ class PicksRow extends Component {
             right,
             gameDetails,
             winner,
+            admin,
+            AdminButton,
         } = this.props;
         const createPickCol = (pickdata, isLeft) => {
-            return <PicksCol picks={ pickdata.picks }
+            return <PicksCol
+                participantId={pickdata.id}
+                picks={ pickdata.picks }
                 teamName={ pickdata.teamName }
                 left={isLeft}
                 winner={pickdata.id === winner}
                 decided={!!winner}
+                admin={admin}
+                AdminButton={AdminButton}
             />
         }
         return (
@@ -136,11 +153,15 @@ class PicksPage extends Component {
             gameDetails: React.PropTypes.any.isRequired,
             id: React.PropTypes.number.isRequired,
             winner: React.PropTypes.number,
+            admin: React.PropTypes.bool,
+            AdminButton: React.PropTypes.node,
         })).isRequired
     };
     render() {
         const {
-            matchupPicks
+            matchupPicks,
+            admin,
+            AdminButton,
         } = this.props;
         const createRow = (picks) => {
             return <PicksRow key={picks.id}
@@ -148,6 +169,8 @@ class PicksPage extends Component {
                 right={picks.right}
                 gameDetails={picks.gameDetails}
                 winner={picks.winner}
+                admin={admin}
+                AdminButton={AdminButton}
                 />
         }
         const undecided = matchupPicks.filter((elt) => !elt.winner).map(createRow);

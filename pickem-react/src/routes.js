@@ -12,6 +12,7 @@ import LoginPage from './Containers/LoginPage';
 import LogoutPage from './Containers/LogoutPage';
 import { UserIsAuthenticated, UserIsNotAuthenticated } from './auth.js';
 import PageNotFound from './Components/PageNotFound';
+import AdminViewPicksPage from './Containers/AdminViewPicksPage';
 
 export default (
     <Route path='/' component={PickemApp}>
@@ -21,6 +22,11 @@ export default (
         <Route path='scores' component={ViewScoresPage} />
         <Route path='login' component={UserIsNotAuthenticated(LoginPage)} />
         <Route path='logout' component={UserIsAuthenticated(LogoutPage)} />
+        <Route path='admin'>
+            <Route path='addwinner' component={() => (<AdminViewPicksPage />)}/>
+        </Route>
+
+        // Make sure this route is last
         <Route path='*' component={PageNotFound} />
     </Route>
 );

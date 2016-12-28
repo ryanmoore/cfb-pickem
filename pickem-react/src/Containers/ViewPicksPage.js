@@ -35,6 +35,8 @@ class ViewPicksPage extends Component {
         matchupPicks: React.PropTypes.array.isRequired,
         pickemHasStarted: React.PropTypes.bool.isRequired,
         startTime: React.PropTypes.object.isRequired,
+        admin: React.PropTypes.bool,
+        AdminButton: React.PropTypes.node,
     }
 
     componentDidMount() {
@@ -58,6 +60,8 @@ class ViewPicksPage extends Component {
             ready,
             pickemHasStarted,
             startTime,
+            admin,
+            AdminButton,
         } = this.props;
         if (!ready) {
             return <LoadingSpinner />
@@ -65,7 +69,9 @@ class ViewPicksPage extends Component {
         if (!pickemHasStarted) {
             return <PreStartPickProgress startTime={ startTime } />;
         }
-        return <PicksPage matchupPicks={matchupPicks} />;
+        return (<PicksPage matchupPicks={matchupPicks}
+                        admin={admin}
+                        AdminButton={AdminButton}/>);
     }
 }
 
