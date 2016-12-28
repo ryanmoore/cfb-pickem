@@ -11,6 +11,7 @@ import ViewScoresPage from './Containers/ViewScoresPage';
 import LoginPage from './Containers/LoginPage';
 import LogoutPage from './Containers/LogoutPage';
 import { UserIsAuthenticated, UserIsNotAuthenticated } from './auth.js';
+import PageNotFound from './Components/PageNotFound';
 
 export default (
     <Route path='/' component={PickemApp}>
@@ -20,5 +21,6 @@ export default (
         <Route path='scores' component={ViewScoresPage} />
         <Route path='login' component={UserIsNotAuthenticated(LoginPage)} />
         <Route path='logout' component={UserIsAuthenticated(LogoutPage)} />
+        <Route path='*' component={PageNotFound} />
     </Route>
 );
