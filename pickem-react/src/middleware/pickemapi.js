@@ -51,18 +51,26 @@ const callPickemApi = (endpoint, schema, method = 'GET', headers = {}, callback,
                     if (callback) {
                         return callback(json);
                     }
-                    return normalize(json.results, schema);
+                    // GET responses have result field
+                    if(method === 'GET') {
+                        return normalize(json.results, schema)
+                    } else {
+                        // POST responses are just a new object
+                        return normalize(json, schema);
+                    }
                 })
             }
         });
 }
 
-const checkPayload = (endpoint, schema, types) => {
+const checkPayload = (endpoint, schema, types, method) => {
     var errors = [];
     if (typeof endpoint !== 'string') {
         errors.push('PickemMiddleware: Endpoint URL should be a string.');
     }
-    if (!schema) {
+    // Special casing PUT b/c we only use it for makepicks/ so far and
+    // that is not (yet) returning a json response
+    if (!schema && method !== 'PUT') {
         errors.push('PickemMiddleware: schema required.');
     }
 
@@ -103,7 +111,7 @@ export default store => next => action => {
     }
 
     // throws if there is an error
-    checkPayload(endpoint, schema, types);
+    checkPayload(endpoint, schema, types, method);
 
     // Removes CALL_PICKEM_API from action and updates action with data
     const actionWith = data => {

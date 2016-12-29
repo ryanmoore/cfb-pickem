@@ -443,3 +443,32 @@ export const loadPickemSeasons = () => (dispatch, getState) => {
     }
     return null;
 }
+
+export const PICKEM_API_POST_WINNER = 'PICKEM_API_POST_WINNER';
+export const PICKEM_API_POST_WINNER_SUCCESS = 'PICKEM_API_POST_WINNER_SUCCESS';
+export const PICKEM_API_POST_WINNER_FAILURE = 'PICKEM_API_POST_WINNER_FAILURE';
+
+const pickemAPIPostWinner = (data, token) => {
+    return {
+        [CALL_PICKEM_API]: {
+            types: [PICKEM_API_POST_WINNER, PICKEM_API_POST_WINNER_SUCCESS,
+                PICKEM_API_POST_WINNER_FAILURE
+            ],
+            endpoint: `winners/`,
+            method: 'POST',
+            body: JSON.stringify(data),
+            // Handling case if token is 'undefined' as it causes an error
+            // server side due to a bug expecting well formed tokens
+            headers: { 'Authorization': 'Token ' + (token || ''),
+                'Content-Type': 'application/json',
+            },
+            schema: pickemSchema.WINNER,
+        }
+    };
+}
+
+export const PICKEM_WINNER_BUTTON_PRESS = 'PICKEM_WINNER_BUTTON_PRESS';
+export const submitAddWinnerButtonPress = (id) => (dispatch, getState) => {
+    const payload = { participant: id };
+    return dispatch(pickemAPIPostWinner(payload, selectAuthToken(getState())));
+}
