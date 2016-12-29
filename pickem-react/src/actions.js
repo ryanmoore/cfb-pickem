@@ -367,7 +367,7 @@ const postPicksAndWagers = (data, token) => {
             types: [PICKEM_API_SUBMIT_POST, PICKEM_API_SUBMIT_SUCCESS,
                 PICKEM_API_SUBMIT_FAILURE
             ],
-            endpoint: `makepicks/`,
+            endpoint: 'makepicks/',
             method: 'PUT',
             body: JSON.stringify(data),
             headers: { 'Authorization': 'Token ' + token,
@@ -422,7 +422,7 @@ const fetchPickemSeasons = () => {
             types: [PICKEM_API_SEASON_REQUEST, PICKEM_API_SEASON_SUCCESS,
                 PICKEM_API_SEASON_FAILURE
             ],
-            endpoint: `seasons/?limit=1000`,
+            endpoint: 'seasons/?limit=1000',
             schema: pickemSchema.SEASON_ARRAY
         }
     };
@@ -454,7 +454,7 @@ const pickemAPIPostWinner = (data, token) => {
             types: [PICKEM_API_POST_WINNER, PICKEM_API_POST_WINNER_SUCCESS,
                 PICKEM_API_POST_WINNER_FAILURE
             ],
-            endpoint: `winners/`,
+            endpoint: 'winners/',
             method: 'POST',
             body: JSON.stringify(data),
             // Handling case if token is 'undefined' as it causes an error

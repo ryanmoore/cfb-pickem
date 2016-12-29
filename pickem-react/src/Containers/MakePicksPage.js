@@ -31,7 +31,6 @@ import {
     selectWagersForCurrentUser,
     selectAllSelectionsForCurrentUser,
     selectMatchupOrdering,
-    selectCurrentUIPicks,
     APIDataIsReadyForSeason,
     selectCurrentSeason,
 } from '../Selectors/index';
@@ -78,7 +77,7 @@ const selectAllPicksForCurrentUserAndSeason = createSelector(
 const computeMatchupOrderingForCurrentUser = createSelector(
     [selectGamesForCurrentSeason, selectWagersForCurrentUser],
     (games, wagers) => {
-        var output = new Array();
+        var output = [];
         var picked = new Set();
         forOwn(wagers, (wager) => {
             if(wager.game in games) {
@@ -113,8 +112,8 @@ const selectMatchupOrderingForCurrentUser = createSelector(
 );
 
 const selectAndArrangePicksForCurrentUserAndSeason = createSelector(
-    [selectAllPicksForCurrentUserAndSeason, selectCurrentUIPicks],
-    (pickdata, selections) => {
+    [selectAllPicksForCurrentUserAndSeason],
+    (pickdata) => {
         var fixed = {};
         var wagered = {};
         forOwn(pickdata, (gameinfo, id) => {
@@ -182,6 +181,8 @@ class MakePicksPage extends Component {
         setPreview: React.PropTypes.func.isRequired,
         makePick: React.PropTypes.func.isRequired,
         submitPickAndWagers: React.PropTypes.func.isRequired,
+        setInitialMatchupOrdering: React.PropTypes.func.isRequired,
+        setInitialPicks: React.PropTypes.func.isRequired,
         previewIndex: React.PropTypes.number,
     }
 
@@ -216,8 +217,8 @@ class MakePicksPage extends Component {
         return (
             <Grid>
                 <form>
-                    <MatchupList wagered_matchups={matchups.wagered}
-                        fixed_matchups={matchups.fixed}
+                    <MatchupList wageredMatchups={matchups.wagered}
+                        fixedMatchups={matchups.fixed}
                         moveMatchup={moveMatchup}
                         setPreview={setPreview}
                         previewIndex={previewIndex}

@@ -2,7 +2,6 @@ import React, {
     Component
 } from 'react';
 import {
-    Panel,
     Grid,
     Row,
     Col,

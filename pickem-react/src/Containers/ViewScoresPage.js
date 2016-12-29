@@ -20,7 +20,6 @@ import {
 import {
     collectAndTransformPicksForSeason,
     selectUsers,
-    selectWinners,
     APIDataIsReadyForSeason,
     selectCurrentSeason,
     selectWinningParticipantSet,
@@ -28,7 +27,6 @@ import {
 import ScoresPage from '../Components/ScoresPage';
 import forOwn from 'lodash/forOwn';
 import cloneDeep from 'lodash/cloneDeep';
-import Set from 'es6-set';
 import LoadingSpinner from '../Components/LoadingSpinner';
 
 const scoreDataIsReady = (state, season) => {
@@ -143,7 +141,7 @@ const computeScoresForAllUsers = createSelector(
             };
         });
         picklist.forEach(({left, right}) => {
-            const [winners, losers, undecideds] = chooseWonLostUndecided(
+            const [winners, losersDummy, undecideds] = chooseWonLostUndecided(
                 left, right, winnerParticipants);
             winners.forEach((winner) => {
                 output[winner.id].score += winner.wager;

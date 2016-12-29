@@ -4,7 +4,7 @@ import React, {
 import './ScoresTableRow.css';
 import {
     Grid,
-    Panel,
+    //Panel,
 } from 'react-bootstrap';
 import ScoresTable from './ScoresTable';
 

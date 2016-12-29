@@ -4,7 +4,7 @@ exports[`PicksPage should render sample data 1`] = `
   <div
     className="matchup-row row">
     <div
-      className="col-xs-4">
+      className="winning-pick col-xs-4">
       <table
         className="picklist-left table">
         <thead>
@@ -35,11 +35,11 @@ exports[`PicksPage should render sample data 1`] = `
       <p>
         Game1
         <br />
-        Thu Dec 01 2016 13:00:00 GMT-0500 (EST)
+        Dec 1, 2016 1:00 PM
       </p>
     </div>
     <div
-      className="col-xs-4">
+      className="winning-pick col-xs-4">
       <table
         className="picklist-right table">
         <thead>
@@ -66,5 +66,8 @@ exports[`PicksPage should render sample data 1`] = `
       </table>
     </div>
   </div>
+  <h1>
+    Completed Games
+  </h1>
 </div>
 `;

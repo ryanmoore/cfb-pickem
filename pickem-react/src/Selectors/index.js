@@ -185,7 +185,7 @@ export const selectWinningParticipantSet = createSelector(
 //      }
 //      ...
 // }
-const selectAllPicksForSeason = (state, season) => {
+const selectAllPicksForCurrentSeason = (state) => {
     // TODO: Refactor to avoid this deep copy by making other 2 functions
     // pure
     var games = cloneDeep(selectAllGamesWithWagersForCurrentSeason(state));
@@ -238,7 +238,7 @@ export const collectAndTransformPicksForSeason = (state, season) => {
     if (!stateIsReadyForPicksPage(state, season)) {
         return [];
     }
-    const gamedata = selectAllPicksForSeason(state, season);
+    const gamedata = selectAllPicksForCurrentSeason(state);
     var output = []
     forOwn(gamedata, (data, id) => {
         const [partid1, partid2] = keys(data.matchup);

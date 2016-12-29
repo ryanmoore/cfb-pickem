@@ -90,6 +90,8 @@ const mapStateToProps = (state) => ({
     selected: selectCurrentUIPicks(state),
 })
 
+// TODO: Use decorator when stable
+// eslint-disable-next-line no-class-assign
 Pick = connect(mapStateToProps)(Pick);
 
 class MatchupHandle extends Component {
@@ -120,6 +122,7 @@ function movePastThreshold(monitor, component, hoverIndex, dragIndex) {
     // Matchups if the one we're dragging is clearly past the one we're
     // hovering over. So we will check to see that the mouse of the user
     // is at least past the half way mark.
+    // eslint-disable-next-line react/no-find-dom-node
     const hoverBoundingRect = findDOMNode(component).getBoundingClientRect();
     const hoverRectMiddle = (hoverBoundingRect.bottom - hoverBoundingRect.top)/2;
     const mouseOffsetInTarget = monitor.getClientOffset();

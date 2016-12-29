@@ -5,31 +5,11 @@ import {
 import {
     routerReducer,
 } from 'react-router-redux';
-import forOwn from 'lodash/forOwn';
 
 function copyAndMoveEltFromTo(array, src, dst) {
     let arrCopy = [...array.slice(0, src), ...array.slice(src + 1)];
     arrCopy.splice(dst, 0, array[src]);
     return arrCopy;
-}
-
-const selectAndSortUserWagers = (wagers, user) => {
-    var ordering = [];
-    var weights = {};
-    forOwn(wagers, (wager) => {
-        if (wager.user === user) {
-            ordering.push(wager.game)
-            weights[wager.game] = wager.amount;
-        }
-    });
-    ordering.sort((gameA, gameB) => {
-        const a = weights[gameA];
-        const b = weights[gameB];
-        if (a < b) return 1;
-        if (a > b) return -1;
-        return 0;
-    });
-    return ordering;
 }
 
 const matchupInitialState = {
@@ -62,19 +42,12 @@ function setMatchupOrder(state = matchupInitialState, action) {
 }
 
 function swapMatchupOrder(state, action) {
-    const id = action.id || 1;
     switch (action.type) {
         case ActionTypes.SWAP_MATCHUP_ORDER:
             return {...state,
                     matchupOrdering: copyAndMoveEltFromTo(
                         state.matchupOrdering, action.src, action.dst)
             };
-            //return update(state, {
-            //    ordering: { $splice: [
-            //        [action.src, 1],
-            //        [action.dst, 0, state.matchupOrders[id][action.src]]
-            //    ]},
-            //});
         default:
             return state;
     }

@@ -24,7 +24,7 @@ class AdminAddWinnerButton extends Component {
 
     }
 
-    handleOnClick(e) {
+    handleOnClick(/*event*/) {
         this.props.onClick(this.props.id);
     }
 

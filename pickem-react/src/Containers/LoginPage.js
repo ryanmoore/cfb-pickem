@@ -27,7 +27,7 @@ const onSubmitAction = () => (dispatch, getState) => {
     }));
 }
 
-const mapDispatchToProps = (dispatch, ownProps) => {
+const mapDispatchToProps = (dispatch) => {
     return {
         usernameOnChange: (event) => {
             dispatch(loginFormUpdateUsername(event.target.value));

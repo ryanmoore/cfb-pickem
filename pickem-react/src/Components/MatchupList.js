@@ -1,7 +1,7 @@
 
 import React, { Component } from 'react';
 import Matchup, { DragableMatchup } from './Matchup';
-import { Grid, Row, Col } from 'react-bootstrap';
+import { Row, Col } from 'react-bootstrap';
 import ItemPreview from './ItemPreview';
 
 const extractPicksFromMatchups = (matchups) => {
@@ -19,13 +19,13 @@ const extractPicksFromMatchups = (matchups) => {
 class MatchupList extends Component {
 
     static propTypes = {
-        wagered_matchups: React.PropTypes.arrayOf(React.PropTypes.shape({
+        wageredMatchups: React.PropTypes.arrayOf(React.PropTypes.shape({
             id: React.PropTypes.number.isRequired,
             name: React.PropTypes.string.isRequired,
             left: React.PropTypes.object.isRequired,
             right: React.PropTypes.object.isRequired,
         })).isRequired,
-        fixed_matchups: React.PropTypes.array.isRequired,
+        fixedMatchups: React.PropTypes.array.isRequired,
         previewIndex: React.PropTypes.number,
         moveMatchup: React.PropTypes.func.isRequired,
         setPreview: React.PropTypes.func.isRequired,
@@ -41,22 +41,22 @@ class MatchupList extends Component {
 
     componentDidMount() {
         const { 
-            wagered_matchups,
-            fixed_matchups,
+            wageredMatchups,
+            fixedMatchups,
             setInitialMatchupOrdering,
             setInitialPicks,
         } = this.props;
         // TODO: Should do this in another component so this one is
         // more focused on data display
-        setInitialMatchupOrdering(wagered_matchups.map((matchup) => matchup.id));
+        setInitialMatchupOrdering(wageredMatchups.map((matchup) => matchup.id));
         setInitialPicks(extractPicksFromMatchups(
-            wagered_matchups.concat(fixed_matchups)));
+            wageredMatchups.concat(fixedMatchups)));
     }
 
     render() {
         const { previewIndex, moveMatchup, setPreview,
-            makePick, wagered_matchups, fixed_matchups, } = this.props;
-        const matchupRows = wagered_matchups.map((matchup, index) => {
+            makePick, wageredMatchups, fixedMatchups, } = this.props;
+        const matchupRows = wageredMatchups.map((matchup, index) => {
             return <DragableMatchup
                 key={matchup.id}
                 id={matchup.id}
@@ -70,7 +70,7 @@ class MatchupList extends Component {
                 makePick={makePick}
             />
         });
-        const fixedWagerRows = fixed_matchups.map((matchup) => {
+        const fixedWagerRows = fixedMatchups.map((matchup) => {
             return <Matchup id={matchup.id}
                             key={matchup.id}
                             wager={matchup.fixedWagerAmount}
@@ -81,7 +81,7 @@ class MatchupList extends Component {
                             preview={false}
                         />
         });
-        const preview = previewIndex !== null && wagered_matchups[previewIndex];
+        const preview = previewIndex !== null && wageredMatchups[previewIndex];
         return (
             <div>
                 <h2>Championship</h2>

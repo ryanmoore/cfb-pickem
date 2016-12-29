@@ -78,7 +78,7 @@ class PicksCol extends Component {
 class GameDetail extends Component {
     static propTypes = {
         name: React.PropTypes.string.isRequired,
-        date: React.PropTypes.instanceOf(Date),
+        date: React.PropTypes.string.isRequired,
     };
     render() {
         const {
@@ -87,7 +87,7 @@ class GameDetail extends Component {
         } = this.props;
         return (
             <Col xs={4} className='game-details'>
-                <p>{ name }<br/>{ date.toString() }</p>
+                <p>{ name }<br/>{ date }</p>
             </Col>
         );
     }
@@ -153,9 +153,9 @@ class PicksPage extends Component {
             gameDetails: React.PropTypes.any.isRequired,
             id: React.PropTypes.number.isRequired,
             winner: React.PropTypes.number,
-            admin: React.PropTypes.bool,
-            AdminButton: React.PropTypes.node,
-        })).isRequired
+        })).isRequired,
+        admin: React.PropTypes.bool,
+        AdminButton: React.PropTypes.node,
     };
     render() {
         const {

@@ -36,7 +36,7 @@ class ViewPicksPage extends Component {
         pickemHasStarted: React.PropTypes.bool.isRequired,
         startTime: React.PropTypes.object.isRequired,
         admin: React.PropTypes.bool,
-        AdminButton: React.PropTypes.node,
+        AdminButton: React.PropTypes.element,
     }
 
     componentDidMount() {
@@ -103,11 +103,11 @@ class ViewPicksPage extends Component {
 // }];
 
 const pickemHasStarted = (state) => {
-    const start_time = selectCurrentStartTime(state);
-    if(start_time === null) {
+    const startTime = selectCurrentStartTime(state);
+    if(startTime === null) {
         return false;
     }
-    return Date.now() > new Date(start_time);
+    return Date.now() > new Date(startTime);
 }
 
 const addAllWinnersToGames = (state, gamedata) => {
@@ -135,7 +135,7 @@ const mapStateToProps = (state) => {
         ready: stateIsReadyForPicksPage(state, currentSeason),
         pickemHasStarted: pickemHasStarted(state),
         season: currentSeason,
-        startTime: selectCurrentStartTime(state),
+        startTime: new Date(selectCurrentStartTime(state)),
     }
 }
 

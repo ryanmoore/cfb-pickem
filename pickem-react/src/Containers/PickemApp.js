@@ -71,11 +71,14 @@ class AdminMenu extends Component {
             </NavDropdown>
         );
     }
-};
+}
 
 const AdminNavItem = VisibleWhenSuperuser(() => <AdminMenu baseKey={5} />);
 
 class PickemApp extends Component {
+    static propTypes = {
+        children: React.PropTypes.node,
+    }
     render() {
         return (
             <div>
