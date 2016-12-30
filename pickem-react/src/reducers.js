@@ -5,6 +5,7 @@ import {
 import {
     routerReducer,
 } from 'react-router-redux';
+import merge from 'lodash/merge';
 
 function copyAndMoveEltFromTo(array, src, dst) {
     let arrCopy = [...array.slice(0, src), ...array.slice(src + 1)];
@@ -183,9 +184,7 @@ const defaultEntityState = {
 // response.entities
 const entities = (state = defaultEntityState, action) => {
     if (action.response && action.response.entities) {
-        return {...state,
-            ...action.response.entities
-        };
+        return merge({}, state, action.response.entities);
     }
     return state;
 }
