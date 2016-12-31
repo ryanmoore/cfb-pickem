@@ -8,7 +8,6 @@ import forOwn from 'lodash/forOwn';
 import cloneDeep from 'lodash/cloneDeep';
 import keys from 'lodash/keys';
 
-export const selectCurrentSeason = (state) => state.ui.currentSeason;
 export const selectGames = (state) => state.entities.games;
 export const selectTeamSeasons = (state) => state.entities.teamseasons;
 export const selectParticipants = (state) => state.entities.participants;
@@ -21,6 +20,20 @@ export const selectMatchupOrdering = (state) => state.ui.makePicksOrdering.match
 export const selectCurrentUIPicks = (state) => state.ui.makePicksOrdering.picks;
 export const selectWinners = (state) => state.entities.winners;
 export const selectCurrentYear = (state) => state.ui.currentYear;
+
+export const selectCurrentSeason = createSelector(
+    [selectCurrentYear, selectSeasons],
+    (year, seasons) => {
+        var output = null;
+        forOwn(seasons, (season, id) => {
+            if(season.year === year) {
+                output = parseInt(id, 10);
+                return false;
+            }
+        });
+        return output;
+    }
+);
 
 
 export const selectGamesForCurrentSeason = createSelector(
