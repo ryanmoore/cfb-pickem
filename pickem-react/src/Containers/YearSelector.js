@@ -15,6 +15,7 @@ import {
     selectCurrentYear,
     selectCurrentSeason,
 } from '../Selectors';
+import PageNotFound from '../Components/PageNotFound';
 import LoadingSpinner from '../Components/LoadingSpinner';
 
 class YearSelector extends Component {
@@ -32,7 +33,7 @@ class YearSelector extends Component {
         const { dispatch, params } = this.props;
         const { year } = params;
         const yearInt = parseInt(year, 10);
-        if(yearInt !== this.props.selectedYear) {
+        if(!isNaN(yearInt) && yearInt !== this.props.selectedYear) {
             dispatch(setSelectedSeason(yearInt));
         }
         dispatch(loadPickemSeasons());
@@ -44,6 +45,7 @@ class YearSelector extends Component {
         const curYear = this.props.selectedYear;
         const nextYearInt = parseInt(nextYear, 10);
         if(nextYear !== null
+            && !isNaN(nextYearInt)
             && curYear !== nextYearInt
             && nextYearInt !== parseInt(this.props.params.year, 10)
         ) {
@@ -54,6 +56,9 @@ class YearSelector extends Component {
     render() {
         const { selectedYear, selectedSeason, params } = this.props;
         const year = parseInt(params.year, 10);
+        if(isNaN(year)) {
+            return <PageNotFound />;
+        }
         // Do not render other elements until the year in the store matches
         // our year
         if(!selectedYear

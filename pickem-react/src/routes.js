@@ -17,25 +17,22 @@ import YearSelector from './Containers/YearSelector';
 import ViewHistoryPage from './Containers/ViewHistoryPage';
 
 export default (
-    <Route path='/'>
+    <Route path='/' component={PickemApp} >
         <IndexRedirect to='/2016/index' />
         <Route path='login' component={UserIsNotAuthenticated(LoginPage)} />
         <Route path='logout' component={UserIsAuthenticated(LogoutPage)} />
+        <Route path='history' component={ViewHistoryPage} />
         <Route path='/:year' component={YearSelector}>
-            <Route component={PickemApp}>
-                <IndexRedirect to='index' />
-                <Route path='history' component={ViewHistoryPage} />
-                <Route path='index' component={GameIndex} />
-                <Route path='makepicks' component={UserIsAuthenticated(MakePicksPage)} />
-                <Route path='picks' component={ViewPicksPage} />
-                <Route path='scores' component={ViewScoresPage} />
-                <Route path='admin'>
-                    <Route path='addwinner' component={() => (<AdminViewPicksPage />)}/>
-                </Route>
+            <IndexRedirect to='index' />
+            <Route path='index' component={GameIndex} />
+            <Route path='makepicks' component={UserIsAuthenticated(MakePicksPage)} />
+            <Route path='picks' component={ViewPicksPage} />
+            <Route path='scores' component={ViewScoresPage} />
+            <Route path='admin'>
+                <Route path='addwinner' component={() => (<AdminViewPicksPage />)}/>
             </Route>
-
-            {/* Make sure this route is last */}
-            <Route path='*' component={PageNotFound} />
         </Route>
+        {/* Make sure this route is last */}
+        <Route path='*' component={PageNotFound} />
     </Route>
 );

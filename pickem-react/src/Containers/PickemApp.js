@@ -84,10 +84,11 @@ const AdminNavItem = VisibleWhenSuperuser((props) => (
 class PickemApp extends Component {
     static propTypes = {
         children: React.PropTypes.node,
-        year: React.PropTypes.number.isRequired,
+        year: React.PropTypes.number,
     }
     render() {
-        const { year } = this.props;
+        const yearMaybe = this.props.year;
+        const year = yearMaybe ? yearMaybe : 2016;
         return (
             <div>
                 <Navbar bsStyle='default' fixedTop collapseOnSelect >
@@ -106,13 +107,13 @@ class PickemApp extends Component {
                             <LinkContainer to={`/${year}/picks`}>
                                 <NavItem eventKey={2}>Picks</NavItem>
                             </LinkContainer>
-                            <LinkContainer to={`${year}/scores`}>
+                            <LinkContainer to={`/${year}/scores`}>
                                 <NavItem eventKey={3}>Scores</NavItem>
                             </LinkContainer>
-                            <LinkContainer to={`${year}/history`}>
+                            <LinkContainer to={`/history`}>
                                 <NavItem eventKey={4}>History</NavItem>
                             </LinkContainer>
-                            <LinkContainer to={`${year}/makepicks`}>
+                            <LinkContainer to={`/${year}/makepicks`}>
                                 <NavItem eventKey={5}>MakePicks</NavItem>
                             </LinkContainer>
                             <AdminNavItem year={year} baseKey={6} />
