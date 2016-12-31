@@ -94,7 +94,7 @@ class PickemApp extends Component {
                 <Navbar bsStyle='default' fixedTop collapseOnSelect >
                     <Navbar.Header>
                         <Navbar.Brand>
-                            <IndexLink to={`/${year}`}>Pickem</IndexLink>
+                            <IndexLink to={`/`}>Pickem</IndexLink>
                         </Navbar.Brand>
                         <Navbar.Toggle />
                     </Navbar.Header>
@@ -102,7 +102,7 @@ class PickemApp extends Component {
                         <DisplayUserGreeting/>
                         <Nav>
                             <IndexLinkContainer to={`/${year}`}>
-                                <NavItem eventKey={1}>Home</NavItem>
+                                <NavItem eventKey={1}>Schedule</NavItem>
                             </IndexLinkContainer>
                             <LinkContainer to={`/${year}/picks`}>
                                 <NavItem eventKey={2}>Picks</NavItem>
