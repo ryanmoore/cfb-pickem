@@ -20,7 +20,7 @@ export const selectUsers = (state) => state.entities.users;
 export const selectMatchupOrdering = (state) => state.ui.makePicksOrdering.matchupOrdering;
 export const selectCurrentUIPicks = (state) => state.ui.makePicksOrdering.picks;
 export const selectWinners = (state) => state.entities.winners;
-
+export const selectCurrentYear = (state) => state.ui.currentYear;
 
 
 export const selectGamesForCurrentSeason = createSelector(

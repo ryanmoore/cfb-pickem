@@ -193,6 +193,15 @@ const setCurrentSeason = (state = 4, action) => {
     return state;
 }
 
+const setCurrentYear = (state = 2016, action) => {
+    switch(action.type) {
+        case ActionTypes.SET_SELECTED_SEASON:
+            return action.year;
+        default:
+            return state;
+    }
+}
+
 const authStateReducer = (state={}, action) => {
     switch(action.type) {
         case ActionTypes.PICKEM_API_AUTH_SUCCESS:
@@ -224,6 +233,7 @@ const rootReducer = combineReducers({
         makePicksOrdering: setMatchupOrder,
         matchupPreview: setMatchupPreview,
         currentSeason: setCurrentSeason,
+        currentYear: setCurrentYear,
         currentUser: () => 1,
         loginForm: loginFormReducer,
     }),

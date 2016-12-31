@@ -30,6 +30,9 @@ import {
     VisibleWhenSuperuser,
     UserIsAuthOrElse,
 } from '../auth';
+import {
+    selectCurrentYear,
+} from '../Selectors';
 
 class UserGreeting extends Component {
     static propTypes = {
@@ -58,13 +61,14 @@ const LoginOrOutLink = UserIsAuthOrElse(LogoutLink, LoginLink);
 class AdminMenu extends Component {
     static propTypes = {
         baseKey: React.PropTypes.number.isRequired,
+        year: React.PropTypes.number.isRequired,
     };
 
     render() {
-        const { baseKey } = this.props;
+        const { baseKey, year } = this.props;
         return (
             <NavDropdown eventKey={baseKey} title='Admin' id='admin-dropdown'>
-                <LinkContainer to='/admin/addwinner'>
+                <LinkContainer to={`/${year}/admin/addwinner`}>
                     <MenuItem eventKey={baseKey + .1}>Add winner</MenuItem>
                 </LinkContainer>
                 <MenuItem eventKey={baseKey + .2}>Another action</MenuItem>
@@ -73,38 +77,42 @@ class AdminMenu extends Component {
     }
 }
 
-const AdminNavItem = VisibleWhenSuperuser(() => <AdminMenu baseKey={5} />);
+const AdminNavItem = VisibleWhenSuperuser((props) => (
+    <AdminMenu year={props.year} baseKey={props.baseKey} />
+));
 
 class PickemApp extends Component {
     static propTypes = {
         children: React.PropTypes.node,
+        year: React.PropTypes.number.isRequired,
     }
     render() {
+        const { year } = this.props;
         return (
             <div>
                 <Navbar bsStyle='default' fixedTop collapseOnSelect >
                     <Navbar.Header>
                         <Navbar.Brand>
-                            <IndexLink to='/'>Pickem</IndexLink>
+                            <IndexLink to={`/${year}`}>Pickem</IndexLink>
                         </Navbar.Brand>
                         <Navbar.Toggle />
                     </Navbar.Header>
                     <Navbar.Collapse>
                         <DisplayUserGreeting/>
                         <Nav>
-                            <IndexLinkContainer to='/'>
+                            <IndexLinkContainer to={`/${year}`}>
                                 <NavItem eventKey={1}>Home</NavItem>
                             </IndexLinkContainer>
-                            <LinkContainer to='/picks'>
+                            <LinkContainer to={`/${year}/picks`}>
                                 <NavItem eventKey={2}>Picks</NavItem>
                             </LinkContainer>
-                            <LinkContainer to='/scores'>
+                            <LinkContainer to={`${year}/scores`}>
                                 <NavItem eventKey={3}>Scores</NavItem>
                             </LinkContainer>
-                            <LinkContainer to='/makepicks'>
+                            <LinkContainer to={`${year}/makepicks`}>
                                 <NavItem eventKey={4}>MakePicks</NavItem>
                             </LinkContainer>
-                            <AdminNavItem />
+                            <AdminNavItem year={year} baseKey={5} />
                             <LoginOrOutLink/>
                         </Nav>
                     </Navbar.Collapse>
@@ -113,7 +121,6 @@ class PickemApp extends Component {
            </div>
         );
     }
-
 }
 
 // TODO: Seems we rarely take the html5 backend. Not working in chrome at
@@ -130,4 +137,8 @@ if ('ontouchstart' in window) {
     PickemApp = DragDropContext(HTML5Backend)(PickemApp);
 }
 
-export default PickemApp;
+const mapStateToProps = (state) => ({
+   year: selectCurrentYear(state),
+});
+
+export default connect(mapStateToProps)(PickemApp);

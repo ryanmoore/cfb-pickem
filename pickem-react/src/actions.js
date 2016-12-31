@@ -472,3 +472,11 @@ export const submitAddWinnerButtonPress = (id) => (dispatch, getState) => {
     const payload = { participant: id };
     return dispatch(pickemAPIPostWinner(payload, selectAuthToken(getState())));
 }
+
+export const SET_SELECTED_SEASON = 'SET_SELECTED_SEASON';
+export const setSelectedSeason = (year) => {
+    return {
+        type: SET_SELECTED_SEASON,
+        year,
+    };
+}
