@@ -211,13 +211,21 @@ const setCurrentYear = (state = 2016, action) => {
     }
 }
 
-const authStateReducer = (state={}, action) => {
+const savedAuthKey = 'pickemAuthData';
+
+const initialAuthData = () => {
+    return JSON.parse(localStorage.getItem(savedAuthKey) || '{}');
+}
+
+const authStateReducer = (state=initialAuthData(), action) => {
     switch(action.type) {
         case ActionTypes.PICKEM_API_AUTH_SUCCESS:
+            localStorage.setItem(savedAuthKey, JSON.stringify(action.response));
             return { ...action.response };
         case ActionTypes.SET_PICKEM_API_AUTH_TOKEN:
             return { ...state, token: action.token };
         case ActionTypes.LOG_USER_OUT:
+            localStorage.removeItem(savedAuthKey);
             return {};
         default:
             return state;
