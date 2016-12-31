@@ -351,11 +351,31 @@ export const loginFormUpdatePassword = (value) => {
     };
 }
 
-export const LOG_USER_OUT = 'LOG_USER_OUT';
-export const logUserOut = () => {
+export const PICKEM_API_LOGOUT_POST = 'PICKEM_API_LOGOUT_POST';
+export const PICKEM_API_LOGOUT_SUCCESS = 'PICKEM_API_LOGOUT_SUCCESS';
+export const PICKEM_API_LOGOUT_FAILURE = 'PICKEM_API_LOGOUT_FAILURE';
+
+export const pickemAPILogout = (token) => {
     return {
-        type: LOG_USER_OUT,
-    }
+        [CALL_PICKEM_API]: {
+            types: [PICKEM_API_LOGOUT_POST, PICKEM_API_LOGOUT_SUCCESS,
+                PICKEM_API_LOGOUT_FAILURE
+            ],
+            endpoint: 'auth/logout/',
+            method: 'POST',
+            headers: { 'Authorization': 'Token ' + (token || ''),
+                'Content-Type': 'application/json',
+            },
+            ignoreOkResponse: true,
+        }
+    };
+}
+
+export const LOG_USER_OUT = 'LOG_USER_OUT';
+export const logUserOut = () => (dispatch, getState) => {
+    return dispatch(pickemAPILogout(selectAuthToken(getState()))).then(
+        dispatch({ type: LOG_USER_OUT, })
+    );
 }
 
 export const PICKEM_API_SUBMIT_POST = 'PICKEM_API_SUBMIT_POST';

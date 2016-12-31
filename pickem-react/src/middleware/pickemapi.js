@@ -31,16 +31,16 @@ const joinUrls = (root, endpoint) => {
     return root + endpoint;
 }
 
-const callPickemApi = (endpoint, schema, method = 'GET', headers = {}, callback, body) => {
+const callPickemApi = (endpoint, schema, method = 'GET', headers = {}, callback, body, ignoreOkResponse) => {
     const fullUrl = joinUrls(API_ROOT_URL, endpoint);
     // TODO: Real auth
     return fetch(fullUrl, {
-            method,
-            headers,
-            body,
-        })
+        method,
+        headers,
+        body,
+    })
         .then((response) => {
-            if(method === 'PUT') {
+            if(method === 'PUT' || ignoreOkResponse) {
                 return {};
             }
             else {
@@ -63,14 +63,14 @@ const callPickemApi = (endpoint, schema, method = 'GET', headers = {}, callback,
         });
 }
 
-const checkPayload = (endpoint, schema, types, method) => {
+const checkPayload = (endpoint, schema, types, method, ignoreOkResponse) => {
     var errors = [];
     if (typeof endpoint !== 'string') {
         errors.push('PickemMiddleware: Endpoint URL should be a string.');
     }
     // Special casing PUT b/c we only use it for makepicks/ so far and
     // that is not (yet) returning a json response
-    if (!schema && method !== 'PUT') {
+    if (!schema && method !== 'PUT' && !ignoreOkResponse) {
         errors.push('PickemMiddleware: schema required.');
     }
 
@@ -104,6 +104,7 @@ export default store => next => action => {
         body,
         headers,
         callback,
+        ignoreOkResponse,
     } = callAPIAction;
 
     if (typeof endpoint === 'function') {
@@ -111,7 +112,7 @@ export default store => next => action => {
     }
 
     // throws if there is an error
-    checkPayload(endpoint, schema, types, method);
+    checkPayload(endpoint, schema, types, method, ignoreOkResponse);
 
     // Removes CALL_PICKEM_API from action and updates action with data
     const actionWith = data => {
@@ -143,6 +144,7 @@ export default store => next => action => {
     };
 
     // Perform API call and create action based on result (success or failure)
-    return callPickemApi(endpoint, schema, method, headers, callback, body).then(
-        handleResponse, handleError);
+    return callPickemApi(endpoint, schema, method, headers, callback, body,
+        ignoreOkResponse).then(
+            handleResponse, handleError);
 }
