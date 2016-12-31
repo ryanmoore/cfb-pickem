@@ -109,10 +109,13 @@ class PickemApp extends Component {
                             <LinkContainer to={`${year}/scores`}>
                                 <NavItem eventKey={3}>Scores</NavItem>
                             </LinkContainer>
-                            <LinkContainer to={`${year}/makepicks`}>
-                                <NavItem eventKey={4}>MakePicks</NavItem>
+                            <LinkContainer to={`${year}/history`}>
+                                <NavItem eventKey={4}>History</NavItem>
                             </LinkContainer>
-                            <AdminNavItem year={year} baseKey={5} />
+                            <LinkContainer to={`${year}/makepicks`}>
+                                <NavItem eventKey={5}>MakePicks</NavItem>
+                            </LinkContainer>
+                            <AdminNavItem year={year} baseKey={6} />
                             <LoginOrOutLink/>
                         </Nav>
                     </Navbar.Collapse>

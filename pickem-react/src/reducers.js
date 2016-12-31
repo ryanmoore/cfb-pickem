@@ -170,6 +170,15 @@ const fetchState = (state = defaultFetchState, action) => {
             return {...state,
                 seasons: ActionTypes.FETCH_STATES.READY
             };
+        case ActionTypes.SET_SELECTED_SEASON:
+            return {...state,
+                games: ActionTypes.FETCH_STATES.INVALIDATED,
+                participants: ActionTypes.FETCH_STATES.INVALIDATED,
+                winners: ActionTypes.FETCH_STATES.INVALIDATED,
+                teamseasons: ActionTypes.FETCH_STATES.INVALIDATED,
+                selections: ActionTypes.FETCH_STATES.INVALIDATED,
+                wagers: ActionTypes.FETCH_STATES.INVALIDATED,
+            };
         default:
             return state;
     }

@@ -14,6 +14,7 @@ import { UserIsAuthenticated, UserIsNotAuthenticated } from './auth.js';
 import PageNotFound from './Components/PageNotFound';
 import AdminViewPicksPage from './Containers/AdminViewPicksPage';
 import YearSelector from './Containers/YearSelector';
+import ViewHistoryPage from './Containers/ViewHistoryPage';
 
 export default (
     <Route path='/'>
@@ -23,6 +24,7 @@ export default (
         <Route path='/:year' component={YearSelector}>
             <Route component={PickemApp}>
                 <IndexRedirect to='index' />
+                <Route path='history' component={ViewHistoryPage} />
                 <Route path='index' component={GameIndex} />
                 <Route path='makepicks' component={UserIsAuthenticated(MakePicksPage)} />
                 <Route path='picks' component={ViewPicksPage} />

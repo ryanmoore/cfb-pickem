@@ -31,8 +31,24 @@ class YearSelector extends Component {
     componentDidMount() {
         const { dispatch, params } = this.props;
         const { year } = params;
-        dispatch(setSelectedSeason(parseInt(year, 10)));
+        const yearInt = parseInt(year, 10);
+        if(yearInt !== this.props.selectedYear) {
+            dispatch(setSelectedSeason(yearInt));
+        }
         dispatch(loadPickemSeasons());
+    }
+
+    componentWillReceiveProps(nextProps) {
+        const { dispatch } = this.props;
+        const nextYear = nextProps.params.year;
+        const curYear = this.props.selectedYear;
+        const nextYearInt = parseInt(nextYear, 10);
+        if(nextYear !== null
+            && curYear !== nextYearInt
+            && nextYearInt !== parseInt(this.props.params.year, 10)
+        ) {
+            dispatch(setSelectedSeason(nextYearInt));
+        }
     }
 
     render() {
