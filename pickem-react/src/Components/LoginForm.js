@@ -9,23 +9,8 @@ import {
     Button,
     Alert,
 } from 'react-bootstrap';
+import MaybeErrorAlert from './MaybeErrorAlert';
 import './LoginForm.css';
-
-class LoginError extends Component {
-    static propTypes = {
-        message: React.PropTypes.string,
-    };
-
-    render() {
-        const { message } = this.props;
-        if(!message) {
-            return null;
-        }
-        return (
-            <Alert bsStyle="danger"><p>{ message }</p></Alert>
-        );
-    }
-}
 
 export default class LoginForm extends Component {
     static propTypes = {
@@ -51,7 +36,7 @@ export default class LoginForm extends Component {
             <Grid>
                     <form className='form-signin' onSubmit={onSubmit}>
                         <h2 className='form-signin-heading'>Pickem</h2>
-                        <LoginError message={maybeErrors}/>
+                        <MaybeErrorAlert message={maybeErrors}/>
                         <FormGroup controlId='usernameField'>
                             <ControlLabel>Username</ControlLabel>
                             <FormControl type='text' 

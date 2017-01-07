@@ -41,6 +41,7 @@ import Set from 'es6-set';
 import { createSelector } from 'reselect';
 import LoadingSpinner from '../Components/LoadingSpinner';
 import { Grid, Row, Col, Button } from 'react-bootstrap';
+import MaybeErrorAlert from '../Components/MaybeErrorAlert';
 
 const selectAndTieWagersToGamesForCurrentSeason = createSelector(
     [selectGamesWithParticipantsForCurrentSeason,
@@ -168,6 +169,17 @@ const collectAndTransformMatchups = (state, user, season) => {
     return selectAllMatchupDataForCurrentUserAndSeason(state);
 }
 
+const createErrorMessage = (message) => {
+    switch(message) {
+        case 'Invalid token.':
+            return 'Changes not submitted. Login expired. Please login again.';
+        case 'Pickem has started.':
+            return 'Changes could not be submitted. The first game of Pickem has already started.';
+        default:
+            return message;
+    }
+}
+
 class MakePicksPage extends Component {
     static propTypes = {
         dispatch: React.PropTypes.func.isRequired,
@@ -184,6 +196,7 @@ class MakePicksPage extends Component {
         setInitialMatchupOrdering: React.PropTypes.func.isRequired,
         setInitialPicks: React.PropTypes.func.isRequired,
         previewIndex: React.PropTypes.number,
+        error: React.PropTypes.string,
     }
 
     componentDidMount() {
@@ -210,6 +223,7 @@ class MakePicksPage extends Component {
             setInitialMatchupOrdering,
             setInitialPicks,
             submitPickAndWagers,
+            error,
         } = this.props;
         if (loading) {
             return (<LoadingSpinner />);
@@ -217,6 +231,7 @@ class MakePicksPage extends Component {
         return (
             <Grid>
                 <form>
+                    <MaybeErrorAlert message={ error }/>
                     <MatchupList wageredMatchups={matchups.wagered}
                         fixedMatchups={matchups.fixed}
                         moveMatchup={moveMatchup}
@@ -240,6 +255,8 @@ class MakePicksPage extends Component {
     }
 }
 
+const selectMakePicksErrors = (state) => state.ui.makePicksOrdering.error;
+
 const mapStateToProps = (state) => {
     const currentUser = selectCurrentUser(state);
     const currentSeason = selectCurrentSeason(state);
@@ -250,6 +267,7 @@ const mapStateToProps = (state) => {
         previewIndex: state.ui.matchupPreview.previewIndex,
         loading: !stateIsReadyForMakePicksPage(state, currentUser, currentSeason),
         season: currentSeason,
+        error: createErrorMessage(selectMakePicksErrors(state)),
     };
 }
 

@@ -40,7 +40,7 @@ const callPickemApi = (endpoint, schema, method = 'GET', headers = {}, callback,
         body,
     })
         .then((response) => {
-            if(method === 'PUT' || ignoreOkResponse) {
+            if(response.ok && (method === 'PUT' || ignoreOkResponse)) {
                 return {};
             }
             else {

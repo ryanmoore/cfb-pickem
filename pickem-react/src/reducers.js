@@ -37,6 +37,11 @@ function setMatchupOrder(state = matchupInitialState, action) {
                 ...state,
                 picks: action.picks,
             };
+        case ActionTypes.PICKEM_API_SUBMIT_FAILURE:
+            return {
+                ...state,
+                error: action.error,
+            };
         default:
             return state;
     }
@@ -217,6 +222,15 @@ const initialAuthData = () => {
     return JSON.parse(localStorage.getItem(savedAuthKey) || '{}');
 }
 
+const failureIsByExpiredToken = (message) => {
+    switch(message) {
+        case 'Invalid token.':
+            return true;
+        default:
+            return false;
+    }
+}
+
 const authStateReducer = (state=initialAuthData(), action) => {
     switch(action.type) {
         case ActionTypes.PICKEM_API_AUTH_SUCCESS:
@@ -227,8 +241,19 @@ const authStateReducer = (state=initialAuthData(), action) => {
         case ActionTypes.LOG_USER_OUT:
             localStorage.removeItem(savedAuthKey);
             return {};
+        case ActionTypes.PICKEM_API_SUBMIT_FAILURE:
+            return failureIsByExpiredToken(action.error) ? {} : state;
         default:
             return state;
+    }
+}
+
+const createUserErrorMessage = (message) => {
+    switch(message) {
+        case 'Invalid token.':
+            return 'Changes not submitted. Login expired. Please login again.';
+        default:
+            return message;
     }
 }
 
@@ -239,7 +264,11 @@ const loginFormReducer = (state={}, action) => {
         case ActionTypes.LOGIN_FORM_USERNAME_UPDATE:
             return {...state, username: action.value };
         case ActionTypes.PICKEM_API_AUTH_FAILURE:
-            return {...state, error: action.error };
+            return {...state, error: createUserErrorMessage(action.error) };
+        case ActionTypes.PICKEM_API_SUBMIT_FAILURE:
+            return (failureIsByExpiredToken(action.error) ?
+                {...state, error: createUserErrorMessage(action.error) }
+                : state);
         case ActionTypes.PICKEM_API_AUTH_SUCCESS:
             return {};
         default:
