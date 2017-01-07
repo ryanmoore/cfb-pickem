@@ -9,13 +9,15 @@ import {
 } from '../actions';
 import LoginForm from '../Components/LoginForm';
 
-const selectUsernameField = (state) => state.ui.loginForm.username
-const selectPasswordField = (state) => state.ui.loginForm.password
+const selectUsernameField = (state) => state.ui.loginForm.username;
+const selectPasswordField = (state) => state.ui.loginForm.password;
+const selectLoginErrorMessage = (state) => state.ui.loginForm.error;
 
 const mapStateToProps = (state) => {
     return {
         usernameFieldValue: selectUsernameField(state),
         passwordFieldValue: selectPasswordField(state),
+        maybeErrors: selectLoginErrorMessage(state),
     };
 }
 

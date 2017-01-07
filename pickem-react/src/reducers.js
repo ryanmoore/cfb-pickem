@@ -238,6 +238,8 @@ const loginFormReducer = (state={}, action) => {
             return {...state, password: action.value };
         case ActionTypes.LOGIN_FORM_USERNAME_UPDATE:
             return {...state, username: action.value };
+        case ActionTypes.PICKEM_API_AUTH_FAILURE:
+            return {...state, error: action.error };
         case ActionTypes.PICKEM_API_AUTH_SUCCESS:
             return {};
         default:

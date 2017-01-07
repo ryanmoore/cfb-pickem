@@ -7,8 +7,25 @@ import {
     ControlLabel,
     FormControl,
     Button,
+    Alert,
 } from 'react-bootstrap';
 import './LoginForm.css';
+
+class LoginError extends Component {
+    static propTypes = {
+        message: React.PropTypes.string,
+    };
+
+    render() {
+        const { message } = this.props;
+        if(!message) {
+            return null;
+        }
+        return (
+            <Alert bsStyle="danger"><p>{ message }</p></Alert>
+        );
+    }
+}
 
 export default class LoginForm extends Component {
     static propTypes = {
@@ -17,6 +34,7 @@ export default class LoginForm extends Component {
             onSubmit: React.PropTypes.func.isRequired,
             usernameFieldValue: React.PropTypes.string,
             passwordFieldValue: React.PropTypes.string,
+            maybeErrors: React.PropTypes.node,
         }
         // TODO: old username input had fields 'required' and 'autofocus'
         // Those needed here?
@@ -27,11 +45,13 @@ export default class LoginForm extends Component {
             usernameFieldValue,
             passwordFieldValue,
             onSubmit,
+            maybeErrors,
         } = this.props;
         return (
             <Grid>
                     <form className='form-signin' onSubmit={onSubmit}>
                         <h2 className='form-signin-heading'>Pickem</h2>
+                        <LoginError message={maybeErrors}/>
                         <FormGroup controlId='usernameField'>
                             <ControlLabel>Username</ControlLabel>
                             <FormControl type='text' 

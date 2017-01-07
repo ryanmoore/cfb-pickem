@@ -136,7 +136,7 @@ export default store => next => action => {
     };
 
     const handleError = (error) => {
-        const message = error.message || 'PickemMiddleware: Unknown request error';
+        const message = error.detail || 'PickemMiddleware: Unknown request error';
         next(actionWith({
             error: message,
             type: failureAction
