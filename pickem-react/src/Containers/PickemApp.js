@@ -33,6 +33,8 @@ import {
 import {
     selectCurrentYear,
 } from '../Selectors';
+import logo from '../../assets/brand/logo/pickem-logo-cropped-transparent.png';
+import './PickemApp.css';
 
 class UserGreeting extends Component {
     static propTypes = {
@@ -93,8 +95,10 @@ class PickemApp extends Component {
             <div>
                 <Navbar bsStyle='default' fixedTop collapseOnSelect >
                     <Navbar.Header>
-                        <Navbar.Brand>
-                            <IndexLink to={`/`}>Pickem</IndexLink>
+                        <Navbar.Brand className='pickem-logo'>
+                            <IndexLink to={`/`}>
+                                <img className='pickem-logo-img' src={logo} alt='Pickem'/>
+                            </IndexLink>
                         </Navbar.Brand>
                         <Navbar.Toggle />
                     </Navbar.Header>
