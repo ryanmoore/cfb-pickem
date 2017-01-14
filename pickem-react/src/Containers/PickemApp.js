@@ -96,25 +96,28 @@ class PickemApp extends Component {
                 <Navbar bsStyle='default' fixedTop collapseOnSelect >
                     <Navbar.Header>
                         <Navbar.Brand className='pickem-logo'>
-                            <IndexLink to={`/`}>
+                            <IndexLink to={'/'}>
                                 <img className='pickem-logo-img' src={logo} alt='Pickem'/>
                             </IndexLink>
                         </Navbar.Brand>
+                        <Navbar.Text className='pickem-navbar-year'>
+                            {year}
+                        </Navbar.Text>
                         <Navbar.Toggle />
                     </Navbar.Header>
                     <Navbar.Collapse>
                         <DisplayUserGreeting/>
                         <Nav>
-                            <IndexLinkContainer to={`/${year}`}>
+                            <LinkContainer to={`/${year}/index`}>
                                 <NavItem eventKey={1}>Schedule</NavItem>
-                            </IndexLinkContainer>
+                            </LinkContainer>
                             <LinkContainer to={`/${year}/picks`}>
                                 <NavItem eventKey={2}>Picks</NavItem>
                             </LinkContainer>
                             <LinkContainer to={`/${year}/scores`}>
                                 <NavItem eventKey={3}>Scores</NavItem>
                             </LinkContainer>
-                            <LinkContainer to={`/history`}>
+                            <LinkContainer to={'/history'}>
                                 <NavItem eventKey={4}>History</NavItem>
                             </LinkContainer>
                             <LinkContainer to={`/${year}/makepicks`}>

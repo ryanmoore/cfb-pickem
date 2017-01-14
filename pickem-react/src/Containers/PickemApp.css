@@ -7,3 +7,14 @@
     padding-right: 5px;
     padding-bottom: 0;
 }
+
+.pickem-navbar-year {
+    display: inline-block;
+    border-style: none;
+    border-width: 1px;
+    border-radius: 2px;
+    padding: 1px 2px 1px 2px;
+    margin: 13px;
+    background-color: #E8E8E8;
+    color: #333;
+}
