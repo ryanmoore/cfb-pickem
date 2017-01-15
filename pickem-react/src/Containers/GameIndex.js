@@ -9,8 +9,10 @@ import {
 } from '../actions';
 import {
     selectCurrentSeason,
+    selectGamesForCurrentSeason,
 } from '../Selectors/index';
 import GameTable from '../Components/GameTable';
+import forOwn from 'lodash/forOwn';
 
 const sortDatesMostRecentFirst = (arr) => {
     arr.sort((a, b) => {
@@ -25,11 +27,11 @@ const getGameList = (games) => {
         return [];
     }
     var display = [];
-    Object.keys(games).forEach((key) => {
+    forOwn(games, (game, id) => {
         display.push({
-            id: games[key].id,
-            date: new Date(games[key].datetime),
-            name: games[key].event
+            id: id,
+            date: game.gameDetails.date,
+            name: game.gameDetails.eventName,
         });
     });
     sortDatesMostRecentFirst(display);
@@ -68,7 +70,7 @@ class GameIndex extends Component {
 
 const mapStateToProps = (state) => {
     return {
-        games: getGameList(state.entities.games),
+        games: getGameList(selectGamesForCurrentSeason(state)),
         season: selectCurrentSeason(state),
         ready: !!state.entities.games,
     }
