@@ -35,7 +35,6 @@ export const selectCurrentSeason = createSelector(
     }
 );
 
-
 export const selectGamesForCurrentSeason = createSelector(
     [selectCurrentSeason, selectGames],
     (season, games) => {
@@ -43,7 +42,7 @@ export const selectGamesForCurrentSeason = createSelector(
         forOwn(games, (game, id) => {
             if (game.season === season) {
                 currentGames[id] = {
-                    id: id,
+                    id: parseInt(id, 10),
                     gameDetails: {
                         fixedWagerAmount: game.fixed_wager_amount,
                         eventName: game.event,
@@ -59,7 +58,6 @@ export const selectGamesForCurrentSeason = createSelector(
 export const selectTeamNamefromTeamSeasons = (teamseasons, id) => {
     return teamseasons[id].team;
 }
-
 
 export const selectParticipantsForCurrentSeason = createSelector(
     [selectGamesForCurrentSeason, selectParticipants],
