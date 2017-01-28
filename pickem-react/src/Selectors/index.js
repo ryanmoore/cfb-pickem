@@ -28,7 +28,7 @@ export const selectCurrentSeason = createSelector(
         forOwn(seasons, (season, id) => {
             if(season.year === year) {
                 output = parseInt(id, 10);
-                return false;
+                return false; // break out of the forOwn loop
             }
         });
         return output;

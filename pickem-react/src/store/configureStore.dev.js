@@ -15,6 +15,11 @@ import {
 import { createHistory } from 'history';
 import { useRouterHistory } from 'react-router';
 
+const middlewares = [thunkMiddleware, pickemAPIMiddleware, ];
+if(!process.env.testing) {
+    middlewares.push(createLogger());
+}
+
 const configureStore = preloadedState => {
 
     const composer = compose;
@@ -22,11 +27,9 @@ const configureStore = preloadedState => {
         basename: process.env.REACT_APP_SITE_BASENAME,
     });
     const initializedRouterMiddleware = routerMiddleware(browserHistory);
+    middlewares.push(initializedRouterMiddleware);
     const store = createStore(rootReducer,
-        composer(applyMiddleware(
-                thunkMiddleware, pickemAPIMiddleware, createLogger(),
-                initializedRouterMiddleware,
-            ),
+        composer(applyMiddleware(...middlewares),
             DevTools.instrument())
     );
     const history = syncHistoryWithStore(browserHistory, store);
