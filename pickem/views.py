@@ -13,7 +13,8 @@ from django.db.models import Max as DjangoMax
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.core.urlresolvers import reverse
 
-from pickem.models import Game, Selection, Participant, Wager, Winner, Season, Event, Team, TeamSeason
+from pickem.models import (Game, Selection, Participant, Wager, Winner, Season,
+                           Event, Team, TeamSeason, UserProgress)
 from collections import defaultdict, OrderedDict
 import pickem.serializers
 from rest_framework.views import APIView
@@ -56,6 +57,7 @@ class GameView(generic.DetailView):
     template_name = 'pickem/bowl.html'
 
 def pickem_started(reference_time, season):
+    # return False
     if settings.PICKEM_START_TIME.year != season.year:
         return True
     return reference_time >= settings.PICKEM_START_TIME
@@ -659,6 +661,22 @@ class WagerViewSet(viewsets.ModelViewSet):
     filter_class = WagerFilter
 
 
+class ProgressViewSet(viewsets.ViewSet):
+    def retrieve(self, request, pk):
+        wagers = list(Selection.objects.filter(participant__teamseason__season=pk))
+
+        counts = {}
+        for wager in wagers:
+            counts[wager.user] = counts.get(wager.user, 0) + 1
+
+        user_progress = [UserProgress(user.id, pk, count)
+                          for user, count in counts.items()]
+        serializer = pickem.serializers.UserProgressSerializer(
+            user_progress, many=True)
+
+        return Response(serializer.data)
+
+
 class MakePicksView(APIView):
     '''View to make pickem selections and change wagers
     '''
@@ -742,11 +760,5 @@ class MakePicksView(APIView):
             update_selection_or_create(request.user, participant)
         for wager, game in enumerate(games, start=1):
             update_wager_or_create(request.user, game, wager)
-
-        for game in games:
-            if game.id == 86:
-                for part in Participant.objects.filter(game=game):
-                    print(part)
-                    print(part.id)
 
         return Response()
