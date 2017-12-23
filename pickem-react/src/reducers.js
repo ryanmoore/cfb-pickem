@@ -184,6 +184,18 @@ const fetchState = (state = defaultFetchState, action) => {
                 selections: ActionTypes.FETCH_STATES.INVALIDATED,
                 wagers: ActionTypes.FETCH_STATES.INVALIDATED,
             };
+        case ActionTypes.PICKEM_API_PROGRESS_REQUEST:
+            return {...state,
+                progress: ActionTypes.FETCH_STATES.IN_PROGRESS
+            };
+        case ActionTypes.PICKEM_API_PROGRESS_FAILURE:
+            return {...state,
+                progress: ActionTypes.FETCH_STATES.FAILED
+            };
+        case ActionTypes.PICKEM_API_PROGRESS_SUCCESS:
+            return {...state,
+                progress: ActionTypes.FETCH_STATES.READY
+            };
         default:
             return state;
     }
