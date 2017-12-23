@@ -18,7 +18,7 @@ from pickem.models import (Game, Selection, Participant, Wager, Winner, Season,
 from collections import defaultdict, OrderedDict
 import pickem.serializers
 from rest_framework.views import APIView
-from rest_framework import viewsets
+from rest_framework import viewsets, mixins
 from rest_framework import permissions as rest_permissions
 from rest_framework.response import Response
 from rest_framework import exceptions as rest_exceptions
@@ -57,7 +57,6 @@ class GameView(generic.DetailView):
     template_name = 'pickem/bowl.html'
 
 def pickem_started(reference_time, season):
-    # return False
     if settings.PICKEM_START_TIME.year != season.year:
         return True
     return reference_time >= settings.PICKEM_START_TIME
@@ -661,20 +660,20 @@ class WagerViewSet(viewsets.ModelViewSet):
     filter_class = WagerFilter
 
 
-class ProgressViewSet(viewsets.ViewSet):
-    def retrieve(self, request, pk):
-        wagers = list(Selection.objects.filter(participant__teamseason__season=pk))
+class ProgressViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
+    permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly]
+    serializer_class = pickem.serializers.UserProgressSerializer
+    def get_queryset(self):
+        season = int(self.kwargs['season'])
+        wagers = list(Selection.objects.filter(participant__teamseason__season=season))
 
         counts = {}
         for wager in wagers:
             counts[wager.user] = counts.get(wager.user, 0) + 1
 
-        user_progress = [UserProgress(user.id, pk, count)
+        user_progress = [UserProgress(user.id, season, count)
                           for user, count in counts.items()]
-        serializer = pickem.serializers.UserProgressSerializer(
-            user_progress, many=True)
-
-        return Response(serializer.data)
+        return user_progress
 
 
 class MakePicksView(APIView):

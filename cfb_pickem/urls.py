@@ -19,7 +19,7 @@ router.register(r'participants', views.ParticipantViewSet)
 router.register(r'winners', views.WinnerViewSet)
 router.register(r'selections', views.SelectionViewSet, base_name='selection')
 router.register(r'wagers', views.WagerViewSet)
-router.register(r'progress', views.ProgressViewSet, base_name='progress')
+router.register(r'progress/(?P<season>\d+)', views.ProgressViewSet, base_name='progress')
 
 
 admin.autodiscover()
