@@ -32,9 +32,10 @@ class Command(BaseCommand):
         parser.add_argument('input-json',
                              type=str,
                              help='File containing bowl data')
-        parser.add_argument('start-date',
-                             type=str,
-                             help='Ignores all games before this .')
+        parser.add_argument(
+            'start-date',
+            help=('Ignores all games before this date: DAY-MONTH-YEAR'
+                  ' (e.g. 26-dec-2017)'))
         parser.add_argument('season',
                              type=int,
                              help='Year for this pickem')
@@ -51,10 +52,13 @@ class Command(BaseCommand):
         logging.info('Games after start date: {}'.format(len(data)))
 
         update_championship_teams(data)
+        start_date = parse_start_time(options['start-date'])
 
 
         with transaction.atomic():
-            season = Season.objects.get_or_create(year=options['season'])[0]
+            season = Season.objects.get_or_create(
+                year=options['season'],
+                defaults={'start_time': start_date})[0]
             for game in data:
                 if is_championship_game(game):
                     fixed_wager_amount = len(data)-1
@@ -71,12 +75,16 @@ def remove_earlier_games(data, start_date):
         else:
             print('Skipping too early game: {}'.format(game['Bowl Game']))
 
-def game_starts_before(game, start_date):
-    start_date = datetime.datetime.strptime(start_date, '%d-%b-%Y')
+
+def parse_start_time(start_time):
+    start_date = datetime.datetime.strptime(start_time, '%d-%b-%Y')
     start_date = django_timezone.make_aware(start_date, django_timezone.get_current_timezone())
-    kickoff = parse_datetime(game['Date'], game['Time (EST)'])
-    print(kickoff)
-    print(start_date)
+    return start_date
+
+
+def game_starts_before(game, start_date):
+    start_date = parse_start_time(start_date)
+    kickoff = parse_datetime(game)
     title = game['Bowl Game'].title()
     if kickoff is None or kickoff < start_date:
         return True
@@ -88,7 +96,7 @@ def add_game(game, options, fixed_wager_amount, season):
     start_date = options['start-date']
     start_date = datetime.datetime.strptime(start_date, '%d-%b-%Y')
     start_date = django_timezone.make_aware(start_date, django_timezone.get_current_timezone())
-    kickoff = parse_datetime(game['Date'], game['Time (EST)'])
+    kickoff = parse_datetime(game)
     title = game['Bowl Game'].title()
     if kickoff is None:
         logger.warning('Skipping finished game: {}'.format(title))
@@ -124,17 +132,10 @@ def add_game(game, options, fixed_wager_amount, season):
         if not dry_run:
             part.save()
 
-def parse_datetime(date, time):
+def parse_datetime(game):
     '''Decodes the expected datetime string into a datetime object
     '''
-    #date_format = '%b. %d, %Y | %I:%M %p %Z'
-    date_format = '%b. %d %I:%M%p'
-    kickoff = '{} {}'.format(date, time)
-    result = datetime.datetime.strptime(kickoff, date_format)
-    if result.month == 12:
-        result = result.replace(year=2016)
-    else:
-        result = result.replace(year=2017)
+    result = datetime.datetime.strptime(game['Date'], game['DateFormat'])
     return django_timezone.make_aware(result,
                                       django_timezone.get_current_timezone())
 
@@ -168,7 +169,7 @@ def update_championship_teams(data):
     for game in data:
         if is_championship_game(game):
             print('Registering playoff teams for: {}'.format(game['Bowl Game']))
-            assert game['Team 1'] == ''
+            assert not game.get('Team 1')
             game['Team 1'] = playoff_teams[0]
-            assert game['Team 2'] == ''
+            assert not game.get('Team 2')
             game['Team 2'] = playoff_teams[1]
