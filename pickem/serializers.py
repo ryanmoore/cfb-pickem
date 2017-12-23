@@ -86,6 +86,7 @@ class WagerSerializer(serializers.ModelSerializer):
 
 
 class UserProgressSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
     user = serializers.IntegerField()
     season = serializers.IntegerField()
     pick_count = serializers.IntegerField()

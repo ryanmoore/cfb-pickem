@@ -108,6 +108,7 @@ class Wager(models.Model):
 class UserProgress(object):
     """A computed object of a given users pick count for a given season"""
     def __init__(self, user, season, pick_count):
+        self.id = user
         self.user = user
         self.season = season
         self.pick_count = pick_count
