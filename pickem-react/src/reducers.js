@@ -219,7 +219,7 @@ const setCurrentSeason = (state = 4, action) => {
     return state;
 }
 
-const setCurrentYear = (state = 2016, action) => {
+const setCurrentYear = (state = 2017, action) => {
     switch(action.type) {
         case ActionTypes.SET_SELECTED_SEASON:
             return action.year;

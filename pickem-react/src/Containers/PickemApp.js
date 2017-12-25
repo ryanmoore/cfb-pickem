@@ -90,7 +90,7 @@ class PickemApp extends Component {
     }
     render() {
         const yearMaybe = this.props.year;
-        const year = yearMaybe ? yearMaybe : 2016;
+        const year = yearMaybe ? yearMaybe : 2017;
         return (
             <div>
                 <Navbar bsStyle='default' fixedTop collapseOnSelect >

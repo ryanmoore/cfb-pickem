@@ -18,7 +18,7 @@ import ViewHistoryPage from './Containers/ViewHistoryPage';
 
 export default (
     <Route path='/' component={PickemApp} >
-        <IndexRedirect to='/2016/index' />
+        <IndexRedirect to='/2017/index' />
         <Route path='login' component={UserIsNotAuthenticated(LoginPage)} />
         <Route path='logout' component={UserIsAuthenticated(LogoutPage)} />
         <Route path='history' component={ViewHistoryPage} />
