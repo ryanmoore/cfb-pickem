@@ -1,4 +1,17 @@
 ''' Reads json of games from a file and adds them to the database
+Expected format for each game:
+    {
+        'Bowl Game' : name,
+        'Team 1': name,
+        'Team 2': name,
+        'Network' : name,
+        'Time (EST)': 'hh:mm(am|pm)',
+        'Date' : 'M dd'
+    }
+
+Optional fields are "Championship" which if true indicates the game is the
+final one and "Playoff" which if true indicates the game is one of the two
+semi-final games
 '''
 from django.core.management.base import BaseCommand, CommandError
 from pickem.models import Event, Game, Team, Participant, Season, TeamSeason
@@ -25,10 +38,6 @@ class Command(BaseCommand):
             action='store_true',
             default=False,
             help='Walk through data and do all actions except commit')
-        # Expected format for each game:
-        # { 'Bowl Game' : name, 'Team 1': name, 'Team 2': name,
-        #     'Network' : name, 'Time (EST)': 'hh:mm(am|pm)',
-        #     'Date' : 'M dd' }
         parser.add_argument('input-json',
                              type=str,
                              help='File containing bowl data')
@@ -64,12 +73,14 @@ class Command(BaseCommand):
         if not options['dry_run']:
             season.save()
 
+
 def remove_earlier_games(data, start_date):
     for game in data:
         if not game_starts_before(game, start_date):
             yield game
         else:
             print('Skipping too early game: {}'.format(game['Bowl Game']))
+
 
 def game_starts_before(game, start_date):
     start_date = datetime.datetime.strptime(start_date, '%d-%b-%Y')
@@ -80,6 +91,7 @@ def game_starts_before(game, start_date):
     title = game['Bowl Game'].title()
     if kickoff is None or kickoff < start_date:
         return True
+
 
 def add_game(game, options, fixed_wager_amount, season):
     ''' Parses game data from json object and adds to database
@@ -156,11 +168,14 @@ def find_playoff_teams(data):
         teams.append('{}/{}'.format(game['Team 1'], game['Team 2']))
     return teams
 
+
 def is_championship_game(game):
     return game.get('Championship', False)
 
+
 def is_semifinal_game(game):
     return game.get('Playoff', False)
+
 
 def update_championship_teams(data):
     playoff_teams = find_playoff_teams(data)
