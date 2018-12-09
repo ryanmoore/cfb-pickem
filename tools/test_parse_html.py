@@ -1,7 +1,7 @@
 from unittest import mock
 from hamcrest import *
 import pytest
-import read_html_2017
+import parse_html
 
 
 def test_extract_date():
@@ -12,7 +12,7 @@ def test_extract_date():
 
     row = {'Date': date, 'Kickoff (ET)': kickoff}
 
-    result = read_html_2017.extract_date(row, 2018)
+    result = parse_html.extract_date(row, 2018)
 
     expected = '2018-12-15T13:30:00'
 
@@ -29,5 +29,5 @@ dates_needing_normalizing = [
 def test_extract_date_str_handles_non_traditional_day_abbrev(
         date_str, expected):
 
-    result = read_html_2017.extract_date_from_str(date_str, 2018)
+    result = parse_html.extract_date_from_str(date_str, 2018)
     assert_that(expected, equal_to(result))
