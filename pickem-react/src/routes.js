@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    BrowserRouter as Router,
     Route,
 } from 'react-router-dom';
 import ViewPicksPage from './Containers/ViewPicksPage';
@@ -16,6 +17,7 @@ import YearSelector from './Containers/YearSelector';
 import ViewHistoryPage from './Containers/ViewHistoryPage';
 
 export default (
+    <Router>
     <Route path='/' component={PickemApp} >
         {/* <NavRedirect to='/2017/index' /> */}
         <Route path='login' component={UserIsNotAuthenticated(LoginPage)} />
@@ -34,4 +36,5 @@ export default (
         {/* Make sure this route is last */}
         <Route path='*' component={PageNotFound} />
     </Route>
+    </Router>
 );
