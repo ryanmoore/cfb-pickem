@@ -5,14 +5,12 @@
     of relevant information as json.
 """
 
-import sys
 import argparse
-from collections import namedtuple
 import json
-import urllib.request
 import datetime
 import logging
 import re
+import sys
 from bs4 import BeautifulSoup
 
 HEADER_MAPPING = [
@@ -31,41 +29,12 @@ PLAYOFF_BOWLS = ['Orange Bowl', 'Cotton Bowl']
 
 OUTPUT_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
-def main(argv):
-    '''Load config, grab all data, write json'''
-    logging.basicConfig(level=logging.DEBUG)
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('input')
-    parser.add_argument('output')
-    parser.add_argument('--count',
-            type=int,
-            default=35, help='Expected number of games')
-    parser.add_argument('--treat-dec-as',
-            type=int,
-            default=None,
-            help='Infer that december is in this year (default is current year)')
-
-    args = parser.parse_args(args=argv[1:])
-    if args.treat_dec_as is None:
-        args.treat_dec_as = datetime.date.today().year
-
-    soup = BeautifulSoup(open(args.input), 'lxml')
-    bowl_table = find_bowl_table(soup)
-
-    if not bowl_table:
-        logging.error('Failed to find bowl table on page')
-        return 1
-
-    game_info = parse_table(bowl_table, args.treat_dec_as)
-    logging.info('Found {} games.'.format(len(game_info)))
-    verify(game_info)
-    write_data(args.output, game_info)
-    return 0
-
 
 def verify(game_info):
     prefix = 'VERIFIED: '
-    log = lambda x: logging.info('%s%s', prefix, x)
+
+    def log(verification):
+        logging.info('%s%s', prefix, verification)
     championship_found = any(game['Championship'] for game in game_info)
     assert championship_found
     log('Championship Game found')
@@ -137,8 +106,10 @@ def parse_bowl_and_location(row):
     text = list(element.children)[-1]
     match = re.match(BOWL_LOCATION_REGEX, text)
     if not match:
-        logging.error('Failed to parse "Bowl (Location)". Dropping into debugger')
-        import ipdb; ipdb.set_trace()
+        logging.error(
+            'Failed to parse "Bowl (Location)". Dropping into debugger')
+        import ipdb
+        ipdb.set_trace()
     return match.group('bowl_name'), match.group('location')
 
 
@@ -255,6 +226,39 @@ def write_data(filename, raw_data):
     logging.info('Wrote {}'.format(filename))
 
 
+def main(argv):
+    '''Load config, grab all data, write json'''
+    logging.basicConfig(level=logging.DEBUG)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('input')
+    parser.add_argument('output')
+    parser.add_argument('--count',
+                        type=int,
+                        default=35,
+                        help='Expected number of games')
+    parser.add_argument('--treat-dec-as',
+                        type=int,
+                        default=None,
+                        help=('Infer that december is in this year'
+                              ' (default is current year)'))
+
+    args = parser.parse_args(args=argv[1:])
+    if args.treat_dec_as is None:
+        args.treat_dec_as = datetime.date.today().year
+
+    soup = BeautifulSoup(open(args.input), 'lxml')
+    bowl_table = find_bowl_table(soup)
+
+    if not bowl_table:
+        logging.error('Failed to find bowl table on page')
+        return 1
+
+    game_info = parse_table(bowl_table, args.treat_dec_as)
+    logging.info('Found {} games.'.format(len(game_info)))
+    verify(game_info)
+    write_data(args.output, game_info)
+    return 0
+
+
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
-
