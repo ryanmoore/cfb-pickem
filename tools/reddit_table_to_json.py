@@ -3,6 +3,9 @@
 """
     Parses an html page holding game information. Creates summary
     of relevant information as json.
+
+    2018 downloaded with:
+        $ curl -X GET https://old.reddit.com/r/CFB/comments/a1cuvj/bowl_game_matchup_thread/ -o ./reddit_bowl_list_2018.html -H "User-Agent: Mozilla/5.0"
 """
 
 import sys
