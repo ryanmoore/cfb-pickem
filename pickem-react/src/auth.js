@@ -1,39 +1,41 @@
 
-import { UserAuthWrapper } from 'redux-auth-wrapper';
+import { 
+    connectedReduxRedirect ,
+} from 'redux-auth-wrapper/history4/redirect';
+import connectedAuthWrapper from 'redux-auth-wrapper/connectedAuthWrapper';
 import { routerActions } from 'react-router-redux';
 
 const authSelector = (state) => state.auth;
 
-export const UserIsAuthenticated = UserAuthWrapper({
-    authSelector,
+export const UserIsAuthenticated = connectedReduxRedirect({
+    authenticatedSelector: authSelector,
     redirectAction: routerActions.replace,
+    redirectPath: '/login',
     wrapperDisplayName: 'UserIsAuthenticated',
 });
 
-export const UserIsNotAuthenticated = UserAuthWrapper({
-    authSelector,
+export const UserIsNotAuthenticated = connectedReduxRedirect({
+    authenticatedSelector: authSelector,
     redirectAction: routerActions.replace,
     wrapperDisplayName: 'UserIsNotAuthenticated',
     predicate: auth => (typeof(auth.user) === 'undefined'),
-    failureRedirectPath: (state, ownProps) => ownProps.location.query.redirect || '/',
+    redirectPath: '/',
     allowRedirectBack: false,
 });
 
-export const VisibleWhenAuth = UserAuthWrapper({
-    authSelector,
+export const VisibleWhenAuth = connectedAuthWrapper({
+    authenticatedSelector: authSelector,
     wrapperDisplayName: 'VisibleWhenAuth',
-    FailureComponent: null,
 });
 
-export const UserIsAuthOrElse = (Component, FailureComponent) => UserAuthWrapper({
-    authSelector,
+export const UserIsAuthOrElse = (Component, FailureComponent) => connectedAuthWrapper({
+    authenticatedSelector: authSelector,
     wrapperDisplayName: 'UserIsAuthOrElse',
     FailureComponent,
 })(Component);
 
-export const VisibleWhenSuperuser = UserAuthWrapper({
-    authSelector,
+export const VisibleWhenSuperuser = connectedAuthWrapper({
+    authenticatedSelector: authSelector,
     wrapperDisplayName: 'VisibleWhenSuperuser',
-    FailureComponent: null,
     predicate: auth => auth.user && auth.user.is_superuser,
 });

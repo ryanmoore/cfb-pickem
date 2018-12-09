@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -8,13 +9,13 @@ import ScoreTableRow from '../Components/ScoresTableRow';
 
 export default class ScoresTable extends Component {
     static propTypes = {
-        scores: React.PropTypes.arrayOf(
-            React.PropTypes.shape({
-                username: React.PropTypes.string.isRequired,
-                score: React.PropTypes.number.isRequired,
-                remaining: React.PropTypes.number.isRequired,
-                achievedPercent: React.PropTypes.number.isRequired,
-                remainderPercent: React.PropTypes.number.isRequired,
+        scores: PropTypes.arrayOf(
+            PropTypes.shape({
+                username: PropTypes.string.isRequired,
+                score: PropTypes.number.isRequired,
+                remaining: PropTypes.number.isRequired,
+                achievedPercent: PropTypes.number.isRequired,
+                remainderPercent: PropTypes.number.isRequired,
             })
         ).isRequired,
     };

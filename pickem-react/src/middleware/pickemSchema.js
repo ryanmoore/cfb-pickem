@@ -1,15 +1,14 @@
 // The schema expected from pickem API
 import {
-    Schema,
-    arrayOf,
+    schema,
 } from 'normalizr';
 
-const season = new Schema('seasons');
+const season = new schema.Entity('seasons');
 
 // Events are poorly designed server side since their PK is the event name
 // which can have dots and spaces. We don't need to normalize them for now,
 // so we will just pull out the name
-const gameSchema = new Schema('games', {
+const gameSchema = new schema.Entity('games', {
     assignEntity: (output, key, value, input) => {
         if(key === 'event') {
             output[key] = input[key].name;
@@ -21,16 +20,16 @@ gameSchema.define({
     season: season,
 });
 
-const userSchema = new Schema('users');
-const participantSchema = new Schema('participants');
-const teamseasonSchema = new Schema('teamseasons');
-const wagerSchema = new Schema('wagers');
-const selectionSchema = new Schema('selections');
-const winnerSchema= new Schema('winners');
-const authTokenSchema = new Schema('auth');
-const submitResponseSchema = new Schema('submit');
-const seasonSchema = new Schema('seasons');
-const progressSchema = new Schema('progress');
+const userSchema = new schema.Entity('users');
+const participantSchema = new schema.Entity('participants');
+const teamseasonSchema = new schema.Entity('teamseasons');
+const wagerSchema = new schema.Entity('wagers');
+const selectionSchema = new schema.Entity('selections');
+const winnerSchema= new schema.Entity('winners');
+const authTokenSchema = new schema.Entity('auth');
+const submitResponseSchema = new schema.Entity('submit');
+const seasonSchema = new schema.Entity('seasons');
+const progressSchema = new schema.Entity('progress');
 
 participantSchema.define({
     teamseason: teamseasonSchema,
@@ -60,24 +59,24 @@ progressSchema.define({
 
 const Schemas = {
     GAME: gameSchema,
-    GAME_ARRAY: arrayOf(gameSchema),
+    GAME_ARRAY: new schema.Array(gameSchema),
     USER: userSchema,
-    USER_ARRAY: arrayOf(userSchema),
+    USER_ARRAY: new schema.Array(userSchema),
     PARTICIPANT: participantSchema,
-    PARTICIPANT_ARRAY: arrayOf(participantSchema),
+    PARTICIPANT_ARRAY: new schema.Array(participantSchema),
     TEAMSEASON: teamseasonSchema,
-    TEAMSEASON_ARRAY: arrayOf(teamseasonSchema),
+    TEAMSEASON_ARRAY: new schema.Array(teamseasonSchema),
     SELECTION: selectionSchema,
-    SELECTION_ARRAY: arrayOf(selectionSchema),
+    SELECTION_ARRAY: new schema.Array(selectionSchema),
     WAGER: wagerSchema,
-    WAGER_ARRAY: arrayOf(wagerSchema),
+    WAGER_ARRAY: new schema.Array(wagerSchema),
     WINNER: winnerSchema,
-    WINNER_ARRAY: arrayOf(winnerSchema),
+    WINNER_ARRAY: new schema.Array(winnerSchema),
     SEASON: seasonSchema,
-    SEASON_ARRAY: arrayOf(seasonSchema),
+    SEASON_ARRAY: new schema.Array(seasonSchema),
     AUTH_TOKEN_RESPONSE: authTokenSchema,
     SUBMIT_RESPONSE: submitResponseSchema,
-    PROGRESS_ARRAY: arrayOf(progressSchema),
+    PROGRESS_ARRAY: new schema.Array(progressSchema),
 };
 
 export default Schemas;

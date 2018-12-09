@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -20,13 +21,13 @@ import LoadingSpinner from '../Components/LoadingSpinner';
 
 class YearSelector extends Component {
     static propTypes = {
-        params: React.PropTypes.shape({
-            year: React.PropTypes.string.isRequired,
+        params: PropTypes.shape({
+            year: PropTypes.string.isRequired,
         }),
-        dispatch: React.PropTypes.func.isRequired,
-        children: React.PropTypes.node,
-        selectedYear: React.PropTypes.number,
-        selectedSeason: React.PropTypes.number,
+        dispatch: PropTypes.func.isRequired,
+        children: PropTypes.node,
+        selectedYear: PropTypes.number,
+        selectedSeason: PropTypes.number,
     }
 
     componentDidMount() {

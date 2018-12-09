@@ -1,6 +1,7 @@
 import React, {
     Component
 } from 'react';
+import PropTypes from 'prop-types';
 import {
     connect
 } from 'react-redux';
@@ -40,10 +41,10 @@ const getGameList = (games) => {
 
 class GameIndex extends Component {
     static propTypes = {
-        dispatch: React.PropTypes.func.isRequired,
-        season: React.PropTypes.number.isRequired,
-        games: React.PropTypes.array.isRequired,
-        ready: React.PropTypes.bool.isRequired,
+        dispatch: PropTypes.func.isRequired,
+        season: PropTypes.number.isRequired,
+        games: PropTypes.array.isRequired,
+        ready: PropTypes.bool.isRequired,
     }
 
     componentDidMount() {

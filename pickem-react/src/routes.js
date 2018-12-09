@@ -1,8 +1,7 @@
 import React from 'react';
 import {
-    IndexRedirect,
     Route,
-} from 'react-router';
+} from 'react-router-dom';
 import ViewPicksPage from './Containers/ViewPicksPage';
 import PickemApp from './Containers/PickemApp';
 import GameIndex from './Containers/GameIndex';
@@ -18,12 +17,12 @@ import ViewHistoryPage from './Containers/ViewHistoryPage';
 
 export default (
     <Route path='/' component={PickemApp} >
-        <IndexRedirect to='/2017/index' />
+        {/* <NavRedirect to='/2017/index' /> */}
         <Route path='login' component={UserIsNotAuthenticated(LoginPage)} />
         <Route path='logout' component={UserIsAuthenticated(LogoutPage)} />
         <Route path='history' component={ViewHistoryPage} />
         <Route path='/:year' component={YearSelector}>
-            <IndexRedirect to='index' />
+            {/* <NavRedirect to='index' /> */}
             <Route path='index' component={GameIndex} />
             <Route path='makepicks' component={UserIsAuthenticated(MakePicksPage)} />
             <Route path='picks' component={ViewPicksPage} />

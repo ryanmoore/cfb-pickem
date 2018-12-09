@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -58,7 +59,7 @@ import ScoresTable from './ScoresTable';
 
 export default class ScoresPage extends Component {
     static propTypes = {
-        scores: React.PropTypes.array,
+        scores: PropTypes.array,
     };
 
     render() {

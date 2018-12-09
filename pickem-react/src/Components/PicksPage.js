@@ -1,6 +1,7 @@
 import React, {
     Component
 } from 'react';
+import PropTypes from 'prop-types';
 import {
     Row,
     Col,
@@ -13,18 +14,18 @@ import moment from 'moment';
 
 class PicksCol extends Component {
     static propTypes = {
-        picks: React.PropTypes.arrayOf(
-            React.PropTypes.shape({
-                username: React.PropTypes.string.isRequired,
-                wager: React.PropTypes.number.isRequired,
+        picks: PropTypes.arrayOf(
+            PropTypes.shape({
+                username: PropTypes.string.isRequired,
+                wager: PropTypes.number.isRequired,
             })),
-        teamName: React.PropTypes.string.isRequired,
-        left: React.PropTypes.bool.isRequired,
-        winner: React.PropTypes.bool.isRequired,
-        decided: React.PropTypes.bool.isRequired,
-        admin: React.PropTypes.bool,
-        AdminButton: React.PropTypes.node,
-        participantId: React.PropTypes.number.isRequired,
+        teamName: PropTypes.string.isRequired,
+        left: PropTypes.bool.isRequired,
+        winner: PropTypes.bool.isRequired,
+        decided: PropTypes.bool.isRequired,
+        admin: PropTypes.bool,
+        AdminButton: PropTypes.node,
+        participantId: PropTypes.number.isRequired,
     }
     render() {
         const {
@@ -77,8 +78,8 @@ class PicksCol extends Component {
 
 class GameDetail extends Component {
     static propTypes = {
-        name: React.PropTypes.string.isRequired,
-        date: React.PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        date: PropTypes.string.isRequired,
     };
     render() {
         const {
@@ -95,21 +96,21 @@ class GameDetail extends Component {
 
 class PicksRow extends Component {
     static propTypes = {
-        left: React.PropTypes.shape({
-            picks: React.PropTypes.array.isRequired,
-            teamName: React.PropTypes.string.isRequired,
+        left: PropTypes.shape({
+            picks: PropTypes.array.isRequired,
+            teamName: PropTypes.string.isRequired,
         }).isRequired,
-        right: React.PropTypes.shape({
-            picks: React.PropTypes.array.isRequired,
-            teamName: React.PropTypes.string.isRequired,
+        right: PropTypes.shape({
+            picks: PropTypes.array.isRequired,
+            teamName: PropTypes.string.isRequired,
         }).isRequired,
-        gameDetails: React.PropTypes.shape({
-            eventName: React.PropTypes.string.isRequired,
-            date: React.PropTypes.instanceOf(Date).isRequired,
+        gameDetails: PropTypes.shape({
+            eventName: PropTypes.string.isRequired,
+            date: PropTypes.instanceOf(Date).isRequired,
         }).isRequired,
-        winner: React.PropTypes.number,
-        admin: React.PropTypes.bool,
-        AdminButton: React.PropTypes.node,
+        winner: PropTypes.number,
+        admin: PropTypes.bool,
+        AdminButton: PropTypes.node,
     }
     render() {
         const {
@@ -147,15 +148,15 @@ class PicksRow extends Component {
 
 class PicksPage extends Component {
     static propTypes = {
-        matchupPicks: React.PropTypes.arrayOf(React.PropTypes.shape({
-            left: React.PropTypes.any.isRequired,
-            right: React.PropTypes.any.isRequired,
-            gameDetails: React.PropTypes.any.isRequired,
-            id: React.PropTypes.number.isRequired,
-            winner: React.PropTypes.number,
+        matchupPicks: PropTypes.arrayOf(PropTypes.shape({
+            left: PropTypes.any.isRequired,
+            right: PropTypes.any.isRequired,
+            gameDetails: PropTypes.any.isRequired,
+            id: PropTypes.number.isRequired,
+            winner: PropTypes.number,
         })).isRequired,
-        admin: React.PropTypes.bool,
-        AdminButton: React.PropTypes.node,
+        admin: PropTypes.bool,
+        AdminButton: PropTypes.node,
     };
     render() {
         const {

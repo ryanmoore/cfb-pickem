@@ -1,4 +1,5 @@
-import React, { Component, PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React, { Component } from 'react';
 import { Button, Row, Col, Glyphicon } from 'react-bootstrap';
 
 import { DropTarget, DragSource } from 'react-dnd';
@@ -189,7 +190,8 @@ class Matchup extends Component {
             left,
             right,
             makePick,
-            preview } = this.props;
+            preview,
+            name } = this.props;
         const identity = elt => elt;
         const connectHandle = this.props.connectHandle || identity;
         // The whole object is the target and serves as the

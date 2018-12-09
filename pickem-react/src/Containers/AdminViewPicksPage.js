@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -13,9 +14,9 @@ import './AdminViewPicksPage.css';
 
 class AdminAddWinnerButton extends Component {
     static propTypes = {
-        id: React.PropTypes.number.isRequired,
-        onClick: React.PropTypes.func.isRequired,
-        left: React.PropTypes.bool.isRequired,
+        id: PropTypes.number.isRequired,
+        onClick: PropTypes.func.isRequired,
+        left: PropTypes.bool.isRequired,
     }
 
     constructor(props) {

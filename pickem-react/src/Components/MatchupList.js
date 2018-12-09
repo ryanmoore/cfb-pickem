@@ -1,4 +1,5 @@
 
+import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import Matchup, { DragableMatchup } from './Matchup';
 import { Row, Col } from 'react-bootstrap';
@@ -19,19 +20,19 @@ const extractPicksFromMatchups = (matchups) => {
 class MatchupList extends Component {
 
     static propTypes = {
-        wageredMatchups: React.PropTypes.arrayOf(React.PropTypes.shape({
-            id: React.PropTypes.number.isRequired,
-            name: React.PropTypes.string.isRequired,
-            left: React.PropTypes.object.isRequired,
-            right: React.PropTypes.object.isRequired,
+        wageredMatchups: PropTypes.arrayOf(PropTypes.shape({
+            id: PropTypes.number.isRequired,
+            name: PropTypes.string.isRequired,
+            left: PropTypes.object.isRequired,
+            right: PropTypes.object.isRequired,
         })).isRequired,
-        fixedMatchups: React.PropTypes.array.isRequired,
-        previewIndex: React.PropTypes.number,
-        moveMatchup: React.PropTypes.func.isRequired,
-        setPreview: React.PropTypes.func.isRequired,
-        makePick: React.PropTypes.func.isRequired,
-        setInitialMatchupOrdering: React.PropTypes.func.isRequired,
-        setInitialPicks: React.PropTypes.func.isRequired,
+        fixedMatchups: PropTypes.array.isRequired,
+        previewIndex: PropTypes.number,
+        moveMatchup: PropTypes.func.isRequired,
+        setPreview: PropTypes.func.isRequired,
+        makePick: PropTypes.func.isRequired,
+        setInitialMatchupOrdering: PropTypes.func.isRequired,
+        setInitialPicks: PropTypes.func.isRequired,
     };
 
     constructor(props) {

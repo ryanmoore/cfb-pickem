@@ -46,3 +46,24 @@ If you have the Django server running, you should be ready to launch from that f
 ```sh
     npm start
 ```
+
+2018 Updates
+============
+
+Trying to update a bunch of packages. Install yarn:
+
+https://yarnpkg.com/en/docs/install#debian-stable
+
+
+and we're using nvm, so:
+
+```
+sudo apt-get update && sudo apt-get install --no-install-recommends yarn
+```
+
+
+Updated node as well:
+
+```
+nvm install stable
+```

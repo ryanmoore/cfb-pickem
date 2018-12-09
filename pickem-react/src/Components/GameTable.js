@@ -1,6 +1,7 @@
 import React, {
     Component
 } from 'react';
+import PropTypes from 'prop-types';
 import {
     Table,
     Grid,
@@ -9,8 +10,8 @@ import moment from 'moment';
 
 class GameRow extends Component {
     static propTypes = {
-        name: React.PropTypes.string.isRequired,
-        date: React.PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        date: PropTypes.string.isRequired,
     };
 
     render() {
@@ -29,11 +30,11 @@ class GameRow extends Component {
 
 class GameTable extends Component {
     static propTypes = {
-        games: React.PropTypes.arrayOf(
-            React.PropTypes.shape({
-                id: React.PropTypes.any,
-                name: React.PropTypes.string,
-                date: React.PropTypes.instanceOf(Date),
+        games: PropTypes.arrayOf(
+            PropTypes.shape({
+                id: PropTypes.any,
+                name: PropTypes.string,
+                date: PropTypes.instanceOf(Date),
             })
         )
     };

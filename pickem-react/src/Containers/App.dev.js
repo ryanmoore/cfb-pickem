@@ -13,14 +13,14 @@ import routes from '../routes';
 import configureStore from '../store/configureStore';
 import DevTools from './DevTools';
 
-let { store, history } = configureStore();
+let { store } = configureStore();
 
 class App extends Component {
     render() {
         return (
             <Provider store={store}>
                 <div>
-                    <Router history={history} routes={ routes } />
+                    {/* <Router history={history} routes={ routes } /> */}
                     <DevTools />
                 </div>
             </Provider>

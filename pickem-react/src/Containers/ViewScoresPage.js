@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -63,11 +64,11 @@ const progressDataIsReady = (state, season) => {
 
 class ViewProgressPage extends Component {
     static propTypes = {
-        dispatch: React.PropTypes.func.isRequired,
-        season: React.PropTypes.number.isRequired,
-        progress: React.PropTypes.array.isRequired,
-        loading: React.PropTypes.bool.isRequired,
-        startTime: React.PropTypes.object.isRequired,
+        dispatch: PropTypes.func.isRequired,
+        season: PropTypes.number.isRequired,
+        progress: PropTypes.array.isRequired,
+        loading: PropTypes.bool.isRequired,
+        startTime: PropTypes.object.isRequired,
     }
 
     componentDidMount() {
@@ -100,10 +101,10 @@ class ViewProgressPage extends Component {
 
 class ViewStartedScoresPage extends Component {
     static propTypes = {
-        dispatch: React.PropTypes.func.isRequired,
-        season: React.PropTypes.number.isRequired,
-        scores: React.PropTypes.array.isRequired,
-        loading: React.PropTypes.bool.isRequired,
+        dispatch: PropTypes.func.isRequired,
+        season: PropTypes.number.isRequired,
+        scores: PropTypes.array.isRequired,
+        loading: PropTypes.bool.isRequired,
     }
 
     componentDidMount() {
@@ -136,12 +137,12 @@ class ViewStartedScoresPage extends Component {
 
 class ViewScoresPage extends Component {
     static propTypes = {
-        dispatch: React.PropTypes.func.isRequired,
-        season: React.PropTypes.number.isRequired,
-        scores: React.PropTypes.array.isRequired,
-        progress: React.PropTypes.array.isRequired,
-        loading: React.PropTypes.bool.isRequired,
-        startTime: React.PropTypes.object.isRequired
+        dispatch: PropTypes.func.isRequired,
+        season: PropTypes.number.isRequired,
+        scores: PropTypes.array.isRequired,
+        progress: PropTypes.array.isRequired,
+        loading: PropTypes.bool.isRequired,
+        startTime: PropTypes.object.isRequired
     }
 
     componentDidMount() {

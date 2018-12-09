@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -14,12 +15,12 @@ import './LoginForm.css';
 
 export default class LoginForm extends Component {
     static propTypes = {
-            usernameOnChange: React.PropTypes.func.isRequired,
-            passwordOnChange: React.PropTypes.func.isRequired,
-            onSubmit: React.PropTypes.func.isRequired,
-            usernameFieldValue: React.PropTypes.string,
-            passwordFieldValue: React.PropTypes.string,
-            maybeErrors: React.PropTypes.node,
+            usernameOnChange: PropTypes.func.isRequired,
+            passwordOnChange: PropTypes.func.isRequired,
+            onSubmit: PropTypes.func.isRequired,
+            usernameFieldValue: PropTypes.string,
+            passwordFieldValue: PropTypes.string,
+            maybeErrors: PropTypes.node,
         }
         // TODO: old username input had fields 'required' and 'autofocus'
         // Those needed here?

@@ -1,6 +1,7 @@
 import React, {
     Component
 } from 'react';
+import PropTypes from 'prop-types';
 import {
     Nav,
     Navbar,
@@ -13,8 +14,8 @@ import {
     IndexLinkContainer,
 } from 'react-router-bootstrap';
 import {
-    IndexLink,
-} from 'react-router';
+    NavLink,
+} from 'react-router-dom';
 import {
     DragDropContext
 } from 'react-dnd';
@@ -33,12 +34,12 @@ import {
 import {
     selectCurrentYear,
 } from '../Selectors';
-import logo from '../../assets/brand/logo/pickem-logo-cropped-transparent.png';
+import logo from '../assets/brand/logo/pickem-logo-cropped-transparent.png';
 import './PickemApp.css';
 
 class UserGreeting extends Component {
     static propTypes = {
-        name: React.PropTypes.string,
+        name: PropTypes.string,
     };
     render() {
         const {
@@ -62,8 +63,8 @@ const LoginOrOutLink = UserIsAuthOrElse(LogoutLink, LoginLink);
 
 class AdminMenu extends Component {
     static propTypes = {
-        baseKey: React.PropTypes.number.isRequired,
-        year: React.PropTypes.number.isRequired,
+        baseKey: PropTypes.number.isRequired,
+        year: PropTypes.number.isRequired,
     };
 
     render() {
@@ -85,8 +86,8 @@ const AdminNavItem = VisibleWhenSuperuser((props) => (
 
 class PickemApp extends Component {
     static propTypes = {
-        children: React.PropTypes.node,
-        year: React.PropTypes.number,
+        children: PropTypes.node,
+        year: PropTypes.number,
     }
     render() {
         const yearMaybe = this.props.year;
@@ -96,9 +97,9 @@ class PickemApp extends Component {
                 <Navbar bsStyle='default' fixedTop collapseOnSelect >
                     <Navbar.Header>
                         <Navbar.Brand className='pickem-logo'>
-                            <IndexLink to={'/'}>
+                            <NavLink to={'/'}>
                                 <img className='pickem-logo-img' src={logo} alt='Pickem'/>
-                            </IndexLink>
+                            </NavLink>
                         </Navbar.Brand>
                         <Navbar.Text className='pickem-navbar-year'>
                             {year}

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -13,8 +14,8 @@ import moment from 'moment';
 
 export default class PickProgressPage extends Component {
     static propTypes = {
-        progress: React.PropTypes.array.isRequired,
-        startTime: React.PropTypes.object.isRequired,
+        progress: PropTypes.array.isRequired,
+        startTime: PropTypes.object.isRequired,
     };
 
     render() {

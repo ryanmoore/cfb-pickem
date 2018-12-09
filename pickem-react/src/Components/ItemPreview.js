@@ -1,5 +1,6 @@
 
-import React, { PropTypes, Component }  from 'react';
+import PropTypes from 'prop-types';
+import React, { Component } from 'react';
 import DragLayer from 'react-dnd/lib/DragLayer';
 
 const layerStyles = {

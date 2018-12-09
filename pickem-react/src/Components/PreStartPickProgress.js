@@ -1,6 +1,7 @@
 import React, {
     Component
 } from 'react';
+import PropTypes from 'prop-types';
 import {
     Grid,
     Row,
@@ -11,7 +12,7 @@ import moment from 'moment';
 
 export default class PreStartPickProgress extends Component {
     static propTypes = {
-        startTime: React.PropTypes.object.isRequired,
+        startTime: PropTypes.object.isRequired,
     };
     render() {
         const {

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -10,11 +11,11 @@ import './PickProgressTableRow.css';
 
 export default class ScoresTableRow extends Component {
     static propTypes = {
-        id: React.PropTypes.number.isRequired,
-        username: React.PropTypes.string.isRequired,
-        pickCount: React.PropTypes.number.isRequired,
-        picksNeeded: React.PropTypes.number.isRequired,
-        percentComplete: React.PropTypes.number.isRequired,
+        id: PropTypes.number.isRequired,
+        username: PropTypes.string.isRequired,
+        pickCount: PropTypes.number.isRequired,
+        picksNeeded: PropTypes.number.isRequired,
+        percentComplete: PropTypes.number.isRequired,
     };
     render() {
         const {

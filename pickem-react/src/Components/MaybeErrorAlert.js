@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -7,7 +8,7 @@ import {
 
 export default class MaybeErrorAlert extends Component {
     static propTypes = {
-        message: React.PropTypes.string,
+        message: PropTypes.string,
     };
 
     render() {

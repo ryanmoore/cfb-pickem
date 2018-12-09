@@ -1,6 +1,7 @@
 import React, {
     Component
 } from 'react';
+import PropTypes from 'prop-types';
 import {
     connect
 } from 'react-redux';
@@ -30,14 +31,14 @@ import cloneDeep from 'lodash/cloneDeep';
 
 class ViewPicksPage extends Component {
     static propTypes = {
-        dispatch: React.PropTypes.func.isRequired,
-        season: React.PropTypes.number.isRequired,
-        ready: React.PropTypes.bool.isRequired,
-        matchupPicks: React.PropTypes.array.isRequired,
-        pickemHasStarted: React.PropTypes.bool.isRequired,
-        startTime: React.PropTypes.object.isRequired,
-        admin: React.PropTypes.bool,
-        AdminButton: React.PropTypes.element,
+        dispatch: PropTypes.func.isRequired,
+        season: PropTypes.number.isRequired,
+        ready: PropTypes.bool.isRequired,
+        matchupPicks: PropTypes.array.isRequired,
+        pickemHasStarted: PropTypes.bool.isRequired,
+        startTime: PropTypes.object.isRequired,
+        admin: PropTypes.bool,
+        AdminButton: PropTypes.element,
     }
 
     componentDidMount() {

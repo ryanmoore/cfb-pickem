@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -10,11 +11,11 @@ import './ScoresTableRow.css';
 
 export default class ScoresTableRow extends Component {
     static propTypes = {
-        name: React.PropTypes.string.isRequired,
-        score: React.PropTypes.number.isRequired,
-        remainder: React.PropTypes.number.isRequired,
-        achievedPercent: React.PropTypes.number.isRequired,
-        remainderPercent: React.PropTypes.number.isRequired,
+        name: PropTypes.string.isRequired,
+        score: PropTypes.number.isRequired,
+        remainder: PropTypes.number.isRequired,
+        achievedPercent: PropTypes.number.isRequired,
+        remainderPercent: PropTypes.number.isRequired,
     };
     render() {
         const {

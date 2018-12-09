@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -182,21 +183,21 @@ const createErrorMessage = (message) => {
 
 class MakePicksPage extends Component {
     static propTypes = {
-        dispatch: React.PropTypes.func.isRequired,
-        season: React.PropTypes.number.isRequired,
-        loading: React.PropTypes.bool.isRequired,
-        matchups: React.PropTypes.shape({
-            fixed: React.PropTypes.array.isRequired,
-            wagered: React.PropTypes.array.isRequired,
+        dispatch: PropTypes.func.isRequired,
+        season: PropTypes.number.isRequired,
+        loading: PropTypes.bool.isRequired,
+        matchups: PropTypes.shape({
+            fixed: PropTypes.array.isRequired,
+            wagered: PropTypes.array.isRequired,
         }).isRequired,
-        moveMatchup: React.PropTypes.func.isRequired,
-        setPreview: React.PropTypes.func.isRequired,
-        makePick: React.PropTypes.func.isRequired,
-        submitPickAndWagers: React.PropTypes.func.isRequired,
-        setInitialMatchupOrdering: React.PropTypes.func.isRequired,
-        setInitialPicks: React.PropTypes.func.isRequired,
-        previewIndex: React.PropTypes.number,
-        error: React.PropTypes.string,
+        moveMatchup: PropTypes.func.isRequired,
+        setPreview: PropTypes.func.isRequired,
+        makePick: PropTypes.func.isRequired,
+        submitPickAndWagers: PropTypes.func.isRequired,
+        setInitialMatchupOrdering: PropTypes.func.isRequired,
+        setInitialPicks: PropTypes.func.isRequired,
+        previewIndex: PropTypes.number,
+        error: PropTypes.string,
     }
 
     componentDidMount() {
