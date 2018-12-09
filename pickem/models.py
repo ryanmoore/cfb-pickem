@@ -103,3 +103,12 @@ class Wager(models.Model):
 
     def __str__(self):
         return '{}: {} on {}'.format(self.user, self.amount, self.game)
+
+
+class UserProgress(object):
+    """A computed object of a given users pick count for a given season"""
+    def __init__(self, user, season, pick_count):
+        self.id = user
+        self.user = user
+        self.season = season
+        self.pick_count = pick_count

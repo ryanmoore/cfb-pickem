@@ -14,6 +14,7 @@ export const selectParticipants = (state) => state.entities.participants;
 export const selectWagers = (state) => state.entities.wagers;
 export const selectSelections = (state) => state.entities.selections;
 export const selectSeasons = (state) => state.entities.seasons;
+export const selectProgress = (state) => state.entities.progress;
 export const selectCurrentUser = (state) => state.auth.user.id;
 export const selectUsers = (state) => state.entities.users;
 export const selectMatchupOrdering = (state) => state.ui.makePicksOrdering.matchupOrdering;
@@ -284,5 +285,30 @@ export const selectCurrentStartTime = createSelector(
             return null;
         }
         return seasons[currentSeason].start_time;
+    }
+);
+
+export const pickemHasStarted = createSelector(
+    [selectCurrentStartTime],
+    (startTime) => {
+        if(startTime === null) {
+            return false;
+        }
+        return Date.now() > new Date(startTime);
+    }
+);
+
+export const selectProgressForCurrentSeason = createSelector(
+    [selectCurrentSeason, selectProgress],
+    (season, allProgress) => {
+        var currentProgress = {}
+        forOwn(allProgress, (progress, id) => {
+            if (progress.season === season) {
+                currentProgress[id] = {
+                    ...progress
+                }
+            }
+        });
+        return currentProgress;
     }
 );

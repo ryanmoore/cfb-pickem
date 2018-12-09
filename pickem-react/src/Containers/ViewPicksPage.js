@@ -20,6 +20,7 @@ import {
     selectCurrentStartTime,
     selectCurrentSeason,
     selectMapGamesToWinners,
+    pickemHasStarted,
 } from '../Selectors/index';
 import PicksPage from '../Components/PicksPage';
 import LoadingSpinner from '../Components/LoadingSpinner';
@@ -101,14 +102,6 @@ class ViewPicksPage extends Component {
 //     },
 //     id: 1,
 // }];
-
-const pickemHasStarted = (state) => {
-    const startTime = selectCurrentStartTime(state);
-    if(startTime === null) {
-        return false;
-    }
-    return Date.now() > new Date(startTime);
-}
 
 const addAllWinnersToGames = (state, gamedata) => {
     var data = cloneDeep(gamedata);

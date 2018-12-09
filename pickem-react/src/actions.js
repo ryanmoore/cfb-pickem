@@ -501,3 +501,36 @@ export const setSelectedSeason = (year) => {
         year,
     };
 }
+
+
+export const PICKEM_API_PROGRESS_REQUEST = 'PICKEM_API_PROGRESS_REQUEST';
+export const PICKEM_API_PROGRESS_SUCCESS = 'PICKEM_API_PROGRESS_SUCCESS';
+export const PICKEM_API_PROGRESS_FAILURE = 'PICKEM_API_PROGRESS_FAILURE';
+
+const fetchPickemProgress = (season) => {
+    return {
+        [CALL_PICKEM_API]: {
+            types: [PICKEM_API_PROGRESS_REQUEST, PICKEM_API_PROGRESS_SUCCESS,
+                PICKEM_API_PROGRESS_FAILURE
+            ],
+            endpoint: `progress/${season}/`,
+            schema: pickemSchema.PROGRESS_ARRAY
+        }
+    };
+}
+
+const shouldFetchPickemProgress = (state, season) => {
+    const progress = state.fetchState.progress;
+    if(!progress || progress !== FETCH_STATES.READY) {
+        return true;
+    }
+    return false;
+}
+
+
+export const loadPickemProgress = (season) => (dispatch, getState) => {
+    if(shouldFetchPickemProgress(getState(), season)) {
+        return dispatch(fetchPickemProgress(season));
+    }
+    return null;
+}

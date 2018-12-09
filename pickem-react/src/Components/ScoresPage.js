@@ -62,7 +62,7 @@ export default class ScoresPage extends Component {
     };
 
     render() {
-        const {scores } = this.props;
+        const {scores} = this.props;
         return (
             //<ScoreTableHelpHeader />
             <Grid>

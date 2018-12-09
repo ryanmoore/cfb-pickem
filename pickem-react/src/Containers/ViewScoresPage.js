@@ -16,6 +16,7 @@ import {
     loadPickemWagers,
     loadPickemWinners,
     loadPickemSeasons,
+    loadPickemProgress,
 } from '../actions';
 import {
     collectAndTransformPicksForSeason,
@@ -23,8 +24,13 @@ import {
     APIDataIsReadyForSeason,
     selectCurrentSeason,
     selectWinningParticipantSet,
+    selectProgressForCurrentSeason,
+    pickemHasStarted,
+    selectGamesForCurrentSeason,
+    selectCurrentStartTime,
 } from '../Selectors/index';
 import ScoresPage from '../Components/ScoresPage';
+import PickProgressPage from '../Components/PickProgressPage';
 import forOwn from 'lodash/forOwn';
 import cloneDeep from 'lodash/cloneDeep';
 import LoadingSpinner from '../Components/LoadingSpinner';
@@ -43,7 +49,56 @@ const scoreDataIsReady = (state, season) => {
     return APIDataIsReadyForSeason(state, required, season);
 }
 
-class ViewScoresPage extends Component {
+
+const progressDataIsReady = (state, season) => {
+    const required = [
+        'games',
+        'progress',
+        'users',
+        'seasons',
+    ];
+    return APIDataIsReadyForSeason(state, required, season);
+}
+
+
+class ViewProgressPage extends Component {
+    static propTypes = {
+        dispatch: React.PropTypes.func.isRequired,
+        season: React.PropTypes.number.isRequired,
+        progress: React.PropTypes.array.isRequired,
+        loading: React.PropTypes.bool.isRequired,
+        startTime: React.PropTypes.object.isRequired,
+    }
+
+    componentDidMount() {
+        const {
+            dispatch,
+            season
+        } = this.props;
+        dispatch(loadPickemUsers());
+        dispatch(loadPickemProgress(season));
+        dispatch(loadPickemGames(season));
+    }
+
+    render() {
+        const {
+            progress,
+            loading,
+            startTime,
+        } = this.props;
+        if (loading) {
+            return <LoadingSpinner />
+        }
+        return ( <PickProgressPage
+            progress={progress}
+            startTime={startTime}
+            /> );
+    }
+}
+
+
+
+class ViewStartedScoresPage extends Component {
     static propTypes = {
         dispatch: React.PropTypes.func.isRequired,
         season: React.PropTypes.number.isRequired,
@@ -54,7 +109,7 @@ class ViewScoresPage extends Component {
     componentDidMount() {
         const {
             dispatch,
-            season
+            season,
         } = this.props;
         dispatch(loadPickemUsers());
         dispatch(loadPickemGames(season));
@@ -77,6 +132,55 @@ class ViewScoresPage extends Component {
         return ( <ScoresPage scores={scores} /> );
     }
 }
+
+
+class ViewScoresPage extends Component {
+    static propTypes = {
+        dispatch: React.PropTypes.func.isRequired,
+        season: React.PropTypes.number.isRequired,
+        scores: React.PropTypes.array.isRequired,
+        progress: React.PropTypes.array.isRequired,
+        loading: React.PropTypes.bool.isRequired,
+        startTime: React.PropTypes.object.isRequired
+    }
+
+    componentDidMount() {
+        const {
+            dispatch,
+            season
+        } = this.props;
+        dispatch(loadPickemSeasons(season));
+    }
+
+    render() {
+        const {
+            scores,
+            loading,
+            progress,
+            started,
+            season,
+            dispatch,
+            startTime,
+        } = this.props;
+        if(started) {
+            return (<ViewStartedScoresPage
+                dispatch={dispatch}
+                scores={scores}
+                season={season}
+                loading={loading}
+                />);
+        } else {
+            return (<ViewProgressPage
+                progress={progress}
+                season={season}
+                loading={loading}
+                dispatch={dispatch}
+                startTime={startTime}
+                />);
+        }
+    }
+}
+
 
 // create a set of winning participants
 // create a set of losing participants
@@ -141,7 +245,7 @@ const computeScoresForAllUsers = createSelector(
             };
         });
         picklist.forEach(({left, right}) => {
-            const [winners, losersDummy, undecideds] = chooseWonLostUndecided(
+            const [winners, _losersDummy, undecideds] = chooseWonLostUndecided(
                 left, right, winnerParticipants);
             winners.forEach((winner) => {
                 output[winner.id].score += winner.wager;
@@ -197,6 +301,34 @@ const selectSortedNormalizedScores = createSelector(
     }
 );
 
+
+const compareByUsername = (a, b) => {
+    if(a.username < b.username) return 1;
+    if(a.username > b.username) return -1;
+    if(a.id < b.id) return 1;
+    if(a.id > b.id) return -1;
+    return 0;
+}
+
+const selectSortedProgress = createSelector(
+    [selectUsers, selectProgressForCurrentSeason, selectGamesForCurrentSeason],
+    (users, allProgress, games) => {
+        const gameCount = Object.keys(games).length;
+        var progressOutput = [];
+        forOwn(allProgress, (progress, id) => {
+            progressOutput.push({
+                id: id,
+                username: users[id].username,
+                pickCount: progress.pick_count,
+                picksNeeded: gameCount,
+                percentComplete: progress.pick_count / gameCount,
+            })
+        });
+        progressOutput.sort(compareByUsername);
+        return progressOutput;
+    }
+);
+
 //const sampleScores = [{
 //    name: 'Player1',
 //    score: 10,
@@ -214,10 +346,22 @@ const selectSortedNormalizedScores = createSelector(
 
 const mapStateToProps = (state) => {
     const currentSeason = selectCurrentSeason(state);
+    const started = pickemHasStarted(state);
+    const scores = !started || !scoreDataIsReady(state, currentSeason) ?
+        [] : selectSortedNormalizedScores(state);
+    const loading = started ?
+        !scoreDataIsReady(state, currentSeason)
+        : !progressDataIsReady(state, currentSeason);
+    const progress = started || !progressDataIsReady(state, currentSeason) ?
+        [] : selectSortedProgress(state);
+
     return {
-        scores: scoreDataIsReady(state, currentSeason) ? selectSortedNormalizedScores(state) : [],
-        loading: !scoreDataIsReady(state, currentSeason),
+        scores: scores,
+        progress: progress,
+        loading: loading,
         season: currentSeason,
+        started: started,
+        startTime: selectCurrentStartTime(state)
     }
 }
 
