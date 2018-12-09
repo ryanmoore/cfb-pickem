@@ -3,39 +3,45 @@ import {
     connectedReduxRedirect ,
 } from 'redux-auth-wrapper/history4/redirect';
 import connectedAuthWrapper from 'redux-auth-wrapper/connectedAuthWrapper';
-import { routerActions } from 'react-router-redux';
+import authWrapper from 'redux-auth-wrapper/authWrapper';
+// import { routerActions } from 'react-router-redux';
 
 const authSelector = (state) => state.auth;
 
+const isUser = (state) => state.auth.user !== null;
+
+const isAdmin = (state) => state.auth.user !== null && state.auth.user.is_superuser;
+
+const isNotAuthed = (state) => typeof(state.auth.user) === 'undefined';
+
+
 export const UserIsAuthenticated = connectedReduxRedirect({
-    authenticatedSelector: authSelector,
-    redirectAction: routerActions.replace,
+    authenticatedSelector: isUser,
+    // redirectAction: routerActions.replace,
     redirectPath: '/login',
     wrapperDisplayName: 'UserIsAuthenticated',
 });
 
 export const UserIsNotAuthenticated = connectedReduxRedirect({
-    authenticatedSelector: authSelector,
-    redirectAction: routerActions.replace,
+    authenticatedSelector: isNotAuthed,
+    // redirectAction: routerActions.replace,
     wrapperDisplayName: 'UserIsNotAuthenticated',
-    predicate: auth => (typeof(auth.user) === 'undefined'),
     redirectPath: '/',
     allowRedirectBack: false,
 });
 
-export const VisibleWhenAuth = connectedAuthWrapper({
-    authenticatedSelector: authSelector,
+export const VisibleWhenAuth = authWrapper({
+    authenticatedSelector: isUser,
     wrapperDisplayName: 'VisibleWhenAuth',
 });
 
 export const UserIsAuthOrElse = (Component, FailureComponent) => connectedAuthWrapper({
-    authenticatedSelector: authSelector,
+    authenticatedSelector: isUser,
     wrapperDisplayName: 'UserIsAuthOrElse',
     FailureComponent,
 })(Component);
 
 export const VisibleWhenSuperuser = connectedAuthWrapper({
-    authenticatedSelector: authSelector,
+    authenticatedSelector: isAdmin,
     wrapperDisplayName: 'VisibleWhenSuperuser',
-    predicate: auth => auth.user && auth.user.is_superuser,
 });
