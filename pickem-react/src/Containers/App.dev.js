@@ -11,6 +11,7 @@ import DevTools from './DevTools';
 import {
     BrowserRouter as Router,
     Route,
+    Switch,
 } from 'react-router-dom';
 import ViewPicksPage from '../Containers/ViewPicksPage';
 import PickemApp from '../Containers/PickemApp';
@@ -27,6 +28,20 @@ import ViewHistoryPage from '../Containers/ViewHistoryPage';
 
 let { store } = configureStore();
 
+
+function withYearSelector(WrappedComponent) {
+    class NewClass extends Component {
+        render() {
+            return (
+                <YearSelector>
+                    <WrappedComponent {...this.props} />
+                <YearSelector />);
+        }
+    };
+    return NewClass;
+}
+
+
 class App extends Component {
     render() {
         return (
@@ -39,13 +54,13 @@ class App extends Component {
                         <Route path='login' component={UserIsNotAuthenticated(LoginPage)} />
                         <Route path='logout' component={UserIsAuthenticated(LogoutPage)} />
                         <Route path='history' component={ViewHistoryPage} />
-                        <Route path='/:year' component={YearSelector}/>
+                        {/*<Route path='/:year' component={YearSelector}/> */}
                         {/* <NavRedirect to='index' /> */}
-                        <Route path='/:year/index' component={GameIndex} />
-                        <Route path='/:year/makepicks' component={UserIsAuthenticated(MakePicksPage)} />
-                        <Route path='/:year/picks' component={ViewPicksPage} />
-                        <Route path='/:year/scores' component={ViewScoresPage} />
-                        <Route path='/:year/admin/addwinner' component={() => (<AdminViewPicksPage />)}/>
+                        <Route path='/:year/index' component={withYearSelector(GameIndex)} />
+                        <Route path='/:year/makepicks' component={UserIsAuthenticated(withYearSelector(MakePicksPage))} />
+                        <Route path='/:year/picks' component={withYearSelector(ViewPicksPage)} />
+                        <Route path='/:year/scores' component={withYearSelector(ViewScoresPage)} />
+                        <Route path='/:year/admin/addwinner' component={() => (<withYearSelector(AdminViewPicksPage) />)}/>
                         {/* Make sure this route is last */}
                         <Route path='*' component={PageNotFound} />
                     </div>
