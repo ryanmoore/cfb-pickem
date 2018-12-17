@@ -35,7 +35,8 @@ function withYearSelector(WrappedComponent) {
             return (
                 <YearSelector>
                     <WrappedComponent {...this.props} />
-                <YearSelector />);
+                </YearSelector>
+            );
         }
     };
     return NewClass;
@@ -60,7 +61,7 @@ class App extends Component {
                         <Route path='/:year/makepicks' component={UserIsAuthenticated(withYearSelector(MakePicksPage))} />
                         <Route path='/:year/picks' component={withYearSelector(ViewPicksPage)} />
                         <Route path='/:year/scores' component={withYearSelector(ViewScoresPage)} />
-                        <Route path='/:year/admin/addwinner' component={() => (<withYearSelector(AdminViewPicksPage) />)}/>
+                        <Route path='/:year/admin/addwinner' component={withYearSelector(AdminViewPicksPage)}/>
                         {/* Make sure this route is last */}
                         <Route path='*' component={PageNotFound} />
                     </div>
