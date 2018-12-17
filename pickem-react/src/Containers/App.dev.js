@@ -7,7 +7,6 @@ import {
 } from 'react-redux';
 
 import configureStore from '../store/configureStore';
-import DevTools from './DevTools';
 import {
     BrowserRouter as Router,
     Route,
@@ -66,7 +65,6 @@ class App extends Component {
                         <Route path='*' component={PageNotFound} />
                     </div>
                     </Router>
-                    <DevTools />
                 </div>
             </Provider>
         );

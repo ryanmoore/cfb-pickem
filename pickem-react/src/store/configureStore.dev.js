@@ -8,6 +8,7 @@ import rootReducer from '../reducers';
 import pickemAPIMiddleware from '../middleware/pickemapi';
 import { createLogger } from 'redux-logger';
 import DevTools from '../Containers/DevTools';
+import { composeWithDevTools } from 'redux-devtools-extension';
 
 const middlewares = [thunk, pickemAPIMiddleware, ];
 if(!process.env.testing) {
@@ -17,9 +18,10 @@ if(!process.env.testing) {
 const configureStore = preloadedState => {
 
     const composer = compose;
-    const store = createStore(rootReducer,
-        composer(applyMiddleware(...middlewares),
-            DevTools.instrument())
+    const store = createStore(
+        rootReducer,
+        preloadedState,
+        composeWithDevTools(applyMiddleware(...middlewares)),
     );
     return {
         store,
