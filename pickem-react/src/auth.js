@@ -6,13 +6,13 @@ import connectedAuthWrapper from 'redux-auth-wrapper/connectedAuthWrapper';
 import authWrapper from 'redux-auth-wrapper/authWrapper';
 // import { routerActions } from 'react-router-redux';
 
-const authSelector = (state) => state.auth;
+const isUser = (state) => {
+    return typeof(state.auth.user) != "undefined" && state.auth.user !== null;
+}
 
-const isUser = (state) => state.auth.user !== null;
+const isAdmin = (state) => isUser(state) && state.auth.user.is_superuser;
 
-const isAdmin = (state) => state.auth.user !== null && state.auth.user.is_superuser;
-
-const isNotAuthed = (state) => typeof(state.auth.user) === 'undefined';
+const isNotAuthed = (state) => !isUser(state);
 
 
 export const UserIsAuthenticated = connectedReduxRedirect({
