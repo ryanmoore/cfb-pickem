@@ -21,8 +21,10 @@ import LoadingSpinner from '../Components/LoadingSpinner';
 
 class YearSelector extends Component {
     static propTypes = {
-        params: PropTypes.shape({
-            year: PropTypes.string.isRequired,
+        match: PropTypes.shape({
+            params: PropTypes.shape({
+                year: PropTypes.string.isRequired,
+            }),
         }),
         dispatch: PropTypes.func.isRequired,
         children: PropTypes.node,
@@ -31,8 +33,8 @@ class YearSelector extends Component {
     }
 
     componentDidMount() {
-        const { dispatch, params } = this.props;
-        const { year } = params;
+        const { dispatch, match } = this.props;
+        const { year } = match.params;
         const yearInt = parseInt(year, 10);
         if(!isNaN(yearInt) && yearInt !== this.props.selectedYear) {
             dispatch(setSelectedSeason(yearInt));
@@ -42,13 +44,13 @@ class YearSelector extends Component {
 
     componentWillReceiveProps(nextProps) {
         const { dispatch } = this.props;
-        const nextYear = nextProps.params.year;
+        const nextYear = nextProps.match.params.year;
         const curYear = this.props.selectedYear;
         const nextYearInt = parseInt(nextYear, 10);
         if(nextYear !== null
             && !isNaN(nextYearInt)
             && curYear !== nextYearInt
-            && nextYearInt !== parseInt(this.props.params.year, 10)
+            && nextYearInt !== parseInt(this.props.match.params.year, 10)
         ) {
             dispatch(setSelectedSeason(nextYearInt));
         }

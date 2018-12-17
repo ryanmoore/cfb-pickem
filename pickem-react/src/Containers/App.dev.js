@@ -32,7 +32,7 @@ function withYearSelector(WrappedComponent) {
     class NewClass extends Component {
         render() {
             return (
-                <YearSelector>
+                <YearSelector {...this.props}>
                     <WrappedComponent {...this.props} />
                 </YearSelector>
             );
