@@ -9,7 +9,7 @@ export default class LoadingSpinner extends Component {
         return (<Grid>
                     <Row>
                         <Col xs={12}>
-                            <Spinner className='spinner center' spinnerName='three-bounce' />
+                            <Spinner className='spinner center' name='three-bounce' />
                         </Col>
                     </Row>
                 </Grid>
