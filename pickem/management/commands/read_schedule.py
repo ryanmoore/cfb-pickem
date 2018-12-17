@@ -183,7 +183,13 @@ def update_championship_teams(data):
     for game in data:
         if is_championship_game(game):
             print('Registering playoff teams for: {}'.format(game['Bowl Game']))
-            assert not game.get('Team 1')
+            if game.get('Team 1'):
+                logger.warn(
+                    'Champtionship game has team listed. Ignoring: %s. Using: %s',
+                    game.get('Team 1'), playoff_teams[0])
+            if game.get('Team 2'):
+                logger.warn(
+                    'Champtionship game has team listed. Ignoring: %s. Using: %s',
+                    game.get('Team 2'), playoff_teams[1])
             game['Team 1'] = playoff_teams[0]
-            assert not game.get('Team 2')
             game['Team 2'] = playoff_teams[1]
