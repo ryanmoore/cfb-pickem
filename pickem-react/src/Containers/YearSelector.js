@@ -60,7 +60,7 @@ class YearSelector extends Component {
         const { selectedYear, selectedSeason, match } = this.props;
         const year = parseInt(match.params.year, 10);
         if(isNaN(year)) {
-            return <PageNotFound />;
+            return <PageNotFound from='YearSelector'/>;
         }
         // Do not render other elements until the year in the store matches
         // our year

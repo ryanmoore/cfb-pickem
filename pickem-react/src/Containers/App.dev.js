@@ -48,22 +48,27 @@ class App extends Component {
             <Provider store={store}>
                 <div>
                     <Router>
-                    <div>
-                        <Route path='/' component={PickemApp} />
-                        {/* <NavRedirect to='/2017/index' /> */}
-                        <Route path='login' component={UserIsNotAuthenticated(LoginPage)} />
-                        <Route path='logout' component={UserIsAuthenticated(LogoutPage)} />
-                        <Route path='history' component={ViewHistoryPage} />
-                        {/*<Route path='/:year' component={YearSelector}/> */}
-                        {/* <NavRedirect to='index' /> */}
-                        <Route path='/:year/index' component={withYearSelector(GameIndex)} />
-                        <Route path='/:year/makepicks' component={UserIsAuthenticated(withYearSelector(MakePicksPage))} />
-                        <Route path='/:year/picks' component={withYearSelector(ViewPicksPage)} />
-                        <Route path='/:year/scores' component={withYearSelector(ViewScoresPage)} />
-                        <Route path='/:year/admin/addwinner' component={withYearSelector(AdminViewPicksPage)}/>
-                        {/* Make sure this route is last */}
-                        <Route path='*' component={PageNotFound} />
-                    </div>
+                        <div>
+                            <Route path='/' component={PickemApp} />
+                            <Switch>
+                                {/* <NavRedirect to='/2017/index' /> */}
+                                <Route path='/login' component={UserIsNotAuthenticated(LoginPage)} />
+                                <Route path='/logout' component={UserIsAuthenticated(LogoutPage)} />
+                                <Route path='/history' component={ViewHistoryPage} />
+                                {/*<Route path='/:year' component={YearSelector}/> */}
+                                {/* <NavRedirect to='index' /> */}
+                                <Route path='/:year/index' component={withYearSelector(GameIndex)} />
+                                <Route path='/:year/makepicks' component={UserIsAuthenticated(withYearSelector(MakePicksPage))} />
+                                <Route path='/:year/picks' component={withYearSelector(ViewPicksPage)} />
+                                <Route path='/:year/scores' component={withYearSelector(ViewScoresPage)} />
+                                <Route path='/:year/admin/addwinner' component={withYearSelector(AdminViewPicksPage)}/>
+                                {/* Make sure this route is last */}
+                                <Route
+                                    path='*'
+                                    render={props => <PageNotFound {...props}
+                                        from='RoutingFallthrough'/>} />
+                            </Switch>
+                        </div>
                     </Router>
                 </div>
             </Provider>
