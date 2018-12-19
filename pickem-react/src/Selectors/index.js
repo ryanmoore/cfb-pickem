@@ -242,6 +242,7 @@ export const stateIsReadyForPicksPage = (state, season) => {
         'users',
         'selections',
         'seasons',
+        'winners',
     ];
     return APIDataIsReadyForSeason(state, required, season);
 }
