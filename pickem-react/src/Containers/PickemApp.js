@@ -17,15 +17,8 @@ import {
     NavLink,
 } from 'react-router-dom';
 import {
-    DragDropContext
-} from 'react-dnd';
-import {
-    default as TouchBackend
-} from 'react-dnd-touch-backend';
-import {
     connect,
 } from 'react-redux';
-import HTML5Backend from 'react-dnd-html5-backend';
 import {
     VisibleWhenAuth,
     VisibleWhenSuperuser,
@@ -133,20 +126,6 @@ class PickemApp extends Component {
            </div>
         );
     }
-}
-
-// TODO: Seems we rarely take the html5 backend. Not working in chrome at
-// least on dev machine
-if ('ontouchstart' in window) {
-    // TODO: Update to decorators once stabilized 
-    // Use class assign until Decorators stabilize
-    // eslint-disable-next-line no-class-assign
-    PickemApp = DragDropContext(TouchBackend({
-        enableMouseEvents: true
-    }))(PickemApp);
-} else {
-    // eslint-disable-next-line no-class-assign
-    PickemApp = DragDropContext(HTML5Backend)(PickemApp);
 }
 
 const mapStateToProps = (state) => ({

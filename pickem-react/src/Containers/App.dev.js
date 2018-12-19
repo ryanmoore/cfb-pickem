@@ -24,6 +24,11 @@ import PageNotFound from '../Components/PageNotFound';
 import AdminViewPicksPage from '../Containers/AdminViewPicksPage';
 import YearSelector from '../Containers/YearSelector';
 import ViewHistoryPage from '../Containers/ViewHistoryPage';
+import { DragDropContextProvider } from 'react-dnd';
+import {
+    default as TouchBackend
+} from 'react-dnd-touch-backend';
+import HTML5Backend from 'react-dnd-html5-backend';
 
 let { store } = configureStore();
 
@@ -37,16 +42,28 @@ function withYearSelector(WrappedComponent) {
                 </YearSelector>
             );
         }
-    };
+    }
     return NewClass;
 }
+
+// TODO: Seems we rarely take the html5 backend. Not working in chrome at
+// least on dev machine
+var dndBackend;
+if ('ontouchstart' in window) {
+    dndBackend = TouchBackend({
+        enableMouseEvents: true
+    });
+} else {
+    dndBackend = HTML5Backend;
+}
+
 
 
 class App extends Component {
     render() {
         return (
             <Provider store={store}>
-                <div>
+                <DragDropContextProvider backend={dndBackend}>
                     <Router>
                         <div>
                             <Route path='/' component={PickemApp} />
@@ -70,7 +87,7 @@ class App extends Component {
                             </Switch>
                         </div>
                     </Router>
-                </div>
+                </DragDropContextProvider>
             </Provider>
         );
     }
