@@ -64,7 +64,7 @@ class App extends Component {
         return (
             <Provider store={store}>
                 <DragDropContextProvider backend={dndBackend}>
-                    <Router>
+                    <Router basename={process.env.REACT_APP_SITE_BASENAME}>
                         <div>
                             <Route path='/' component={PickemApp} />
                             <Switch>
