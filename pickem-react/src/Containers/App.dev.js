@@ -11,6 +11,7 @@ import {
     BrowserRouter as Router,
     Route,
     Switch,
+    Redirect,
 } from 'react-router-dom';
 import ViewPicksPage from '../Containers/ViewPicksPage';
 import PickemApp from '../Containers/PickemApp';
@@ -58,7 +59,6 @@ if ('ontouchstart' in window) {
 }
 
 
-
 class App extends Component {
     render() {
         return (
@@ -68,7 +68,9 @@ class App extends Component {
                         <div>
                             <Route path='/' component={PickemApp} />
                             <Switch>
-                                {/* <NavRedirect to='/2017/index' /> */}
+                                <Route exact path="/" render={() => (
+                                    <Redirect to="/2018/index"/>
+                                )}/>
                                 <Route path='/login' component={UserIsNotAuthenticated(LoginPage)} />
                                 <Route path='/logout' component={UserIsAuthenticated(LogoutPage)} />
                                 <Route path='/history' component={ViewHistoryPage} />
