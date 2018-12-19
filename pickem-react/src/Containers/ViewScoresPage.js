@@ -68,7 +68,7 @@ class ViewProgressPage extends Component {
         season: PropTypes.number.isRequired,
         progress: PropTypes.array.isRequired,
         loading: PropTypes.bool.isRequired,
-        startTime: PropTypes.object.isRequired,
+        startTime: PropTypes.string.isRequired,
     }
 
     componentDidMount() {

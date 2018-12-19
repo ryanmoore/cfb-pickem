@@ -15,7 +15,7 @@ import moment from 'moment';
 export default class PickProgressPage extends Component {
     static propTypes = {
         progress: PropTypes.array.isRequired,
-        startTime: PropTypes.object.isRequired,
+        startTime: PropTypes.string.isRequired,
     };
 
     render() {
