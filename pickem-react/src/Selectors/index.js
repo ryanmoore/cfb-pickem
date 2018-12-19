@@ -155,6 +155,9 @@ export const selectMapGamesToWinners = createSelector(
     [selectWinners, selectParticipants],
     (winners, participants) => {
         var out = {};
+        if(!participants) {
+            return out;
+        }
         forOwn(winners, (winner) => {
             if(winner.participant in participants) {
                 out[participants[winner.participant].game] = parseInt(winner.participant, 10);
