@@ -142,7 +142,7 @@ class ViewScoresPage extends Component {
         scores: PropTypes.array.isRequired,
         progress: PropTypes.array.isRequired,
         loading: PropTypes.bool.isRequired,
-        startTime: PropTypes.object.isRequired
+        startTime: PropTypes.string.isRequired
     }
 
     componentDidMount() {
