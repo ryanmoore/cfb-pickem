@@ -1,6 +1,6 @@
 
 import { 
-    connectedReduxRedirect ,
+    connectedRouterRedirect ,
 } from 'redux-auth-wrapper/history4/redirect';
 import connectedAuthWrapper from 'redux-auth-wrapper/connectedAuthWrapper';
 import authWrapper from 'redux-auth-wrapper/authWrapper';
@@ -15,14 +15,14 @@ const isAdmin = (state) => isUser(state) && state.auth.user.is_superuser;
 const isNotAuthed = (state) => !isUser(state);
 
 
-export const UserIsAuthenticated = connectedReduxRedirect({
+export const UserIsAuthenticated = connectedRouterRedirect({
     authenticatedSelector: isUser,
     // redirectAction: routerActions.replace,
     redirectPath: '/login',
     wrapperDisplayName: 'UserIsAuthenticated',
 });
 
-export const UserIsNotAuthenticated = connectedReduxRedirect({
+export const UserIsNotAuthenticated = connectedRouterRedirect({
     authenticatedSelector: isNotAuthed,
     // redirectAction: routerActions.replace,
     wrapperDisplayName: 'UserIsNotAuthenticated',
