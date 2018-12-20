@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 echo "-- Building"
 ln -sf .env.prod .env
 npm run build
