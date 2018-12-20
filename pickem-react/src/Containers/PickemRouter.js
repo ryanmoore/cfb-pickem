@@ -33,6 +33,14 @@ function withYearSelector(WrappedComponent) {
     return NewClass;
 }
 
+function redirectIfYear(props) {
+    const year = props.match.params.year;
+    if(year) {
+        return <Redirect to={ `/${year}/index` }/>
+    }
+    return null;
+}
+
 class PickemRouter extends Component {
     render() {
         return (
@@ -48,6 +56,7 @@ class PickemRouter extends Component {
                         <Route path='/history' component={ViewHistoryPage} />
                         {/*<Route path='/:year' component={YearSelector}/> */}
                         {/* <NavRedirect to='index' /> */}
+                        <Route exact path="/:year" render={redirectIfYear}/>
                         <Route path='/:year/index' component={withYearSelector(GameIndex)} />
                         <Route path='/:year/makepicks' component={UserIsAuthenticated(withYearSelector(MakePicksPage))} />
                         <Route path='/:year/picks' component={withYearSelector(ViewPicksPage)} />
