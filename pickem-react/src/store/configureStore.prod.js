@@ -1,35 +1,25 @@
 import {
-    compose,
     createStore,
-    applyMiddleware
+    applyMiddleware,
 } from 'redux';
-import thunkMiddleware from 'redux-thunk';
+import thunk from 'redux-thunk';
 import rootReducer from '../reducers';
 import pickemAPIMiddleware from '../middleware/pickemapi';
-import {
-    syncHistoryWithStore,
-    routerMiddleware,
-} from 'react-router-redux';
-import { createHistory } from 'history';
-import { useRouterHistory } from 'react-router';
+import { createLogger } from 'redux-logger';
+
+const middlewares = [thunk, pickemAPIMiddleware, ];
+if(!process.env.testing) {
+    middlewares.push(createLogger());
+}
 
 const configureStore = preloadedState => {
-
-    const composer = compose;
-    const browserHistory = useRouterHistory(createHistory)({
-        basename: process.env.REACT_APP_SITE_BASENAME,
-    });
-    const initializedRouterMiddleware = routerMiddleware(browserHistory);
-    const store = createStore(rootReducer,
-        composer(applyMiddleware(
-            thunkMiddleware, pickemAPIMiddleware,
-            initializedRouterMiddleware,
-        )),
+    const store = createStore(
+        rootReducer,
+        preloadedState,
+        applyMiddleware(...middlewares),
     );
-    const history = syncHistoryWithStore(browserHistory, store);
     return {
         store,
-        history
     };
 }
 
