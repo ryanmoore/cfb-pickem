@@ -23,6 +23,9 @@ from rest_framework import permissions as rest_permissions
 from rest_framework.response import Response
 from rest_framework import exceptions as rest_exceptions
 import django_filters
+import knox.views
+from knox.models import AuthToken
+from knox.auth import TokenAuthentication
 
 # pylint: disable=too-many-ancestors
 
@@ -761,3 +764,22 @@ class MakePicksView(APIView):
             update_wager_or_create(request.user, game, wager)
 
         return Response()
+
+
+class LoginView(knox.views.LoginView):
+    @staticmethod
+    def find_token_expiration(digest):
+        auther = TokenAuthentication()
+        # XXX This is pretty wasteful since token auth can be expensive
+        # but should suffice until:
+        # https://github.com/James1345/django-rest-knox/issues/131
+        return auther.authenticate_credentials(
+            digest.encode('utf-8'))[1].expires
+
+    def post(self, *args, **kwargs):
+        response = super().post(*args, **kwargs)
+        token_digest = response.data.get('token')
+        if token_digest:
+            expiration = self.find_token_expiration(token_digest)
+            response.data['token_expires'] = expiration.isoformat()
+        return response

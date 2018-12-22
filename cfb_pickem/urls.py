@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse
 
 from rest_framework import routers
 from pickem import views
+from knox import views as knox_views
 
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
@@ -33,8 +34,10 @@ urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
     url(r'^api/', include(router.urls)),
     url(r'^api/makepicks/', views.MakePicksView.as_view()),
-    url(r'^api/auth/', include('knox.urls')),
-    ]
+    url(r'^api/auth/login/', views.LoginView.as_view(), name='knox_login'),
+    url(r'^api/auth/logout/', knox_views.LogoutView.as_view(), name='knox_logout'),
+    url(r'^api/auth/logoutall/', knox_views.LogoutAllView.as_view(), name='knox_logoutall'),
+]
 
 if not settings.DEBUG:
     import django.views.static
