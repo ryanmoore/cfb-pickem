@@ -90,6 +90,7 @@ CORS_ALLOW_HEADERS = cors_default_headers + (
 
 REST_KNOX = {
     'USER_SERIALIZER': 'pickem.serializers.UserAuthSerializer',
+    # 'TOKEN_TTL': datetime.timedelta(seconds=15),
 }
 
 ROOT_URLCONF = 'cfb_pickem.urls'

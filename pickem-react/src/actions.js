@@ -311,6 +311,7 @@ const handleAuthLoginTokenResponse = (response) => {
     return {
         token: response.token,
         user: response.user,
+        expires: response.token_expires,
     };
 }
 

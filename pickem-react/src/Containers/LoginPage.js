@@ -8,10 +8,19 @@ import {
     fetchPickemAuthToken,
 } from '../actions';
 import LoginForm from '../Components/LoginForm';
+import { tokenIsExpired } from '../auth';
 
 const selectUsernameField = (state) => state.ui.loginForm.username;
 const selectPasswordField = (state) => state.ui.loginForm.password;
-const selectLoginErrorMessage = (state) => state.ui.loginForm.error;
+const selectLoginErrorMessage = (state) => {
+    if(state.ui.loginForm.error) {
+        return state.ui.loginForm.error;
+    } else if(tokenIsExpired(state)) {
+        return 'Your session has expired. Please login again.';
+    }
+    return null;
+}
+
 
 const mapStateToProps = (state) => {
     return {
