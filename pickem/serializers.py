@@ -9,7 +9,7 @@ class UserAuthSerializer(serializers.ModelSerializer):
     '''
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'groups', 'is_superuser')
+        fields = ('id', 'username', 'groups', 'is_superuser')
 
 
 class UserSerializer(serializers.ModelSerializer):
