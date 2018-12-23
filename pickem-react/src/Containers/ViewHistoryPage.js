@@ -1,9 +1,13 @@
-import React from 'react';
+import PropTypes from 'prop-types';
+import React, {
+    Component
+} from 'react';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { selectSeasons } from '../Selectors';
 import HistoryPage from '../Components/HistoryPage';
 import forOwn from 'lodash/forOwn';
+import { loadPickemSeasons } from '../actions';
 
 const createLinkFromSeason = (season) => {
     return ({
@@ -26,8 +30,31 @@ const createSeasonLinks = (seasons) => {
     return arr;
 }
 
+class ViewHistoryPage extends Component {
+    static propTypes = {
+        dispatch: PropTypes.func.isRequired,
+        seasons: PropTypes.arrayOf(PropTypes.object.isRequired),
+    }
+
+    componentDidMount() {
+        const {
+            dispatch,
+        } = this.props;
+        dispatch(loadPickemSeasons());
+    }
+
+    render() {
+        const {
+            seasons,
+        } = this.props;
+        return (
+            <HistoryPage seasons={seasons} />
+        );
+    }
+}
+
 const mapStateToProps = (state) => ({
     seasons: createSeasonLinks(selectSeasons(state)),
 });
 
-export default connect(mapStateToProps)(HistoryPage);
+export default connect(mapStateToProps)(ViewHistoryPage);
