@@ -38,6 +38,7 @@ import {
 import forOwn from 'lodash/forOwn';
 import keys from 'lodash/keys';
 import cloneDeep from 'lodash/cloneDeep';
+import shuffle from 'lodash/shuffle';
 import Set from 'es6-set';
 import { createSelector } from 'reselect';
 import LoadingSpinner from '../Components/LoadingSpinner';
@@ -89,13 +90,14 @@ const computeMatchupOrderingForCurrentUser = createSelector(
             }
         });
         var i = 0;
-        forOwn(games, (game, id) => {
-            const intId = parseInt(id, 10);
-            if(!picked.has(intId) && game.gameDetails.fixedWagerAmount === 0) {
+        var shuffledGames = shuffle(cloneDeep(games));
+        forOwn(shuffledGames, (game) => {
+            if(!picked.has(game.id) && game.gameDetails.fixedWagerAmount === 0) {
+                // find the next unused id to assign
                 while(output[i]) {
                     i += 1;
                 }
-                output[i] = intId;
+                output[i] = game.id;
             }
         });
         return output;
