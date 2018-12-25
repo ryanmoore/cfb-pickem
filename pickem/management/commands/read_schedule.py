@@ -41,13 +41,14 @@ class Command(BaseCommand):
         parser.add_argument('input-json',
                              type=str,
                              help='File containing bowl data')
-        parser.add_argument(
-            'start-date',
-            help=('Ignores all games before this date: DAY-MONTH-YEAR'
-                  ' (e.g. 26-dec-2017)'))
         parser.add_argument('season',
                              type=int,
                              help='Year for this pickem')
+        parser.add_argument(
+            '--start-date',
+            help=('Ignores all games before this date: DAY-MONTH-YEAR'
+                  ' (e.g. 26-dec-2017). Default is first upcoming'
+                  ' game\'s kickoff'))
 
 
     def handle(self, *args, **options):
@@ -57,11 +58,15 @@ class Command(BaseCommand):
             data = json.load(infile)
 
         logging.info('Total games: {}'.format(len(data)))
-        data = list(remove_earlier_games(data, options['start-date']))
+        if not options.get('start-date'):
+            start_date = nearest_kickoff_time(data)
+            logging.info('Using start time of %s', start_date)
+        else:
+            start_date = parse_start_time(options['start-date'])
+        data = list(remove_earlier_games(data, start_date))
         logging.info('Games after start date: {}'.format(len(data)))
 
         update_championship_teams(data)
-        start_date = parse_start_time(options['start-date'])
 
 
         with transaction.atomic():
@@ -73,7 +78,7 @@ class Command(BaseCommand):
                     fixed_wager_amount = len(data)-1
                 else:
                     fixed_wager_amount = 0
-                add_game(game, options, fixed_wager_amount, season)
+                add_game(game, options, fixed_wager_amount, season, start_date)
         if not options['dry_run']:
             season.save()
 
@@ -93,20 +98,31 @@ def parse_start_time(start_time):
 
 
 def game_starts_before(game, start_date):
-    start_date = parse_start_time(start_date)
     kickoff = parse_datetime(game)
     title = game['Bowl Game'].title()
     if kickoff is None or kickoff < start_date:
         return True
 
 
-def add_game(game, options, fixed_wager_amount, season):
+def nearest_kickoff_time(games):
+    """Returns the datetime of the first kickoff time after now
+    :param list games: List of game dictionaries
+    """
+    now = django_timezone.make_aware(datetime.datetime.now(), django_timezone.get_current_timezone())
+    nearest = None
+    for game in games:
+        kickoff = parse_datetime(game)
+        if kickoff > now and not nearest:
+            nearest = kickoff
+        elif kickoff > now and kickoff < nearest:
+            nearest = kickoff
+    return nearest
+
+
+def add_game(game, options, fixed_wager_amount, season, start_date):
     ''' Parses game data from json object and adds to database
     '''
     dry_run = options['dry_run']
-    start_date = options['start-date']
-    start_date = datetime.datetime.strptime(start_date, '%d-%b-%Y')
-    start_date = django_timezone.make_aware(start_date, django_timezone.get_current_timezone())
     kickoff = parse_datetime(game)
     title = game['Bowl Game'].title()
     if kickoff is None:
