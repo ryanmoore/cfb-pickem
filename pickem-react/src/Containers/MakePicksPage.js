@@ -256,7 +256,9 @@ class MakePicksPage extends Component {
     }
 }
 
-const selectMakePicksErrors = (state) => state.ui.makePicksOrdering.error;
+const selectMakePicksErrors = (state) => {
+    return state.ui.makePicksOrdering.error;
+}
 
 const mapStateToProps = (state) => {
     const currentUser = selectCurrentUser(state);

@@ -42,6 +42,11 @@ function setMatchupOrder(state = matchupInitialState, action) {
                 ...state,
                 error: action.error,
             };
+        case ActionTypes.PICKEM_API_AUTH_SUCCESS:
+            return {
+                ...state,
+                error: null,
+            }
         default:
             return state;
     }
