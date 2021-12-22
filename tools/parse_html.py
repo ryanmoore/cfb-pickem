@@ -14,18 +14,19 @@ import sys
 from bs4 import BeautifulSoup
 
 HEADER_MAPPING = [
-    ('Flair Bowl (Location)', 'Bowl (Location)'),
-    ('Flair    Team', 'Team 1'),
-    ('Flair    Team', 'Team 2'),
+    ('Bowl', 'Bowl (Location)'),
+    ('Team', 'Team 1'),
+    ('Team', 'Team 2'),
     ('Date', 'Date'),
-    ('Kickoff (ET)', 'Kickoff (ET)'),
+    ('Time (EST)', 'Kickoff (ET)'),
     ('TV', 'Network'),
 ]
 
+FIRST_HEADER = HEADER_MAPPING[0][0]
 EXPECTED_HEADERS = [first for first, _ in HEADER_MAPPING]
 MAPPED_HEADERS = [second for _, second in HEADER_MAPPING]
 
-PLAYOFF_BOWLS = ['Orange Bowl', 'Cotton Bowl']
+PLAYOFF_BOWLS = ['Peach Bowl', 'Fiesta Bowl']
 
 OUTPUT_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
@@ -58,7 +59,7 @@ def is_game_table(table):
     """
     header_row = table.thead.tr
     first = header_row.th
-    if 'Bowl (Location)' in first.text:
+    if FIRST_HEADER in first.text:
         return True
     logging.debug(first.text)
     return False
@@ -160,7 +161,10 @@ def extract_date_from_str(date_str, dec_is_year):
                             given year and january that year plus one
     """
     date_formats = ['%a. %b %d %I %p',
-                    '%a. %b %d %I:%M %p']
+                    '%a. %b %d %I:%M %p',
+                    "%A, %b %d %I:%M %p",
+                    "%A, %b %d %I %p",
+                    ]
     normalized_date_str = normalize_date_str(date_str)
     for date_format in date_formats:
         try:
