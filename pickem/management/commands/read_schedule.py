@@ -58,11 +58,11 @@ class Command(BaseCommand):
             data = json.load(infile)
 
         logging.info('Total games: {}'.format(len(data)))
-        if not options.get('start-date'):
+        if not options.get('start_date'):
             start_date = nearest_kickoff_time(data)
             logging.info('Using start time of %s', start_date)
         else:
-            start_date = parse_start_time(options['start-date'])
+            start_date = parse_start_time(options['start_date'])
         data = list(remove_earlier_games(data, start_date))
         logging.info('Games after start date: {}'.format(len(data)))
 
@@ -159,12 +159,21 @@ def add_game(game, options, fixed_wager_amount, season, start_date):
         if not dry_run:
             part.save()
 
+
 def parse_datetime(game):
     '''Decodes the expected datetime string into a datetime object
     '''
     result = datetime.datetime.strptime(game['Date'], game['DateFormat'])
-    return django_timezone.make_aware(result,
-                                      django_timezone.get_current_timezone())
+    if result.tzinfo is None:
+        logging.error("Please add timezones to the provided dates so we don't"
+                      " have a repeat of Dec 2021's ridiculous start times"
+                      " and mountain time, eastern time, central time, utc"
+                      " debacle.")
+        logging.error("Game: {}".format(game))
+        logging.error("Result: {}".format(result))
+        sys.exit(1)
+    return result
+
 
 def add_team(team):
     '''Decodes team dict to make team objects
