@@ -11,15 +11,16 @@ import datetime
 import logging
 import re
 import sys
+import pandas as pd
 from bs4 import BeautifulSoup
 
 HEADER_MAPPING = [
-    ('Bowl', 'Bowl (Location)'),
-    ('Team', 'Team 1'),
-    ('Team', 'Team 2'),
     ('Date', 'Date'),
-    ('Time (EST)', 'Kickoff (ET)'),
-    ('TV', 'Network'),
+    ("Game", "Bowl (Location)"),
+    ('Site', 'Site'),
+    ('Teams', 'Teams'),
+    ('Affiliations', 'Affiliations'),
+    ('Results', 'Results'),
 ]
 
 FIRST_HEADER = HEADER_MAPPING[0][0]
@@ -44,7 +45,7 @@ def verify(game_info):
     log('2 Playoff Games found')
 
 
-def find_bowl_table(soup):
+def find_bowl_tables(soup):
     """Given the page soup, return the bowl table
     """
     all_tables = soup.find_all(name='table')
@@ -54,15 +55,30 @@ def find_bowl_table(soup):
     return None
 
 
-def is_game_table(table):
-    """Returns True if the given table is that of the list of Bowl Games
+def is_game_table(soup):
+    """Returns true if this table is one of the game tables
     """
-    header_row = table.thead.tr
-    first = header_row.th
-    if FIRST_HEADER in first.text:
-        return True
-    logging.debug(first.text)
-    return False
+    prev_table_count = 0
+    while soup and soup.name != "h3":
+        if soup.name == "table":
+            prev_table_count += 1
+        soup = soup.previous_sibling
+    return (
+        soup
+        and soup.span.text.startswith("College Football Playoff")
+        and prev_table_count == 2
+    )
+
+
+# def is_game_table(table):
+#     """Returns True if the given table is that of the list of Bowl Games
+#     """
+#     header_row = table.thead.tr
+#     first = header_row.th
+#     if FIRST_HEADER in first.text:
+#         return True
+#     logging.debug(first.text)
+#     return False
 
 
 def parse_team(team_str):
@@ -213,11 +229,8 @@ def parse_row(row, dec_is_year):
 
 
 def parse_table(table, dec_is_year):
-    headers = [header.text.strip() for header in table.thead.tr.find_all('th')]
-    logging.debug('Headers: %s', headers)
-    assert headers == EXPECTED_HEADERS
     game_info = []
-    for row in get_table_rows(MAPPED_HEADERS, table):
+    for row in df.itertuples():
         game_info.append(parse_row(row, dec_is_year))
     return game_info
 
@@ -251,13 +264,70 @@ def main(argv):
         args.treat_dec_as = datetime.date.today().year
 
     soup = BeautifulSoup(open(args.input), 'lxml')
-    bowl_table = find_bowl_table(soup)
 
-    if not bowl_table:
-        logging.error('Failed to find bowl table on page')
-        return 1
+    dfs = pd.read_html(soup.prettify())
+    champ_df = dfs[3]
+    rest_df = dfs[4]
+    champ_df["Television"] = "ESPN"
+    champ_df = champ_df.rename(columns={"Site": "Site, Time (EST)"})
 
-    game_info = parse_table(bowl_table, args.treat_dec_as)
+    bowl_table = pd.concat([champ_df, rest_df], ignore_index=True)
+    bowl_table.pop("Affiliations")
+    bowl_table.pop("Results")
+    bowl_table["Championship"] = bowl_table["Game"].str.startswith("College Football Playoff National Championship")
+    teams_regex = re.compile(
+        r"(?P<rank1>No. \d+ )?(?P<team1>[^\(]+)  (?P<record1>\(\d+[–-]\d+\))  "
+        # Note this is not the normal dash                          ^
+        r"(?P<rank2>No. \d+ )?(?P<team2>[^\(]+)  (?P<record2>\(\d+[–-]\d+\))"
+    )
+
+    def teams_to_team1(elt):
+        if not isinstance(elt, str):
+            return None
+        match = teams_regex.search(elt)
+        if not match:
+            print(elt)
+        return match.group("team1")
+
+    def teams_to_team2(elt):
+        if not isinstance(elt, str):
+            return None
+        match = teams_regex.search(elt)
+        return match.group("team2")
+
+    bowl_table["Team 1"] = bowl_table["Teams"].apply(teams_to_team1)
+    bowl_table["Team 2"] = bowl_table["Teams"].apply(teams_to_team2)
+    bowl_table.pop("Teams")
+
+    time_location_regex = re.compile(r"(?P<location>.*)  (?P<time>\d+:\d+)\s+(?P<ampm>.*)")
+    def sitetime_to_location(elt):
+        print(elt)
+        match = time_location_regex.match(elt)
+        return match.group("location")
+
+    def sitetime_to_time(elt):
+        match = time_location_regex.match(elt)
+        return "{} {}".format(match.group("time"), match.group("ampm"))
+
+    bowl_table["Location"] = bowl_table["Site, Time (EST)"].apply(sitetime_to_location)
+    bowl_table["Time"] = bowl_table["Site, Time (EST)"].apply(sitetime_to_time)
+    bowl_table.pop("Site, Time (EST)")
+
+    bowl_table["Year"] = "2021"
+    bowl_table["Year"][bowl_table["Date"].str.startswith("Jan")] = "2022"
+    bowl_table["Date"] = bowl_table["Date"] + ", " + bowl_table["Year"] + " " + bowl_table["Time"]
+    bowl_table["DateFormat"] = "%b. %d, %Y %H:%M %p"
+    bowl_table.pop("Year")
+    bowl_table.pop("Time")
+
+    bowl_table["Playoff"] = bowl_table["Game"].str.contains("Playoff Semifinal Game")
+    bowl_table["Game"] = bowl_table["Game"].str.replace(
+        r"  (Playoff Semifinal Game)", "", regex=False)
+    bowl_table["Game"] = bowl_table["Game"].str.replace(
+        r"  (Cotton Bowl Winner Vs. Orange Bowl Winner)", "", regex=False)
+    bowl_table = bowl_table.rename(columns={"Television": "Network", "Game": "Bowl Game"})
+
+    game_info = bowl_table.to_dict("records")
     logging.info('Found {} games.'.format(len(game_info)))
     verify(game_info)
     write_data(args.output, game_info)
