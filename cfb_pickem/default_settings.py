@@ -52,6 +52,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'corsheaders',
     'knox',
+    'sslserver',
 )
 
 REST_FRAMEWORK = {
@@ -103,8 +104,12 @@ WSGI_APPLICATION = 'cfb_pickem.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_NAME'),
+        'USER': os.environ.get('POSTGRES_USER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'HOST': 'db',
+        'PORT': 5432,
     }
 }
 
@@ -155,5 +160,5 @@ TEMPLATES = [
             },
         ]
 
-PICKEM_START_TIME = datetime.datetime(year=2016, month=12, day=26,
+PICKEM_START_TIME = datetime.datetime(year=2018, month=12, day=26,
         hour=10, minute=55, tzinfo=timezone('US/Eastern'))

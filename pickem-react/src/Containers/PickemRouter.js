@@ -49,7 +49,7 @@ class PickemRouter extends Component {
                     <Route path='/' component={PickemApp} />
                     <Switch>
                         <Route exact path="/" render={() => (
-                            <Redirect to="/2018/index"/>
+                            <Redirect to="/2019/index"/>
                         )}/>
                         <Route path='/login' component={UserIsNotAuthenticated(LoginPage)} />
                         <Route path='/logout' component={UserIsAuthenticated(LogoutPage)} />
