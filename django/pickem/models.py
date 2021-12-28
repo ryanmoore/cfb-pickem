@@ -20,10 +20,10 @@ class Season(models.Model):
 
 
 class Game(models.Model):
-    event = models.ForeignKey(Event)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
     datetime = models.DateTimeField()
     fixed_wager_amount = models.PositiveSmallIntegerField(default=0)
-    season = models.ForeignKey(Season)
+    season = models.ForeignKey(Season, on_delete=models.CASCADE)
 
     def pretty_date(self):
         localtime = timezone.localtime(self.datetime)
@@ -48,8 +48,8 @@ class Team(models.Model):
 
 
 class TeamSeason(models.Model):
-    season = models.ForeignKey(Season)
-    team = models.ForeignKey(Team)
+    season = models.ForeignKey(Season, on_delete=models.CASCADE)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
     record = models.CharField(max_length=64, null=True)
     rank = models.IntegerField(null=True)
 
@@ -62,8 +62,8 @@ class TeamSeason(models.Model):
 
 
 class Participant(models.Model):
-    game = models.ForeignKey(Game)
-    teamseason = models.ForeignKey(TeamSeason)
+    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    teamseason = models.ForeignKey(TeamSeason, on_delete=models.CASCADE)
 
     def __str__(self):
         return '{} in {}'.format(str(self.teamseason), str(self.game))
@@ -82,23 +82,24 @@ def game_still_undecided(participant):
 
 class Winner(models.Model):
     participant = models.ForeignKey(Participant,
-                                    validators=[game_still_undecided])
+                                    validators=[game_still_undecided],
+                                    on_delete=models.CASCADE)
 
     def __str__(self):
         return str(self.participant)
 
 
 class Selection(models.Model):
-    user = models.ForeignKey(User)
-    participant = models.ForeignKey(Participant)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE)
 
     def __str__(self):
         return '{} picked {}'.format(self.user, self.participant)
 
 
 class Wager(models.Model):
-    user = models.ForeignKey(User)
-    game = models.ForeignKey(Game)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    game = models.ForeignKey(Game, on_delete=models.CASCADE)
     amount = models.PositiveSmallIntegerField()
 
     def __str__(self):

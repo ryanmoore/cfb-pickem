@@ -21,7 +21,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 try:
     from cfb_pickem.secret_key import SECRET_KEY
@@ -35,13 +35,12 @@ except ImportError:
     print('Created new secret key: {}'.format(DEST))
 
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
 
 # Application definition
 
 INSTALLED_APPS = (
-    'django_admin_bootstrapped',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -52,7 +51,6 @@ INSTALLED_APPS = (
     'rest_framework',
     'corsheaders',
     'knox',
-    'sslserver',
 )
 
 REST_FRAMEWORK = {
@@ -69,10 +67,9 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10,
 }
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -81,8 +78,8 @@ MIDDLEWARE_CLASSES = (
 )
 
 CORS_ORIGIN_WHITELIST = (
-    'localhost:3000',
-    'localhost:9000',
+    'http://localhost:3000',
+    'http://localhost:9000',
 )
 
 CORS_ALLOW_HEADERS = cors_default_headers + (
@@ -97,10 +94,6 @@ REST_KNOX = {
 ROOT_URLCONF = 'cfb_pickem.urls'
 
 WSGI_APPLICATION = 'cfb_pickem.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 
 DATABASES = {
     'default': {
@@ -141,7 +134,7 @@ TEMPLATES = [
             #'DEBUG': True,
             'BACKEND': 'django.template.backends.django.DjangoTemplates',
             'DIRS': [
-                [os.path.join(BASE_DIR, 'templates')],
+                os.path.join(BASE_DIR, 'templates'),
                 ],
             'APP_DIRS': True,
             'OPTIONS': {

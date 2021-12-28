@@ -11,7 +11,7 @@ from django.conf import settings
 import django.utils.timezone as timezone
 from django.db.models import Max as DjangoMax
 from django.http import HttpResponseRedirect, HttpResponseForbidden
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from pickem.models import (Game, Selection, Participant, Wager, Winner, Season,
                            Event, Team, TeamSeason, UserProgress)
