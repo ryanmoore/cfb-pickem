@@ -25,7 +25,7 @@ router.register(r'progress/(?P<season>\d+)', views.ProgressViewSet, basename='pr
 admin.autodiscover()
 
 urlpatterns = [
-    re_path(r'^pickem/', include('pickem.urls')),
+    re_path(r'^pickem/', include(('pickem.urls', 'pickem'), namespace="pickem")),
     re_path(r'^admin/', admin.site.urls),
     re_path(r'^api/', include(router.urls)),
     re_path(r'^api/makepicks/', views.MakePicksView.as_view()),
