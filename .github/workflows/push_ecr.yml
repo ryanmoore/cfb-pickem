@@ -3,7 +3,7 @@ name: Push to Amazon ECR
 on:
   push:
     branches:
-      - $default-branch
+      - main
 
 env:
   AWS_REGION: us-east-2
