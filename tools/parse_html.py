@@ -44,6 +44,11 @@ def verify(game_info):
     assert len(playoffs) == 2
     log('2 Playoff Games found')
 
+    for game in game_info:
+        result = datetime.datetime.strptime(game['Date'], game['DateFormat'])
+    log("Dates and game times match DateFormat for all games")
+
+
 
 def find_bowl_tables(soup):
     """Given the page soup, return the bowl table
@@ -269,16 +274,15 @@ def main(argv):
     champ_df = dfs[3]
     rest_df = dfs[4]
     champ_df["Television"] = "ESPN"
-    champ_df = champ_df.rename(columns={"Site": "Site, Time (EST)"})
 
     bowl_table = pd.concat([champ_df, rest_df], ignore_index=True)
     bowl_table.pop("Affiliations")
     bowl_table.pop("Results")
     bowl_table["Championship"] = bowl_table["Game"].str.startswith("College Football Playoff National Championship")
     teams_regex = re.compile(
-        r"(?P<rank1>No. \d+ )?(?P<team1>[^\(]+)  (?P<record1>\(\d+[–-]\d+\))  "
+        r"(?P<rank1>No. \d+ )?\s{0,1}(?P<team1>.+)  (?P<record1>\(\d+[–-]\d+\))  "
         # Note this is not the normal dash                          ^
-        r"(?P<rank2>No. \d+ )?(?P<team2>[^\(]+)  (?P<record2>\(\d+[–-]\d+\))"
+        r"(?P<rank2>No. \d+ )?\s{0,1}(?P<team2>.+)  (?P<record2>\(\d+[–-]\d+\))"
     )
 
     def teams_to_team1(elt):
@@ -309,24 +313,32 @@ def main(argv):
         match = time_location_regex.match(elt)
         return "{} {}".format(match.group("time"), match.group("ampm"))
 
-    bowl_table["Location"] = bowl_table["Site, Time (EST)"].apply(sitetime_to_location)
-    bowl_table["Time"] = bowl_table["Site, Time (EST)"].apply(sitetime_to_time)
-    bowl_table.pop("Site, Time (EST)")
+    bowl_table["Location"] = bowl_table["Site"]
+    bowl_table["Time (EST)"] = bowl_table["Time (EST)"].apply(
+        lambda s: s.replace('\xa0', ' ').replace("  ", " ").replace('a.m.', 'am').replace('p.m.', 'pm'))
 
-    bowl_table["Year"] = "2021"
-    bowl_table["Year"][bowl_table["Date"].str.startswith("Jan")] = "2022"
-    bowl_table["Date"] = bowl_table["Date"] + ", " + bowl_table["Year"] + " " + bowl_table["Time"]
-    bowl_table["DateFormat"] = "%b. %d, %Y %H:%M %p"
+    bowl_table["Year"] = str(args.treat_dec_as)
+    bowl_table["Year"][bowl_table["Date"].str.startswith("Jan")] = str(args.treat_dec_as+1)
+    bowl_table["Date"] = (
+        bowl_table["Date"]
+        + ", "
+        + bowl_table["Year"] 
+        + " " 
+        + bowl_table["Time (EST)"]
+        + " (EST)"
+    )
+    bowl_table["DateFormat"] = "%b. %d, %Y %H:%M %p (%Z)"
     bowl_table.pop("Year")
-    bowl_table.pop("Time")
+    bowl_table.pop("Time (EST)")
 
     bowl_table["Playoff"] = bowl_table["Game"].str.contains("Playoff Semifinal Game")
     bowl_table["Game"] = bowl_table["Game"].str.replace(
         r"  (Playoff Semifinal Game)", "", regex=False)
     bowl_table["Game"] = bowl_table["Game"].str.replace(
-        r"  (Cotton Bowl Winner Vs. Orange Bowl Winner)", "", regex=False)
+        r"\s+\(.+ vs\. .+\)", "", regex=True)
     bowl_table = bowl_table.rename(columns={"Television": "Network", "Game": "Bowl Game"})
 
+    print(bowl_table[["Date", "Bowl Game", "Team 1", "Team 2"]])
     game_info = bowl_table.to_dict("records")
     logging.info('Found {} games.'.format(len(game_info)))
     verify(game_info)
