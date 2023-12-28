@@ -1,10 +1,10 @@
 cffi>=1.12
-cryptography==3.3
+cryptography
 Django==3.2
 django-cors-headers==3.10.1
-django-filter==2.4.0
+django-filter==22.1
 django-rest-knox==4.0.1
-djangorestframework==3.13.1
+djangorestframework==3.14
 httpie==0.9.9
 lxml>=3.3
 pyasn1==0.1.9

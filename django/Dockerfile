@@ -21,3 +21,4 @@ RUN pip install -r requirements.txt
 COPY cfb_pickem /code/
 COPY pickem /code/
 COPY templates /code/
+CMD python manage.py runserver 0.0.0.0:8000

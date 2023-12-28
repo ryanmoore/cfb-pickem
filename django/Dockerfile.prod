@@ -21,18 +21,17 @@ RUN apk add \
 
 RUN pip install --upgrade pip
 WORKDIR /usr/src/app
-COPY . .
 
 COPY ./requirements.txt .
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
-
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt gunicorn
 
 # FINAL
 
 FROM python:3.10-alpine
 ENV DJANGO_USER=django-pickem
-ENV APP_DIR=/home/$DJANGO_USER/web
+ENV APP_DIR=/home/$DJANGO_USER/web/
 
+RUN pip install --upgrade pip
 RUN mkdir -p /home/$DJANGO_USER
 RUN addgroup -S $DJANGO_USER && adduser -S $DJANGO_USER -G $DJANGO_USER
 
@@ -44,10 +43,14 @@ RUN apk update
 RUN apk add libpq
 COPY --from=builder /usr/src/app/wheels /wheels
 COPY --from=builder /usr/src/app/requirements.txt .
+
 RUN pip install --no-cache /wheels/*
 
-COPY . $APP_DIR
+COPY manage.py pickem_uwsgi.ini deploy/run.sh $APP_DIR
+COPY cfb_pickem $APP_DIR/cfb_pickem
+COPY pickem $APP_DIR/pickem
+COPY templates $APP_DIR/templates
 RUN chown -R $DJANGO_USER:$DJANGO_USER $APP_DIR
 USER $DJANGO_USER
 
-CMD ["gunicorn", "cfb_pickem.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["sh", "run.sh"]

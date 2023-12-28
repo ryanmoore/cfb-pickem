@@ -575,7 +575,7 @@ class GameViewSet(viewsets.ModelViewSet):
     serializer_class = pickem.serializers.GameSerializer
     permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
-    filter_fields = ('season',)
+    filterset_fields = ('season',)
 
 
 class TeamViewSet(viewsets.ModelViewSet):
@@ -600,11 +600,11 @@ class TeamSeasonViewSet(viewsets.ModelViewSet):
     serializer_class = pickem.serializers.TeamSeasonSerializer
     permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
-    filter_fields = ('season',)
+    filterset_fields = ('season',)
 
 
 class ParticipantFilter(django_filters.rest_framework.FilterSet):
-    season = django_filters.NumberFilter(name='teamseason__season')
+    season = django_filters.NumberFilter(field_name='teamseason__season')
     class Meta:
         model = Participant
         fields = ('season',)
@@ -617,7 +617,7 @@ class ParticipantViewSet(viewsets.ModelViewSet):
     serializer_class = pickem.serializers.ParticipantSerializer
     permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
-    filter_class = ParticipantFilter
+    filterset_class = ParticipantFilter
 
 
 class WinnerViewSet(viewsets.ModelViewSet):
@@ -630,7 +630,7 @@ class WinnerViewSet(viewsets.ModelViewSet):
 
 
 class SelectionFilter(django_filters.rest_framework.FilterSet):
-    season = django_filters.NumberFilter(name='participant__teamseason__season')
+    season = django_filters.NumberFilter(field_name='participant__teamseason__season')
     class Meta:
         model = Selection
         fields = ('season',)
@@ -643,11 +643,11 @@ class SelectionViewSet(viewsets.ModelViewSet):
     serializer_class = pickem.serializers.SelectionSerializer
     permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
-    filter_class = SelectionFilter
+    filterset_class = SelectionFilter
 
 
 class WagerFilter(django_filters.rest_framework.FilterSet):
-    season = django_filters.NumberFilter(name='game__season')
+    season = django_filters.NumberFilter(field_name='game__season')
     class Meta:
         model = Wager
         fields = ('season',)
@@ -660,7 +660,7 @@ class WagerViewSet(viewsets.ModelViewSet):
     serializer_class = pickem.serializers.WagerSerializer
     permission_classes = [rest_permissions.IsAuthenticatedOrReadOnly,
                    rest_permissions.DjangoModelPermissionsOrAnonReadOnly]
-    filter_class = WagerFilter
+    filterset_class = WagerFilter
 
 
 class ProgressViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
