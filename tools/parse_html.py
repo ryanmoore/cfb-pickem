@@ -27,9 +27,12 @@ FIRST_HEADER = HEADER_MAPPING[0][0]
 EXPECTED_HEADERS = [first for first, _ in HEADER_MAPPING]
 MAPPED_HEADERS = [second for _, second in HEADER_MAPPING]
 
-PLAYOFF_BOWLS = ['Peach Bowl', 'Fiesta Bowl']
+PLAYOFF_BOWLS = ['Rose Bowl', 'Sugar Bowl']
 
 OUTPUT_DATE_FORMAT = '%Y-%m-%dT%H:%M:%S'
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger()
 
 
 def verify(game_info):
@@ -280,27 +283,47 @@ def main(argv):
     bowl_table.pop("Results")
     bowl_table["Championship"] = bowl_table["Game"].str.startswith("College Football Playoff National Championship")
     teams_regex = re.compile(
-        r"(?P<rank1>No. \d+ )?\s{0,1}(?P<team1>.+)  (?P<record1>\(\d+[–-]\d+\))  "
+        r"(?P<rank1>No. \d+ )?\s*(?P<team1>.+?)\s+(?P<record1>\(\d+[–-]\d+\))\S*\s+"
         # Note this is not the normal dash                          ^
-        r"(?P<rank2>No. \d+ )?\s{0,1}(?P<team2>.+)  (?P<record2>\(\d+[–-]\d+\))"
+        r"(?P<rank2>No. \d+ )?\s*(?P<team2>.+?)\s+(?P<record2>\(\d+[–-]\d+\))\S*"
+    )
+    champ_regex = re.compile(
+        r"\((?P<team1>.+?)\)\s{0,1}\S{0,1}\s{0,1}vs\.\s+\((?P<team2>.+?)\)\s{0,1}\S{0,1}\s{0,1}"
     )
 
-    def teams_to_team1(elt):
-        if not isinstance(elt, str):
-            return None
+    def teams_to_team(group, row):
+        elt = row.Teams
+        # if not isinstance(elt, str):
+        #     return None
+        if row.Championship:
+            match = champ_regex.search(elt)
+            if not match:
+                logger.error("Failed to extact championship teams using regex")
+                logger.error("Regex: {}".format(champ_regex.pattern))
+                logger.error("string: '{}'".format(elt))
+                raise ValueError("Help")
+            logger.debug("Champ game: {}".format(elt))
+            logger.debug("Regex: {}".format(champ_regex.pattern))
+            logger.debug("Result: {}".format(match.group(group)))
+            return match.group(group)
+
         match = teams_regex.search(elt)
         if not match:
-            print(elt)
-        return match.group("team1")
+            logger.error("Failed to extact team using regex")
+            logger.error("Regex: {}".format(teams_regex.pattern))
+            logger.error("string: '{}'".format(elt))
+            raise ValueError("Help")
+        # logger.debug("Matched {}: {}".format(group, match.group(group)))
+        return match.group(group)
 
-    def teams_to_team2(elt):
-        if not isinstance(elt, str):
-            return None
-        match = teams_regex.search(elt)
-        return match.group("team2")
+    def teams_to_team1(row):
+        return teams_to_team("team1", row)
 
-    bowl_table["Team 1"] = bowl_table["Teams"].apply(teams_to_team1)
-    bowl_table["Team 2"] = bowl_table["Teams"].apply(teams_to_team2)
+    def teams_to_team2(row):
+        return teams_to_team("team2", row)
+
+    bowl_table["Team 1"] = bowl_table.apply(teams_to_team1, axis=1)
+    bowl_table["Team 2"] = bowl_table.apply(teams_to_team2, axis=1)
     bowl_table.pop("Teams")
 
     time_location_regex = re.compile(r"(?P<location>.*)  (?P<time>\d+:\d+)\s+(?P<ampm>.*)")
@@ -332,8 +355,11 @@ def main(argv):
     bowl_table.pop("Time (EST)")
 
     bowl_table["Playoff"] = bowl_table["Game"].str.contains("Playoff Semifinal Game")
+    bowl_table["Playoff"] = bowl_table["Game"].str.contains("Playoff semifinal game")
     bowl_table["Game"] = bowl_table["Game"].str.replace(
         r"  (Playoff Semifinal Game)", "", regex=False)
+    bowl_table["Game"] = bowl_table["Game"].str.replace(
+        r"  (Playoff semifinal game)", "", regex=False)
     bowl_table["Game"] = bowl_table["Game"].str.replace(
         r"\s+\(.+ vs\. .+\)", "", regex=True)
     bowl_table = bowl_table.rename(columns={"Television": "Network", "Game": "Bowl Game"})
