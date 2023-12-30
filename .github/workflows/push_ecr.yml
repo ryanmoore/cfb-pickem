@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - django/**
 
 env:
   AWS_REGION: us-east-2
@@ -12,7 +14,7 @@ env:
 
 jobs:
   deploy:
-    name: Deploy
+    name: Build and Push Backend
     runs-on: ubuntu-latest
     environment: production
 
