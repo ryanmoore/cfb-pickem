@@ -45,7 +45,7 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       with:
-        context: .
+        context: "{{defaultContext}}:django"
         platforms: linux/amd64,linux/arm64,linux/arm64/v8
         push: true
         tags: |
