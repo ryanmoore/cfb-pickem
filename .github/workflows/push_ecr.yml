@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - django/**
+      - pickem-react/**
+      - .github/workflows/push_ecr.yml
 
 env:
   AWS_REGION: us-east-2
@@ -13,8 +15,21 @@ env:
   ECR_REPOSITORY: pickem-django
 
 jobs:
-  deploy:
+  release-on-push:
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    outputs:
+        tag_name: ${{ steps.release.outputs.tag_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: release
+        uses: rymndhng/release-on-push-action@master
+        with:
+          bump_version_scheme: minor
+
+  build-backend:
     name: Build and Push Backend
+    needs: release-on-push
     runs-on: ubuntu-latest
     environment: production
 
@@ -45,11 +60,10 @@ jobs:
       uses: docker/build-push-action@v5
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
       with:
         context: "{{defaultContext}}:django"
         platforms: linux/amd64,linux/arm64,linux/arm64/v8
         push: true
         tags: |
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-on-push.outputs.tag_name }}
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
