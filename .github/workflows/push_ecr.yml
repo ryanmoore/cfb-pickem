@@ -62,8 +62,43 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
       with:
         context: "{{defaultContext}}:django"
-        platforms: linux/amd64,linux/arm64,linux/arm64/v8
+        platforms: linux/arm64/v8
         push: true
         tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ needs.release-on-push.outputs.tag_name }}
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+
+  build-frontend:
+    name: Build and Sync Frontend
+    needs: release-on-push
+    runs-on: ubuntu-latest
+    environment: production
+
+    defaults:
+      run:
+        working-directory: ./pickem-react
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Use Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: 16.20
+
+    - name: Setup env
+      run: ln -sf .env.prod .env
+
+    - name: build
+      run: npm run build
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-ryanmoore-${{ github.event.repository.name }}
+        aws-region: ${{ env.AWS_REGION}}
+
+    - name: Sync build to s3
+      run: |
+        aws s3 sync ./build s3://pickem-frontend/${{ needs.release-on-push.outputs.tag_name }}
