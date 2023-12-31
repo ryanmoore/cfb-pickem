@@ -774,7 +774,7 @@ class LoginView(knox.views.LoginView):
         # but should suffice until:
         # https://github.com/James1345/django-rest-knox/issues/131
         return auther.authenticate_credentials(
-            digest.encode('utf-8'))[1].expires
+            digest.encode('utf-8'))[1].expiry
 
     def post(self, *args, **kwargs):
         response = super().post(*args, **kwargs)
