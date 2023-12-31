@@ -90,6 +90,9 @@ jobs:
     - name: Setup env
       run: ln -sf .env.prod .env
 
+    - name: Install dependencies
+      run: npm install
+
     - name: build
       run: npm run build
 
