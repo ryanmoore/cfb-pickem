@@ -16,6 +16,7 @@ export default class ScoresTableRow extends Component {
         pickCount: PropTypes.number.isRequired,
         picksNeeded: PropTypes.number.isRequired,
         percentComplete: PropTypes.number.isRequired,
+        done: PropTypes.bool.isRequired,
     };
     render() {
         const {
@@ -28,7 +29,8 @@ export default class ScoresTableRow extends Component {
         const labelWidth = 10;
         const completionBarWidth = 90*percentComplete;
         const color = done ? 'success' : 'warning';
-        const picksRemaining = picksNeeded - pickCount;
+        // eslint-disable-next-line no-underscore-dangle
+        const _picksRemaining = picksNeeded - pickCount;
         return (
             <Row>
                 <Col xs={2} className='username'>{ username } </Col>

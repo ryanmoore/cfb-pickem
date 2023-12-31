@@ -16,7 +16,14 @@
     "rules": {
         "strict": 1,
         "quotes": ["error", "single"],
-        "no-unused-vars": 1,
+        "no-unused-vars": [
+            "warn",
+            {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_",
+                "caughtErrorsIgnorePattern": "^_"
+            }
+        ],
         "camelcase": 1,
         "no-underscore-dangle": 1
     }

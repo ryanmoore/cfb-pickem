@@ -77,7 +77,7 @@ const fetchPickemGames = (season) => {
     };
 }
 
-const shouldFetchPickemGames = (state, season) => {
+const shouldFetchPickemGames = (state, _season) => {
     const games = state.fetchState.games;
     if(!games || games !== FETCH_STATES.READY) {
         return true;
@@ -141,7 +141,7 @@ const fetchPickemParticipants = (season) => {
     };
 }
 
-const shouldFetchPickemParticipants  = (state, season) => {
+const shouldFetchPickemParticipants  = (state, _season) => {
     const participants = state.fetchState.participants;
     if(!participants || participants !== FETCH_STATES.READY) {
         return true;
@@ -173,7 +173,7 @@ const fetchPickemTeamSeasons = (season) => {
     };
 }
 
-const shouldFetchPickemTeamSeasons  = (state, season) => {
+const shouldFetchPickemTeamSeasons  = (state, _season) => {
     const teamseasons = state.fetchState.teamseasons;
     if(!teamseasons || teamseasons !== FETCH_STATES.READY) {
         return true;
@@ -205,7 +205,7 @@ const fetchPickemSelections = (season) => {
     };
 }
 
-const shouldFetchPickemSelections  = (state, season) => {
+const shouldFetchPickemSelections  = (state, _season) => {
     const selections = state.fetchState.selections;
     if(!selections || selections !== FETCH_STATES.READY) {
         return true;
@@ -237,7 +237,7 @@ const fetchPickemWagers = (season) => {
     };
 }
 
-const shouldFetchPickemWagers  = (state, season) => {
+const shouldFetchPickemWagers  = (state, _season) => {
     const wagers = state.fetchState.wagers;
     if(!wagers || wagers !== FETCH_STATES.READY) {
         return true;
@@ -269,7 +269,7 @@ const fetchPickemWinners = (season) => {
     };
 }
 
-const shouldFetchPickemWinners  = (state, season) => {
+const shouldFetchPickemWinners  = (state, _season) => {
     const winners = state.fetchState.winners;
     if(!winners || winners !== FETCH_STATES.READY) {
         return true;
@@ -293,19 +293,19 @@ export const SET_PICKEM_API_AUTH_TOKEN = 'SET_PICKEM_API_AUTH_TOKEN';
 export const SET_PICKEM_API_AUTH_USER = 'SET_PICKEM_API_AUTH_USER';
 export const SET_PICKEM_API_AUTH_USER_AND_TOKEN = 'SET_PICKEM_API_AUTH_USER_AND_TOKEN';
 
-const setPickemAuthToken = (token) => {
-    return  {
-        type: SET_PICKEM_API_AUTH_TOKEN,
-        token: token,
-    };
-}
+// const setPickemAuthToken = (token) => {
+//     return  {
+//         type: SET_PICKEM_API_AUTH_TOKEN,
+//         token: token,
+//     };
+// }
 
-const setCurrentAuthUserData = (data) => {
-    return {
-        type: SET_PICKEM_API_AUTH_USER,
-        username: data.username,
-    };
-}
+// const setCurrentAuthUserData = (data) => {
+//     return {
+//         type: SET_PICKEM_API_AUTH_USER,
+//         username: data.username,
+//     };
+// }
 
 const handleAuthLoginTokenResponse = (response) => {
     return {
@@ -520,7 +520,7 @@ const fetchPickemProgress = (season) => {
     };
 }
 
-const shouldFetchPickemProgress = (state, season) => {
+const shouldFetchPickemProgress = (state, _season) => {
     const progress = state.fetchState.progress;
     if(!progress || progress !== FETCH_STATES.READY) {
         return true;

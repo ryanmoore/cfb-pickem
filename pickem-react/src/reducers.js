@@ -220,7 +220,7 @@ const entities = (state = defaultEntityState, action) => {
     return state;
 }
 
-const setCurrentSeason = (state = 4, action) => {
+const setCurrentSeason = (state = 4, _action) => {
     return state;
 }
 

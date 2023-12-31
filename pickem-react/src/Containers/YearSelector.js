@@ -6,9 +6,6 @@ import {
     connect,
 } from 'react-redux';
 import {
-    createSelector
-} from 'reselect';
-import {
     setSelectedSeason,
     loadPickemSeasons,
 } from '../actions';
@@ -42,7 +39,8 @@ class YearSelector extends Component {
         dispatch(loadPickemSeasons());
     }
 
-    componentWillReceiveProps(nextProps) {
+    // eslint-disable-next-line camelcase
+    UNSAFE_componentWillReceiveProps(nextProps) {
         const { dispatch } = this.props;
         const nextYear = nextProps.match.params.year;
         const curYear = this.props.selectedYear;

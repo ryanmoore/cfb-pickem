@@ -11,7 +11,6 @@ import {
 } from 'react-bootstrap';
 import {
     LinkContainer,
-    IndexLinkContainer,
 } from 'react-router-bootstrap';
 import {
     NavLink,

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, {
     Component
 } from 'react';
@@ -39,6 +40,14 @@ function redirectIfYear(props) {
         return <Redirect to={ `/${year}/index` }/>
     }
     return null;
+}
+
+redirectIfYear.propTypes = {
+    match: PropTypes.shape({
+        params: PropTypes.shape({
+            year: PropTypes.string.isRequired,
+        }),
+    }),
 }
 
 class PickemRouter extends Component {

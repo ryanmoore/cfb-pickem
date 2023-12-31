@@ -8,7 +8,6 @@ import {
     ControlLabel,
     FormControl,
     Button,
-    Alert,
 } from 'react-bootstrap';
 import MaybeErrorAlert from './MaybeErrorAlert';
 import './LoginForm.css';

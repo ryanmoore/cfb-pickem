@@ -278,7 +278,7 @@ describe('selectGamesForCurrentSeason', () => {
         const games = {
             2: {
                 id: 2,
-                fixed_wager_amount: 7,
+                fixed_wager_amount: 7, // eslint-disable-line camelcase
                 event: 'Test Event',
                 datetime: dateStr,
                 season: 1,
@@ -307,7 +307,7 @@ describe('selectGamesForCurrentSeason', () => {
         const games = {
             2: {
                 id: 2,
-                fixed_wager_amount: 7,
+                fixed_wager_amount: 7, // eslint-disable-line camelcase
                 event: 'Test Event',
                 datetime: dateStr,
                 season: 2,
@@ -355,21 +355,21 @@ describe('selectGamesForCurrentSeason', () => {
             const games = {
                 2: {
                     id: 2,
-                    fixed_wager_amount: 7,
+                    fixed_wager_amount: 7, // eslint-disable-line camelcase
                     event: 'Test Event',
                     datetime: dateStr1,
                     season: 1,
                 },
                 3: {
                     id: 3,
-                    fixed_wager_amount: 8,
+                    fixed_wager_amount: 8, // eslint-disable-line camelcase
                     event: 'Test Event 2',
                     datetime: dateStr1,
                     season: 2,
                 },
                 4: {
                     id: 4,
-                    fixed_wager_amount: 9,
+                    fixed_wager_amount: 9, // eslint-disable-line camelcase
                     event: 'Test Event 4',
                     datetime: dateStr2,
                     season: 1,

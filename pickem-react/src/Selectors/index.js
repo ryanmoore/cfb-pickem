@@ -90,7 +90,7 @@ export const selectGamesWithParticipantsForCurrentSeason = createSelector(
     }
 );
 
-export const APIDataIsReadyForSeason = (state, required, season) => {
+export const APIDataIsReadyForSeason = (state, required, _season) => {
     return required.every((type) => state.fetchState[type] === FETCH_STATES.READY);
 }
 
