@@ -62,6 +62,11 @@ fn import_reproduces_legacy_standings() {
         0
     );
 
+    // Each of the nine championships has two slots fed by semifinals, and
+    // their 17 distinct pseudo-teams are gone.
+    assert_eq!(scalar(&new, "SELECT count(*) FROM game_slot WHERE feeder_game_id IS NOT NULL"), 18);
+    assert_eq!(scalar(&new, "SELECT count(*) FROM team_season"), 533);
+
     let mut expected: BTreeMap<(u16, String), u32> = BTreeMap::new();
     let mut stmt = legacy.prepare(LEGACY_TOTALS).unwrap();
     for row in stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap() {
