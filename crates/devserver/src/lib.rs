@@ -4,4 +4,4 @@
 pub mod import;
 pub mod storage;
 
-pub use storage::{connect, create, SqliteStorage};
+pub use storage::{create, SqliteStorage};

@@ -30,14 +30,6 @@ pub fn create(path: &Path) -> rusqlite::Result<SqliteStorage> {
     Ok(SqliteStorage { conn })
 }
 
-/// Open an existing database, enforcing foreign keys (a per-connection
-/// setting in SQLite).
-pub fn connect(path: &Path) -> rusqlite::Result<SqliteStorage> {
-    let conn = Connection::open(path)?;
-    conn.pragma_update(None, "foreign_keys", true)?;
-    Ok(SqliteStorage { conn })
-}
-
 pub struct SqliteStorage {
     pub conn: Connection,
 }
