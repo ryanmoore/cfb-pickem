@@ -88,34 +88,36 @@ function SeasonStandings() {
       : seasons[0]?.year
     : requested;
 
+  let picker;
+  if (error) picker = <PanelError error={error} />;
+  else if (!seasons) picker = <div className="skeleton skeleton-inline" aria-busy="true" />;
+  else
+    picker = (
+      <select
+        id="season"
+        value={year ?? ""}
+        onChange={(e) => setParam(Number(e.target.value))}
+      >
+        {seasons.map((s) => (
+          <option key={s.year} value={s.year}>
+            {s.year}
+          </option>
+        ))}
+      </select>
+    );
+
   return (
     <>
       <div className="picker">
         <label htmlFor="season">Season</label>
-        {error ? (
-          <PanelError error={error} />
-        ) : seasons ? (
-          <select
-            id="season"
-            value={year ?? ""}
-            onChange={(e) => setParam(Number(e.target.value))}
-          >
-            {seasons.map((s) => (
-              <option key={s.year} value={s.year}>
-                {s.year}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <div className="skeleton skeleton-inline" aria-busy="true" />
-        )}
+        {picker}
       </div>
       {year != null ? (
         <Standings year={year} />
       ) : seasons ? (
         <p>No seasons yet.</p>
-      ) : error ? null : (
-        <Skeleton lines={6} />
+      ) : (
+        !error && <Skeleton lines={6} />
       )}
     </>
   );
