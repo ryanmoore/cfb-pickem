@@ -1,0 +1,15 @@
+[package]
+name = "pickem-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+# No platform dependencies, by design — this crate must compile and test
+# natively so the scoring rules can be verified against ten seasons of real
+# results without a browser, a wasm runtime, or a network.
+[dependencies]
+serde.workspace = true
+chrono.workspace = true
+thiserror.workspace = true

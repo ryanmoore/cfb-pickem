@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = ["crates/core"]
+
+# `worker` and `devserver` join here as they land. The split exists so the
+# rules of the game live in one place that compiles natively: `core` holds the
+# logic and reaches storage only through a trait, `worker` implements that
+# trait over D1 (built and deployed by CI), and `devserver` implements it over
+# a local SQLite file (what runs and gets integration-tested in development).
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.85"
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# default-features = false keeps `clock` out: it needs a system clock, which
+# is not available under wasm32-unknown-unknown. Timestamps arrive as RFC 3339
+# from storage and are parsed, never sampled.
+chrono = { version = "0.4", default-features = false, features = ["serde", "alloc"] }
+thiserror = "2"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

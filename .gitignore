@@ -1,5 +1,9 @@
 db.sqlite3
 .idea
+
+# Rust
+/target
+
 **/__pycache__
 staticfiles
 .ropeproject
