@@ -1,8 +1,8 @@
 [workspace]
 resolver = "2"
-members = ["crates/core"]
+members = ["crates/core", "crates/devserver"]
 
-# `worker` and `devserver` join here as they land. The split exists so the
+# `worker` joins here when it lands. The split exists so the
 # rules of the game live in one place that compiles natively: `core` holds the
 # logic and reaches storage only through a trait, `worker` implements that
 # trait over D1 (built and deployed by CI), and `devserver` implements it over

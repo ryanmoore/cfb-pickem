@@ -77,7 +77,8 @@ pub fn canonical_email(raw: &str) -> String {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct User {
     pub id: UserId,
-    pub email_hash: EmailHash,
+    /// `None` until an address is attached; such an account cannot sign in.
+    pub email_hash: Option<EmailHash>,
     pub display_name: String,
     pub is_admin: bool,
 }

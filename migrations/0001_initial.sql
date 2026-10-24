@@ -11,10 +11,12 @@ PRAGMA foreign_keys = ON;
 --
 -- Consequence to know before changing: the application cannot send mail, and
 -- replacing the key forces every account to be re-matched at next sign-in.
--- `legacy_username` records the account an imported row came from.
+-- `legacy_username` records the account an imported row came from. Imported
+-- rows have no digest until an address is attached, hence nullable (UNIQUE
+-- permits any number of NULLs); such an account cannot sign in.
 CREATE TABLE app_user (
     id              INTEGER PRIMARY KEY,
-    email_hash      TEXT    NOT NULL UNIQUE,
+    email_hash      TEXT    UNIQUE,
     display_name    TEXT    NOT NULL,
     is_admin        INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0, 1)),
     legacy_username TEXT    UNIQUE,

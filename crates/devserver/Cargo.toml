@@ -1,0 +1,14 @@
+[package]
+name = "pickem-devserver"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+pickem-core = { path = "../core" }
+chrono.workspace = true
+pollster = "0.4"
+rusqlite = { version = "0.37", features = ["bundled"] }
+thiserror.workspace = true

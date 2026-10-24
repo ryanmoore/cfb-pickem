@@ -77,8 +77,9 @@ The denormalised `pick.season_id` is a real redundancy that writes must keep
 consistent with `game.season_id`. It was accepted because the alternative
 leaves duplicate-confidence detection entirely to application code.
 
-Importing the archive requires mapping legacy usernames to email addresses,
-which is manual: almost none of the imported accounts carried an email.
+`email_hash` is nullable. Almost none of the archive's accounts carried an
+email, so imported users arrive without a digest and cannot sign in until an
+address is attached, which is a manual step.
 
 Hashing identity is awkward to reverse in three ways:
 
