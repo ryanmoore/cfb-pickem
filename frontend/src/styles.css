@@ -1,0 +1,35 @@
+:root {
+  color-scheme: light;
+  --ink: #1d2433;
+  --muted: #566074;
+  --line: #d5dbe5;
+  --bg: #f6f7fa;
+  --card: #fff;
+  --accent: #1a56c4;
+  --danger: #a31d1d;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+header, main { max-width: 40rem; margin: 0 auto; padding: 1rem; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem 1rem; padding-bottom: 0.5rem; }
+h1 { font-size: 1.4rem; margin: 0; }
+h2 { font-size: 1.1rem; margin: 0.5rem 0; }
+.me { color: var(--muted); font-size: 0.95rem; text-align: right; }
+a { color: var(--accent); }
+.picker { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; min-height: 2.75rem; }
+select { font: inherit; min-height: 2.75rem; padding: 0 0.6rem; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); }
+table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); }
+th, td { padding: 0.7rem 0.6rem; text-align: left; border-bottom: 1px solid var(--line); font-weight: normal; }
+thead th { font-size: 0.85rem; color: var(--muted); font-weight: 600; background: var(--bg); }
+tbody th { font-weight: 600; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+td:first-child, thead th:first-child { width: 3.5rem; }
+.error { color: var(--danger); background: #fdecec; border: 1px solid #e8b4b4; border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0; }
+.skeleton { height: 2.6rem; margin-bottom: 0.4rem; border-radius: 6px; background: linear-gradient(90deg, #e4e8ef 25%, #f1f3f7 50%, #e4e8ef 75%); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+.skeleton-inline { height: 1.2rem; width: 10rem; margin: 0; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
