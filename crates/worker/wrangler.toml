@@ -4,6 +4,7 @@
 name = "pickem"
 main = "build/worker/shim.mjs"
 compatibility_date = "2026-08-01"
+routes = [{ pattern = "pickem.example.com", custom_domain = true }]
 
 [build]
 command = "worker-build --release"
@@ -22,8 +23,6 @@ binding = "DB"
 database_name = "pickem"
 database_id = "REPLACE-WITH-OUTPUT-OF-wrangler-d1-create"
 migrations_dir = "../../migrations"
-
-routes = [{ pattern = "pickem.example.com", custom_domain = true }]
 
 # 09:00 UTC is 4-5am US Eastern/Central, outside game windows.
 [triggers]
