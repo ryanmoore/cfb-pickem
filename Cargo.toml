@@ -1,8 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["crates/core", "crates/devserver"]
+members = ["crates/core", "crates/devserver", "crates/worker"]
+# `cargo test` at the root covers what runs natively; the worker only builds
+# for wasm32 (`worker-build`, run by CI).
+default-members = ["crates/core", "crates/devserver"]
 
-# `worker` joins here when it lands. The split exists so the
+# The split exists so the
 # rules of the game live in one place that compiles natively: `core` holds the
 # logic and reaches storage only through a trait, `worker` implements that
 # trait over D1 (built and deployed by CI), and `devserver` implements it over
@@ -29,5 +32,6 @@ sha2 = "0.10"
 opt-level = "z"
 lto = true
 codegen-units = 1
-strip = true
+# Not `true`: wasm-bindgen needs the symbols a full strip removes.
+strip = "debuginfo"
 panic = "abort"

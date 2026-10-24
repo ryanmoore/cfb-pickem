@@ -1,0 +1,39 @@
+# Run wrangler from this directory. Secrets are set with `wrangler secret put`
+# and are never written here: EMAIL_HASH_KEY, AWS_ACCESS_KEY_ID,
+# AWS_SECRET_ACCESS_KEY, D1_EXPORT_TOKEN. See docs/deploy.md.
+name = "pickem"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-08-01"
+
+[build]
+command = "worker-build --release"
+
+# The Worker runs first only for the API and the login redirect; every other
+# path is served from the built frontend, with unknown paths falling back to
+# index.html for client-side routes.
+[assets]
+directory = "../../frontend/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/login"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pickem"
+database_id = "REPLACE-WITH-OUTPUT-OF-wrangler-d1-create"
+migrations_dir = "../../migrations"
+
+routes = [{ pattern = "pickem.example.com", custom_domain = true }]
+
+# 09:00 UTC is 4-5am US Eastern/Central, outside game windows.
+[triggers]
+crons = ["0 9 * * *"]
+
+[vars]
+ACCESS_TEAM_DOMAIN = "REPLACE.cloudflareaccess.com"
+ACCESS_AUD = "REPLACE-WITH-ACCESS-APPLICATION-AUD-TAG"
+CF_ACCOUNT_ID = "REPLACE-WITH-CLOUDFLARE-ACCOUNT-ID"
+D1_DATABASE_ID = "REPLACE-WITH-OUTPUT-OF-wrangler-d1-create"
+S3_BUCKET = "REPLACE-BUCKET"
+S3_REGION = "us-east-2"
+S3_PREFIX = "pickem"
