@@ -8,7 +8,6 @@ use std::cell::RefCell;
 
 use chrono::{DateTime, Utc};
 use pickem_core::access;
-use serde::Deserialize;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker::{console_error, Date, Error, Fetch, Request, Result};
@@ -16,11 +15,6 @@ use worker::{console_error, Date, Error, Fetch, Request, Result};
 /// Re-fetching on an unknown `kid` handles key rotation; this floor stops a
 /// forged `kid` from turning every request into a fetch.
 const JWKS_REFETCH_FLOOR_MS: u64 = 5 * 60 * 1000;
-
-#[derive(Deserialize)]
-struct Jwks {
-    keys: Vec<serde_json::Value>,
-}
 
 struct Cached {
     keys: Vec<serde_json::Value>,
@@ -66,12 +60,17 @@ async fn key_for(team_domain: &str, kid: &str) -> Result<serde_json::Value> {
     });
     if !recent {
         let url = format!("https://{team_domain}/cdn-cgi/access/certs");
-        let jwks: Jwks = Fetch::Url(url.parse().map_err(|_| Error::RustError("bad team domain".into()))?)
-            .send()
-            .await?
-            .json()
-            .await?;
-        JWKS.with(|c| *c.borrow_mut() = Some(Cached { keys: jwks.keys, fetched_at_ms: now }));
+        let mut jwks: serde_json::Value =
+            Fetch::Url(url.parse().map_err(|_| Error::RustError("bad team domain".into()))?)
+                .send()
+                .await?
+                .json()
+                .await?;
+        let keys = match jwks["keys"].take() {
+            serde_json::Value::Array(keys) => keys,
+            _ => return Err(Error::RustError("JWKS has no keys".into())),
+        };
+        JWKS.with(|c| *c.borrow_mut() = Some(Cached { keys, fetched_at_ms: now }));
     }
     find_key(kid).ok_or_else(|| Error::RustError(format!("no signing key {kid:?}")))
 }
@@ -86,9 +85,9 @@ async fn verify_rs256(jwk: &serde_json::Value, signed: &str, signature: &[u8]) -
         .unchecked_into::<web_sys::Crypto>()
         .subtle();
     let jwk = js_sys::JSON::parse(&jwk.to_string()).map_err(js_err("jwk"))?;
-    let algorithm = js_sys::Object::new();
-    js_sys::Reflect::set(&algorithm, &"name".into(), &"RSASSA-PKCS1-v1_5".into()).map_err(js_err("alg"))?;
-    js_sys::Reflect::set(&algorithm, &"hash".into(), &"SHA-256".into()).map_err(js_err("alg"))?;
+    let algorithm = js_sys::Object::from(
+        js_sys::JSON::parse(r#"{"name":"RSASSA-PKCS1-v1_5","hash":"SHA-256"}"#).map_err(js_err("alg"))?,
+    );
     let usages = js_sys::Array::of1(&"verify".into());
     let key: web_sys::CryptoKey = JsFuture::from(
         subtle

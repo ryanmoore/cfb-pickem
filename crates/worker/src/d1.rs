@@ -5,8 +5,8 @@
 
 use chrono::{DateTime, Utc};
 use pickem_core::{
-    EmailHash, EventId, Game, GameId, GameResult, GameSlot, Pick, ResultSource, Season, SeasonId,
-    SlotId, SlotSource, Storage, TeamSeasonId, User, UserId,
+    EmailHash, EventId, Game, GameId, GameResult, GameSlot, Pick, ResultSource, Season, SeasonId, SlotId,
+    Storage, User, UserId,
 };
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -50,16 +50,6 @@ struct GameRow {
     display_name: Option<String>,
     kickoff_at: String,
     fixed_wager: Option<u32>,
-}
-
-#[derive(Deserialize)]
-struct SlotRow {
-    id: i64,
-    game_id: i64,
-    slot_index: u8,
-    team_season_id: Option<i64>,
-    feeder_game_id: Option<i64>,
-    seed: Option<u16>,
 }
 
 #[derive(Deserialize)]
@@ -108,7 +98,7 @@ impl Storage for D1Storage {
     type Error = Error;
 
     async fn seasons(&self) -> Result<Vec<Season>> {
-        let sql = format!("SELECT {} FROM season ORDER BY year DESC", SeasonRow::COLUMNS);
+        let sql = format!("SELECT {} FROM season", SeasonRow::COLUMNS);
         let rows: Vec<SeasonRow> = self.query(&sql, &[]).await?;
         rows.into_iter().map(SeasonRow::into_season).collect()
     }
@@ -141,31 +131,8 @@ impl Storage for D1Storage {
             .collect()
     }
 
-    async fn slots_for_season(&self, season: SeasonId) -> Result<Vec<GameSlot>> {
-        let rows: Vec<SlotRow> = self
-            .query(
-                "SELECT s.id, s.game_id, s.slot_index, s.team_season_id, s.feeder_game_id, s.seed
-                 FROM game_slot s JOIN game g ON g.id = s.game_id
-                 WHERE g.season_id = ? ORDER BY s.id",
-                &[season.0],
-            )
-            .await?;
-        rows.into_iter()
-            .map(|r| {
-                let source = match (r.team_season_id, r.feeder_game_id) {
-                    (Some(t), None) => SlotSource::Team { team_season_id: TeamSeasonId(t) },
-                    (None, Some(g)) => SlotSource::WinnerOf { game_id: GameId(g) },
-                    _ => return Err(Error::RustError(format!("slot {} has no single source", r.id))),
-                };
-                Ok(GameSlot {
-                    id: SlotId(r.id),
-                    game_id: GameId(r.game_id),
-                    slot_index: r.slot_index,
-                    source,
-                    seed: r.seed,
-                })
-            })
-            .collect()
+    async fn slots_for_season(&self, _: SeasonId) -> Result<Vec<GameSlot>> {
+        Err(Error::RustError("slots are not served yet".into()))
     }
 
     async fn results_for_season(&self, season: SeasonId) -> Result<Vec<GameResult>> {

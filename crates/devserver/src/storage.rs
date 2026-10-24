@@ -73,7 +73,7 @@ impl Storage for SqliteStorage {
     async fn seasons(&self) -> Result<Vec<Season>, Self::Error> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id, year, locks_at, generation FROM season ORDER BY year DESC")?;
+            .prepare("SELECT id, year, locks_at, generation FROM season")?;
         let seasons = stmt.query_map([], season_row)?;
         seasons.collect()
     }

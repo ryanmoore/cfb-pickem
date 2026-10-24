@@ -15,7 +15,8 @@ Two tokens (dashboard > My Profile > API Tokens):
   custom domain).
 - **Export** (Worker secret `D1_EXPORT_TOKEN`): Account > D1 Edit only.
 
-Also add the account id as GitHub secret `CLOUDFLARE_ACCOUNT_ID`.
+Also add the account id as GitHub secret `CLOUDFLARE_ACCOUNT_ID`; both go in
+the repo's Actions secrets.
 
 ## 2. D1
 
@@ -67,19 +68,15 @@ npx wrangler@4.152.0 secret put D1_EXPORT_TOKEN
 ```
 
 Losing `EMAIL_HASH_KEY` orphans every account (see `adr/0001`).
-If `secret put` says the Worker does not exist, run step 7 first (the first
+If `secret put` says the Worker does not exist, run step 6 first (the first
 run will deploy without secrets and `/api/me` will error until they are set).
 
-## 6. GitHub
-
-Repo secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-
-## 7. Deploy
+## 6. Deploy
 
 Actions > Deploy > Run workflow, branch `rust-rewrite` (it also runs on push to
 `main`). It tests, builds the frontend, applies migrations, and deploys.
 
-## 8. Load the archive
+## 7. Load the archive
 
 From the repo root, with the legacy database at `$LEGACY`:
 
@@ -92,7 +89,7 @@ cd crates/worker && npx wrangler@4.152.0 d1 execute pickem --remote --file /tmp/
 Rows only: the schema comes from the migrations, and D1 rejects the dump's
 transaction statements. Keep these files out of git; they hold real names.
 
-## 9. Attach an email to a player
+## 8. Attach an email to a player
 
 Imported accounts cannot sign in until they have an address digest. Use the
 same key as the `EMAIL_HASH_KEY` secret. Find the username with

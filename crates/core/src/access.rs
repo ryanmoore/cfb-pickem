@@ -31,7 +31,7 @@ pub enum AccessError {
 #[derive(Deserialize)]
 struct Header {
     alg: String,
-    kid: Option<String>,
+    kid: String,
 }
 
 #[derive(Deserialize)]
@@ -78,7 +78,7 @@ pub fn parse(token: &str) -> Result<Token<'_>, AccessError> {
     Ok(Token {
         signing_input: token.rsplit_once('.').map_or(token, |(signed, _)| signed),
         signature: URL_SAFE_NO_PAD.decode(signature).map_err(|_| AccessError::Malformed)?,
-        kid: header.kid.ok_or(AccessError::Malformed)?,
+        kid: header.kid,
         claims: decode(payload)?,
     })
 }

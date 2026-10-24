@@ -6,9 +6,11 @@ use pickem_devserver::import::import;
 use pickem_devserver::serve::{dist_dir, serve, Config};
 use pickem_devserver::SqliteStorage;
 
+const PORT: u16 = 8787;
+
 const USAGE: &str = "usage:
   devserver import <legacy.sqlite3> <out.sqlite3>
-  devserver serve <db.sqlite3> [--port 8787]
+  devserver serve <db.sqlite3>   (port 8787)
   devserver attach-email <db.sqlite3> <legacy_username> <email>
 
 env: PICKEM_EMAIL_KEY (HMAC key for email digests), PICKEM_DEV_EMAIL (serve: sign every request in as this address)";
@@ -31,19 +33,14 @@ fn run(args: &[String]) -> Result<(), String> {
             println!("{hash}");
             Ok(())
         }
-        ["serve", db, rest @ ..] => {
-            let port = match rest {
-                [] => 8787,
-                ["--port", p] => p.parse().map_err(|_| format!("bad port {p:?}"))?,
-                _ => return Err(USAGE.into()),
-            };
+        ["serve", db] => {
             let storage = SqliteStorage::open(&PathBuf::from(db)).map_err(|e| e.to_string())?;
             let config = Config {
                 dev_email: env::var("PICKEM_DEV_EMAIL").ok(),
                 email_key: email_key(),
                 dist: dist_dir(),
             };
-            serve(&storage, &config, port).map_err(|e| e.to_string())
+            serve(&storage, &config, PORT).map_err(|e| e.to_string())
         }
         _ => Err(USAGE.into()),
     }

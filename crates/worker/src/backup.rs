@@ -105,11 +105,7 @@ pub async fn run(env: &Env, now: DateTime<Utc>) -> Result<()> {
         .await?;
 
     let prefix = var(env, "S3_PREFIX")?;
-    let key = format!(
-        "{}pickem-{}.sql",
-        if prefix.is_empty() { String::new() } else { format!("{}/", prefix.trim_matches('/')) },
-        now.format("%Y-%m-%d")
-    );
+    let key = format!("{}/pickem-{}.sql", prefix.trim_matches('/'), now.format("%Y-%m-%d"));
     let signed = sign_put(&PutObject {
         access_key_id: &env.secret("AWS_ACCESS_KEY_ID")?.to_string(),
         secret_access_key: &env.secret("AWS_SECRET_ACCESS_KEY")?.to_string(),
