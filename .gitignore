@@ -9,3 +9,7 @@ staticfiles
 .ropeproject
 static
 .python-version
+
+# Frontend
+frontend/node_modules
+frontend/dist
