@@ -73,8 +73,9 @@ run will deploy without secrets and `/api/me` will error until they are set).
 
 ## 6. Deploy
 
-Actions > Deploy > Run workflow, branch `rust-rewrite` (it also runs on push to
-`main`). It tests, builds the frontend, applies migrations, and deploys.
+Push to `rust-rewrite` or `main`; the Deploy workflow tests, builds the
+frontend, applies migrations, and deploys. A manual run (Actions > Deploy > Run
+workflow) is offered only once the workflow file is on the default branch.
 
 ## 7. Load the archive
 
