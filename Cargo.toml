@@ -21,6 +21,9 @@ serde_json = "1"
 # from storage and are parsed, never sampled.
 chrono = { version = "0.4", default-features = false, features = ["serde", "alloc"] }
 thiserror = "2"
+base64 = "0.22"
+hmac = "0.12"
+sha2 = "0.10"
 
 [profile.release]
 opt-level = "z"

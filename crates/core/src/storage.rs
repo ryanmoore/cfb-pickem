@@ -15,6 +15,7 @@ use crate::model::{EmailHash, Game, GameResult, GameSlot, Pick, Season, SeasonId
 pub trait Storage {
     type Error: core::fmt::Debug;
 
+    async fn seasons(&self) -> Result<Vec<Season>, Self::Error>;
     async fn season_by_year(&self, year: u16) -> Result<Option<Season>, Self::Error>;
 
     async fn games_for_season(&self, season: SeasonId) -> Result<Vec<Game>, Self::Error>;

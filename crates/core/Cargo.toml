@@ -9,7 +9,14 @@ publish = false
 # No platform dependencies, by design — this crate must compile and test
 # natively so the scoring rules can be verified against ten seasons of real
 # results without a browser, a wasm runtime, or a network.
+[dev-dependencies]
+pollster = "0.4"
+
 [dependencies]
 serde.workspace = true
 chrono.workspace = true
 thiserror.workspace = true
+serde_json.workspace = true
+base64.workspace = true
+hmac.workspace = true
+sha2.workspace = true

@@ -4,8 +4,11 @@
 //! be tested in environments without access to those. Platform concerns live
 //! behind [`storage::Storage`].
 
+pub mod access;
+pub mod api;
 pub mod model;
 pub mod scoring;
+pub mod sigv4;
 pub mod storage;
 
 pub use model::*;

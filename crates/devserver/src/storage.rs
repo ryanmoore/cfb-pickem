@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
 use pickem_core::{
-    EmailHash, Game, GameId, GameResult, GameSlot, Pick, ResultSource, SeasonId, Season, SlotId,
+    email_hash, EmailHash, Game, GameId, GameResult, GameSlot, Pick, ResultSource, SeasonId, Season, SlotId,
     SlotSource, Storage, TeamSeasonId, User, UserId,
 };
 use rusqlite::types::Type;
@@ -34,6 +34,32 @@ pub struct SqliteStorage {
     pub conn: Connection,
 }
 
+impl SqliteStorage {
+    pub fn open(path: &Path) -> rusqlite::Result<Self> {
+        Ok(Self { conn: Connection::open(path)? })
+    }
+
+    /// Set the digest of the account imported from `legacy_username`, so it
+    /// can sign in. Returns the digest, which is also what to write to the
+    /// same column in D1.
+    pub fn attach_email(
+        &self,
+        key: &[u8],
+        legacy_username: &str,
+        email: &str,
+    ) -> rusqlite::Result<EmailHash> {
+        let hash = email_hash(key, email);
+        let changed = self.conn.execute(
+            "UPDATE app_user SET email_hash = ? WHERE legacy_username = ?",
+            params![hash.as_str(), legacy_username],
+        )?;
+        if changed == 0 {
+            return Err(rusqlite::Error::QueryReturnedNoRows);
+        }
+        Ok(hash)
+    }
+}
+
 fn timestamp(row: &Row, idx: usize) -> rusqlite::Result<DateTime<Utc>> {
     let text: String = row.get(idx)?;
     DateTime::parse_from_rfc3339(&text)
@@ -44,21 +70,20 @@ fn timestamp(row: &Row, idx: usize) -> rusqlite::Result<DateTime<Utc>> {
 impl Storage for SqliteStorage {
     type Error = rusqlite::Error;
 
+    async fn seasons(&self) -> Result<Vec<Season>, Self::Error> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, year, locks_at, generation FROM season ORDER BY year DESC")?;
+        let seasons = stmt.query_map([], season_row)?;
+        seasons.collect()
+    }
+
     async fn season_by_year(&self, year: u16) -> Result<Option<Season>, Self::Error> {
         let mut stmt = self
             .conn
             .prepare("SELECT id, year, locks_at, generation FROM season WHERE year = ?")?;
         let mut rows = stmt.query([year])?;
-        rows.next()?
-            .map(|r| {
-                Ok(Season {
-                    id: SeasonId(r.get(0)?),
-                    year: r.get(1)?,
-                    locks_at: timestamp(r, 2)?,
-                    generation: r.get(3)?,
-                })
-            })
-            .transpose()
+        rows.next()?.map(season_row).transpose()
     }
 
     async fn games_for_season(&self, season: SeasonId) -> Result<Vec<Game>, Self::Error> {
@@ -204,6 +229,15 @@ impl Storage for SqliteStorage {
         tx.commit()?;
         Ok(generation)
     }
+}
+
+fn season_row(r: &Row) -> rusqlite::Result<Season> {
+    Ok(Season {
+        id: SeasonId(r.get(0)?),
+        year: r.get(1)?,
+        locks_at: timestamp(r, 2)?,
+        generation: r.get(3)?,
+    })
 }
 
 fn user_row(r: &Row) -> rusqlite::Result<User> {

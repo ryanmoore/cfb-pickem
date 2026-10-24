@@ -4,7 +4,9 @@
 //! another's is expected.
 
 use chrono::{DateTime, Utc};
+use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 
 macro_rules! id_type {
     ($($(#[$m:meta])* $name:ident),* $(,)?) => { $(
@@ -72,6 +74,14 @@ impl core::fmt::Display for EmailHash {
 /// which backend handled the request.
 pub fn canonical_email(raw: &str) -> String {
     raw.trim().to_lowercase()
+}
+
+/// The digest stored for an address: HMAC-SHA256 under `key` of the
+/// canonical form.
+pub fn email_hash(key: &[u8], raw: &str) -> EmailHash {
+    let mut mac = Hmac::<Sha256>::new_from_slice(key).expect("HMAC accepts any key length");
+    mac.update(canonical_email(raw).as_bytes());
+    EmailHash::from_digest(&mac.finalize().into_bytes())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -177,6 +187,16 @@ mod tests {
     fn digests_encode_as_lowercase_hex_preserving_leading_zeros() {
         let hash = EmailHash::from_digest(&[0x00, 0x0f, 0xa5, 0xff]);
         assert_eq!(hash.as_str(), "000fa5ff");
+    }
+
+    #[test]
+    fn email_hash_is_keyed_and_canonical() {
+        // HMAC-SHA256("key", "a@b.c"), checked against `openssl dgst -sha256 -hmac key`.
+        assert_eq!(
+            email_hash(b"key", " A@B.c ").as_str(),
+            "39ae49c50426b2bd08543508b376ed900cccf8729da709864ff1e0ef842c25b6"
+        );
+        assert_ne!(email_hash(b"key", "a@b.c"), email_hash(b"other", "a@b.c"));
     }
 
     #[test]
