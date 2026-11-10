@@ -95,9 +95,9 @@ fn handle(storage: &SqliteStorage, config: &Config, request: Request) {
     }
 }
 
-pub fn serve(storage: &SqliteStorage, config: &Config, port: u16) -> std::io::Result<()> {
-    let server = tiny_http::Server::http(("127.0.0.1", port)).map_err(std::io::Error::other)?;
-    eprintln!("listening on http://127.0.0.1:{port}");
+pub fn serve(storage: &SqliteStorage, config: &Config, host: &str, port: u16) -> std::io::Result<()> {
+    let server = tiny_http::Server::http((host, port)).map_err(std::io::Error::other)?;
+    eprintln!("listening on http://{host}:{port}");
     for request in server.incoming_requests() {
         handle(storage, config, request);
     }

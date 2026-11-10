@@ -13,7 +13,7 @@ const USAGE: &str = "usage:
   devserver serve <db.sqlite3>   (port 8787)
   devserver attach-email <db.sqlite3> <legacy_username> <email>
 
-env: PICKEM_EMAIL_KEY (HMAC key for email digests), PICKEM_DEV_EMAIL (serve: sign every request in as this address)";
+env: PICKEM_EMAIL_KEY (HMAC key for email digests), PICKEM_DEV_EMAIL (serve: sign every request in as this address), PICKEM_BIND (serve: listen address, default 127.0.0.1)";
 
 fn email_key() -> Vec<u8> {
     env::var("PICKEM_EMAIL_KEY").unwrap_or_else(|_| "dev-email-key".into()).into_bytes()
@@ -40,7 +40,8 @@ fn run(args: &[String]) -> Result<(), String> {
                 email_key: email_key(),
                 dist: dist_dir(),
             };
-            serve(&storage, &config, PORT).map_err(|e| e.to_string())
+            let host = env::var("PICKEM_BIND").unwrap_or_else(|_| "127.0.0.1".into());
+            serve(&storage, &config, &host, PORT).map_err(|e| e.to_string())
         }
         _ => Err(USAGE.into()),
     }
