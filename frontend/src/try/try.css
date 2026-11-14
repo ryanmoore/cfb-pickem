@@ -81,8 +81,21 @@
 .try .cbtns { display: flex; gap: 6px; flex: none; }
 .try .spot { cursor: grab; user-select: none; }
 .try .spot.closing { pointer-events: none; }
-.try .hint { position: absolute; left: 50%; bottom: calc(50% + var(--half, 80px) + 14px); transform: translateX(-50%); width: min(22rem, calc(100% - 32px)); box-sizing: border-box; background: #ffd34d; color: #111; font-weight: 600; text-align: center; border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 24px #000a; pointer-events: none; z-index: 2; }
-.try .hint::after { content: ""; position: absolute; left: 50%; top: 100%; margin-left: -9px; border: 9px solid transparent; border-top-color: #ffd34d; }
+.try .hint { position: absolute; left: 50%; bottom: calc(50% + var(--half, 80px) + 14px); transform: translateX(-50%); width: min(22rem, calc(100% - 32px)); box-sizing: border-box; background: #fff; color: #111; font-weight: 600; text-align: center; border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 24px #000a; pointer-events: none; z-index: 2; }
+.try .hint::after { content: ""; position: absolute; left: 50%; top: 100%; margin-left: -9px; border: 9px solid transparent; border-top-color: #fff; }
+.try .status button.ghost:not(.jump) { padding: 0 4px; min-width: 0; }
+.try .helpbtn { border: 1px solid #1a56c4 !important; border-radius: 50% !important; font-weight: 700; padding: 0 !important; min-width: 44px !important; }
+.try .coach { position: fixed; inset: 0; z-index: 70; cursor: pointer; }
+.try .cut { position: fixed; border-radius: 10px; box-shadow: 0 0 0 100vmax #000c; outline: 3px solid #fff; pointer-events: none; }
+.try .callout { position: fixed; box-sizing: border-box; background: #fff; color: #111; border-radius: 12px; padding: 10px 14px; display: grid; gap: 6px; cursor: default; box-shadow: 0 6px 24px #000a; animation: callout-in 0.25s ease-out; }
+.try .callout footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.try .callout small { font-size: 0.8rem; }
+.try .callout i { position: absolute; border: 9px solid transparent; }
+.try .callout.up i { top: 100%; border-top-color: #fff; }
+.try .callout.down i { bottom: 100%; border-bottom-color: #fff; }
+.try .callout button { justify-self: end; }
+@keyframes callout-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .try .callout { animation: none; } }
 .try .stack { display: contents; }
 .try .hints { display: none; }
 .try .hl.cancel { background: #e5484d; }
