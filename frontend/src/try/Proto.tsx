@@ -44,14 +44,26 @@ const tl = (t: Team) => (t.rank ? `#${t.rank} ` : "") + t.name;
 const lineText = (g: Game) => (g.line.pts ? `${g.teams[g.line.fav].name} favored by ${g.line.pts}` : "Even");
 const tint = (t: Team, on: boolean) => ({ "--c": t.color, "--ink": on ? inkOn(t.color) : undefined }) as React.CSSProperties;
 
-function Chip({ g, i, pick, onPick }: { g: Game; i: 0 | 1; pick?: Pick; onPick: (p: Pick) => void }) {
+// Without onPick the chip is a plain span (the dimmed rows in the spotlight).
+function Chip({ g, i, pick, onPick }: { g: Game; i: 0 | 1; pick?: Pick; onPick?: (p: Pick) => void }) {
   const t = g.teams[i];
   const on = pick === i;
+  const Tag = onPick ? "button" : "span";
   return (
-    <button className={"chip" + (on ? " on" : "")} style={tint(t, on)} aria-pressed={on} onClick={() => onPick(i)}>
+    <Tag
+      className={"chip" + (on ? " on" : "")}
+      style={tint(t, on)}
+      {...(onPick && {
+        "aria-pressed": on,
+        onClick: (e: React.MouseEvent) => {
+          e.stopPropagation();
+          onPick(i);
+        },
+      })}
+    >
       <span className="nm">{tl(t)}</span>
       <span className="rec">{t.record}</span>
-    </button>
+    </Tag>
   );
 }
 
@@ -82,53 +94,37 @@ function Picks({ g, pick, onPick }: { g: Game; pick?: Pick; onPick: (p: Pick) =>
   );
 }
 
-const NoPick = () => <b className="np">no pick</b>;
-
-// Bowl name (secondary), the line, and a marker when nothing is picked yet.
-function Top({ g, pick, onOpen }: { g: Game; pick?: Pick; onOpen?: () => void }) {
+// The row both lists share: points, the bowl and line as a title with a
+// chevron when the row opens the spotlight, and the two team chips (the card's
+// chips) beneath. Without onPick the chips are plain (the dimmed rows in the
+// spotlight). A ranked row is exactly `ROW` tall including its gap, so the two
+// lists line up.
+function Cells({ g, pts, pick, onPick, open, end }: { g: Game; pts: number; pick?: Pick; onPick?: (p: Pick) => void; open?: boolean; end?: React.ReactNode }) {
+  const unpicked = pick === undefined;
   return (
     <>
-      <div className="top">
-        {onOpen ? (
-          <button className="bowl" onClick={onOpen}>
-            {g.bowl}
-          </button>
-        ) : (
-          <span className="bowl">{g.bowl}</span>
-        )}
-        {pick === undefined && <NoPick />}
-      </div>
-      <small className="ln">{lineText(g)}</small>
-    </>
-  );
-}
-
-// Compact two-line matchup for the dimmed list: teams with the picked one
-// filled, then the line and a no-pick marker.
-function Matchup({ g, pick }: { g: Game; pick?: Pick }) {
-  return (
-    <div className="mu">
-      <div className="mt">
-        {[0, 1].map((i) => (
-          <span key={i} className="tg-wrap">
-            {i === 1 && <span className="vs">vs</span>}
-            <span className={"tg" + (pick === i ? " on" : "")} style={tint(g.teams[i], pick === i)}>
-              {pick === i && "✓ "}
-              {g.teams[i].name}
+      <span className={"rk" + (unpicked ? " un" : "")} aria-label={`${pts} points${unpicked ? ", no pick yet" : ""}`}>
+        {pts}
+        <i>pts</i>
+      </span>
+      <div className="mu">
+        <div className="hd">
+          <div className="tt">
+            <b className="bt">{g.bowl}</b>
+            <span className="ml">{lineText(g)}</span>
+          </div>
+          {end ?? (
+            <span className="chev" aria-hidden>
+              {open && "›"}
             </span>
-          </span>
-        ))}
+          )}
+        </div>
+        <div className="mt">
+          <Chip g={g} i={0} pick={pick} onPick={onPick} />
+          <Chip g={g} i={1} pick={pick} onPick={onPick} />
+        </div>
       </div>
-      <div className="ml">
-        {lineText(g)}
-        {pick === undefined && (
-          <>
-            {" · "}
-            <NoPick />
-          </>
-        )}
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -226,13 +222,26 @@ function Tiers({ s, setS, onClose }: { s: S; setS: (f: (s: S) => S) => void; onC
   );
 }
 
-const ROW = 44;
+// Pitch of a game in both lists (a row plus a 4 px gap); exposed to the
+// CSS as --row.
+const ROW = 96;
+const DUR = 230;
+const EASE = "cubic-bezier(0.2, 0.7, 0.2, 1)";
+const still = window.matchMedia("(prefers-reduced-motion: reduce)");
 // From this width the controls sit under the card instead of along the bottom
 // edge; keep in sync with the media query in try.css.
 const desk = window.matchMedia("(min-width: 700px)");
 const clamp = (j: number) => Math.max(0, Math.min(N - 1, j));
+// Vertical offset of rest[r] when the list is at scroll position p: rows above
+// the game's slot go up and rows below go down. `closed` is the page layout,
+// where the game's own row still occupies a pitch and nothing is gapped.
+const shift = (r: number, p: number, half: number, closed: boolean) => {
+  const v = Math.max(-1, Math.min(1, 2 * (r + 0.5 - p)));
+  return v * (closed ? (v > 0 ? ROW : 0) : half);
+};
 const HINT_KEY = "try-spot-hint-v1";
 const DRAG_PX = 6;
+const STOP_MS = 150;
 
 // The list scrolls under a fixed card. The list holds every game but the
 // spotlighted one; scrollTop = j * ROW means the game sits between rest[j-1]
@@ -241,15 +250,24 @@ const DRAG_PX = 6;
 // grid), which opens a card-sized gap and keeps both neighbours fully visible.
 // Rows are keyed by position: the browser re-snaps to the same DOM node after
 // a reorder, which would shift the list by a row on every commit.
-function Spotlight({ s, id, setS, move, active, onHelp, onDone, onCancel }: {
+//
+// Opening and closing are presentation only. The list is first laid out as the
+// page list is (the game's own row still in place, so rows below sit one
+// pitch lower and nothing is gapped) and eased to the gapped layout, while the
+// card grows from the game's page row. Closing runs that backwards into the
+// page row's final position, then calls onClosed.
+function Spotlight({ s, id, from, closing, setS, move, active, onHelp, onDone, onCancel, onClosed }: {
   s: S;
   id: string;
+  from: DOMRect;
+  closing: boolean;
   setS: (f: (s: S) => S) => void;
   move: (idx: number) => void;
   active: boolean;
   onHelp: () => void;
   onDone: () => void;
   onCancel: () => void;
+  onClosed: () => void;
 }) {
   const g = BY_ID[id];
   const i = s.order.indexOf(id);
@@ -259,6 +277,8 @@ function Spotlight({ s, id, setS, move, active, onHelp, onDone, onCancel }: {
   const [sheet, setSheet] = useState(false);
   const [hint, setHint] = useState(() => !localStorage.getItem(HINT_KEY));
   const dragged = useRef(false);
+  const stopping = useRef(false);
+  const lastScroll = useRef(0);
   const spot = useRef<HTMLDivElement>(null);
   const wheel = useRef<HTMLDivElement>(null);
   const card = useRef<HTMLDivElement>(null);
@@ -276,8 +296,51 @@ function Spotlight({ s, id, setS, move, active, onHelp, onDone, onCancel }: {
     const half = (desk.matches ? stack.current! : card.current!).offsetHeight / 2;
     spot.current!.style.setProperty("--half", half + "px");
     w.querySelectorAll<HTMLElement>(".dim").forEach((el, r) => {
-      el.style.transform = `translateY(${half * Math.max(-1, Math.min(1, 2 * (r + 0.5 - p)))}px)`;
+      el.style.transform = `translateY(${shift(r, p, half, false)}px)`;
     });
+  };
+  // Plays the open (or, reversed, the close) transition from the page row
+  // `rect` to the settled spotlight. Returns the animations' completion.
+  const animate = (rect: DOMRect, out: boolean) => {
+    const sp = spot.current!;
+    const w = wheel.current!;
+    // Opening hands back to the live styles when done; closing holds its end
+    // state until the spotlight unmounts.
+    const dir = { duration: out ? DUR - 30 : DUR, easing: EASE, fill: out ? "both" : "backwards" } as const;
+    const run = (el: Element, a: Keyframe[], o: KeyframeAnimationOptions = {}) =>
+      el.animate(out ? [...a].reverse() : a, { ...dir, ...o, delay: out ? 0 : o.delay });
+    if (still.matches) return run(sp, [{ opacity: 0 }, { opacity: 1 }], { duration: 120 }).finished;
+    const p = w.scrollTop / ROW;
+    const half = parseFloat(sp.style.getPropertyValue("--half"));
+    const d = rect.top - 2 - (w.getBoundingClientRect().top + w.clientHeight / 2);
+    const c = card.current!;
+    const to = c.getBoundingClientRect();
+    const anims = [
+      // The backdrop covers the page list while the rows are still moving.
+      sp.animate(
+        out
+          ? [{ backgroundColor: "#141828" }, { backgroundColor: "rgba(20, 24, 40, 0)" }]
+          : [{ backgroundColor: "rgba(20, 24, 40, 0)" }, { backgroundColor: "#141828" }],
+        { ...dir, duration: DUR / 2, delay: out ? dir.duration - DUR / 2 : 0 },
+      ),
+      run(w, [{ transform: `translateY(${d}px)` }, { transform: "none" }]),
+      run(
+        c,
+        [
+          { transform: `translate(${rect.left - to.left}px, ${rect.top - to.top}px) scale(${rect.width / to.width}, ${rect.height / to.height})`, borderColor: "#d5dbe5" },
+          { transform: "none", borderColor: "#1a56c4" },
+        ],
+      ),
+      ...Array.from(c.children).map((k) => run(k, [{ opacity: 0 }, { opacity: 1 }], { duration: DUR * 0.6, delay: DUR * 0.4 })),
+      run(bar.current!, [{ transform: "translateY(40%)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 180, delay: 50 }),
+      ...Array.from(w.querySelectorAll<HTMLElement>(".dim")).map((el, r) =>
+        run(el, [
+          { transform: `translateY(${shift(r, p, half, true)}px)`, opacity: 1 },
+          { transform: el.style.transform, opacity: 0.88 },
+        ]),
+      ),
+    ];
+    return Promise.all(anims.map((a) => a.finished));
   };
   const goto = (j: number) => {
     wheel.current!.scrollTop = j * ROW;
@@ -300,7 +363,17 @@ function Spotlight({ s, id, setS, move, active, onHelp, onDone, onCancel }: {
   const toRef = useRef(to);
   toRef.current = to;
 
-  useLayoutEffect(() => goto(i), []);
+  useLayoutEffect(() => {
+    goto(i);
+    animate(from, false);
+  }, []);
+  // The page has already scrolled the game's row into view and re-rendered in
+  // its final order; collapse into that row.
+  useEffect(() => {
+    if (!closing) return;
+    goto(cur.current);
+    animate(document.getElementById("g-" + id)!.getBoundingClientRect(), true).then(onClosed);
+  }, [closing]);
   useLayoutEffect(() => {
     const ro = new ResizeObserver(layout);
     ro.observe(card.current!);
@@ -416,7 +489,15 @@ function Spotlight({ s, id, setS, move, active, onHelp, onDone, onCancel }: {
     return () => window.removeEventListener("keydown", onKey);
   }, [active, menu, sheet, onCancel, onDone]);
 
+  // A press that lands on a list still coasting (recent scroll event, or off a
+  // snap point) only stops it; the click that follows must not place the game.
+  const onWheelDown = () => {
+    const w = wheel.current!;
+    const off = Math.abs(w.scrollTop - Math.round(w.scrollTop / ROW) * ROW);
+    stopping.current = performance.now() - lastScroll.current < STOP_MS || off > 1;
+  };
   const onScroll = () => {
+    lastScroll.current = performance.now();
     layout();
     setPos(clamp(Math.round(wheel.current!.scrollTop / ROW)));
     if (!("onscrollend" in window)) {
@@ -428,17 +509,13 @@ function Spotlight({ s, id, setS, move, active, onHelp, onDone, onCancel }: {
   const top = pos === 0;
   const bottom = pos === N - 1;
   return (
-    <div className="spot" role="dialog" aria-label="Spotlight" ref={spot}>
-      <div className="wheel" ref={wheel} onScroll={onScroll} data-testid="wheel">
+    <div className={"spot" + (closing ? " closing" : "")} role="dialog" aria-label="Spotlight" ref={spot}>
+      <div className="wheel" ref={wheel} onScroll={onScroll} onPointerDownCapture={onWheelDown} data-testid="wheel">
         <div className="sp" />
         {rest.map((o, k) => (
           <div key={k} className="slot">
-            <div className="dim" onClick={() => !dragged.current && to(k < pos ? k : k + 1)}>
-              <b className="pts">
-                {N - (k < pos ? k : k + 1)}
-                <i>pts</i>
-              </b>
-              <Matchup g={BY_ID[o]} pick={s.picks[o]} />
+            <div className="dim" onClick={() => !dragged.current && !stopping.current && to(k < pos ? k : k + 1)}>
+              <Cells g={BY_ID[o]} pts={N - (k < pos ? k : k + 1)} pick={s.picks[o]} />
             </div>
           </div>
         ))}
@@ -459,23 +536,25 @@ function Spotlight({ s, id, setS, move, active, onHelp, onDone, onCancel }: {
         </div>
       )}
       <div className="stack" ref={stack}>
+      <div className="cw">
       <div className="card" ref={card}>
-        <div className="chead">
-          <div className="ctitle">
-            <h3>{N - pos} pts</h3>
-            <span className="cbowl">{g.bowl}</span>
-            <small className="ln">{lineText(g)}</small>
-          </div>
-          <div className="cbtns">
-            <button className="cancel" aria-label="Cancel" onClick={onCancel}>
-              ✕
-            </button>
-            <button className="primary" onClick={onDone}>
-              ✓ Done
-            </button>
-          </div>
-        </div>
-        <Picks g={g} pick={s.picks[id]} onPick={pick} />
+        <Cells
+          g={g}
+          pts={N - pos}
+          pick={s.picks[id]}
+          onPick={pick}
+          end={
+            <div className="cbtns">
+              <button className="cancel" aria-label="Cancel" onClick={onCancel}>
+                ✕
+              </button>
+              <button className="primary" onClick={onDone}>
+                ✓ Done
+              </button>
+            </div>
+          }
+        />
+      </div>
       </div>
       <div className="bar" ref={bar}>
         <div className="barin">
@@ -537,6 +616,9 @@ export function Proto() {
   const keep = useRef(false);
   const pushed = useRef(false);
   const jumped = useRef(-1);
+  const from = useRef<DOMRect>(undefined!);
+  const cancelled = useRef(false);
+  const [closing, setClosing] = useState(false);
 
   // Going back would otherwise restore the scroll position from before the
   // spotlight opened, after the scroll to the game's row has already run.
@@ -557,7 +639,18 @@ export function Proto() {
   const place = (id: string, idx: number) => setS((p) => ({ ...p, order: moved(p.order, id, idx) }));
   const open = (id: string) => {
     origin.current = s.order.indexOf(id);
+    from.current = document.getElementById("g-" + id)!.getBoundingClientRect();
     setSpot(id);
+  };
+  // The page scrolls to the game's final row while the spotlight still covers
+  // it; the spotlight then collapses into that row and the flash plays.
+  useLayoutEffect(() => {
+    if (closing) document.getElementById("g-" + spot)?.scrollIntoView({ block: "center" });
+  }, [closing]);
+  const closed = () => {
+    setSpot(undefined);
+    setClosing(false);
+    show(spot!, cancelled.current);
   };
   // The spotlight owns one history entry, so the back button cancels it; the
   // buttons close it by going back too, and the popstate handler does the work.
@@ -576,9 +669,9 @@ export function Proto() {
       const done = keep.current;
       if (!done) place(spot, origin.current);
       keep.current = false;
-      show(spot, !done);
+      cancelled.current = !done;
       setH2h(undefined);
-      setSpot(undefined);
+      setClosing(true);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -613,7 +706,7 @@ export function Proto() {
   const hl = (id: string) => flash?.id === id && <span key={flash.n} className={"hl" + (flash.cancel ? " cancel" : "")} aria-hidden />;
 
   return (
-    <div className="try">
+    <div className="try" style={{ "--row": ROW + "px" } as React.CSSProperties}>
       <div className="head">
         <div className="status">
           <button className="ghost jump" disabled={!unpicked.length} onClick={nextUnpicked}>
@@ -630,37 +723,24 @@ export function Proto() {
         next {N - 1}, and so on down to 1.
       </p>
 
-      <h2>Fixed wager · {FIXED_POINTS} pts each</h2>
-      {FIXED.map((g) => (
-        <div key={g.id} id={"g-" + g.id} className={"row fixed" + (s.picks[g.id] === undefined ? " nopick" : "")}>
-          {hl(g.id)}
-          <span className="rk">
-            {FIXED_POINTS}
-            <i>pts</i>
-          </span>
-          <div className="mid">
-            <Top g={g} pick={s.picks[g.id]} />
-            <Picks g={g} pick={s.picks[g.id]} onPick={togglePick(g.id)} />
+      <h2>Playoff · {FIXED_POINTS} pts each</h2>
+      <div className="list">
+        {FIXED.map((g) => (
+          <div key={g.id} id={"g-" + g.id} className="row">
+            {hl(g.id)}
+            <Cells g={g} pts={FIXED_POINTS} pick={s.picks[g.id]} onPick={togglePick(g.id)} />
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
       <h2>Ranked games · {N} to 1 pts</h2>
-      {s.order.map((id, k) => {
-        const g = BY_ID[id];
-        return (
-          <div key={id} id={"g-" + id} className={"row" + (s.picks[id] === undefined ? " nopick" : "")}>
+      <div className="list">
+        {s.order.map((id, k) => (
+          <div key={id} id={"g-" + id} className="row open" onClick={() => open(id)}>
             {hl(id)}
-            <button className="rk" onClick={() => open(id)} aria-label={`${N - k} points, open`}>
-              {N - k}
-              <i>pts</i>
-            </button>
-            <div className="mid">
-              <Top g={g} pick={s.picks[id]} onOpen={() => open(id)} />
-              <Picks g={g} pick={s.picks[id]} onPick={togglePick(id)} />
-            </div>
+            <Cells g={BY_ID[id]} pts={N - k} pick={s.picks[id]} onPick={togglePick(id)} open />
           </div>
-        );
-      })}
+        ))}
+      </div>
       <button
         className="danger"
         onClick={() => {
@@ -675,9 +755,12 @@ export function Proto() {
           key={spot}
           s={s}
           id={spot}
+          from={from.current}
+          closing={closing}
+          onClosed={closed}
           setS={setS}
           move={(idx) => place(spot, idx)}
-          active={!h2h}
+          active={!h2h && !closing}
           onHelp={() => setH2h(spot)}
           onDone={() => close(true)}
           onCancel={() => close(false)}
