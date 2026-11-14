@@ -38,6 +38,17 @@ jobs:
 
       - run: cargo install worker-build --version 0.8.7 --locked
 
+      # Deployment-specific names live in repository variables, not in git.
+      - name: Fill deployment values into wrangler.toml
+        working-directory: crates/worker
+        env:
+          PICKEM_HOSTNAME: ${{ vars.PICKEM_HOSTNAME }}
+          S3_BUCKET: ${{ vars.S3_BUCKET }}
+        run: |
+          test -n "$PICKEM_HOSTNAME" -a -n "$S3_BUCKET" || { echo "set repository variables PICKEM_HOSTNAME and S3_BUCKET"; exit 1; }
+          sed -i "s/__PICKEM_HOSTNAME__/$PICKEM_HOSTNAME/; s/__S3_BUCKET__/$S3_BUCKET/" wrangler.toml
+          ! grep -n '__PICKEM_HOSTNAME__\|__S3_BUCKET__' wrangler.toml
+
       - run: npx --yes wrangler@4.152.0 d1 migrations apply pickem --remote
         working-directory: crates/worker
 

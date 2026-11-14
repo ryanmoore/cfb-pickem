@@ -15,8 +15,10 @@ Two tokens (dashboard > My Profile > API Tokens):
   custom domain).
 - **Export** (Worker secret `D1_EXPORT_TOKEN`): Account > D1 Edit only.
 
-Also add the account id as GitHub secret `CLOUDFLARE_ACCOUNT_ID`; both go in
-the repo's Actions secrets.
+Also add the account id as GitHub secret `CLOUDFLARE_ACCOUNT_ID`; both are
+repository secrets. Add two repository **variables** (not secrets, which mask
+them in logs): `PICKEM_HOSTNAME`, the site's hostname, and `S3_BUCKET`. The
+deploy workflow writes them into `wrangler.toml`, so the names stay out of git.
 
 ## 2. D1
 
@@ -25,7 +27,9 @@ npx wrangler@4.152.0 d1 create pickem
 ```
 
 Put the printed `database_id` in `wrangler.toml`, in both `[[d1_databases]]`
-and `[vars] D1_DATABASE_ID`. Fill `CF_ACCOUNT_ID` and the `routes` pattern too.
+and `[vars] D1_DATABASE_ID`. Fill `CF_ACCOUNT_ID` too. Leave the binding as
+`DB`, whatever `d1 create` suggests: the Worker looks the database up by that
+name.
 
 ## 3. Access
 
@@ -55,7 +59,8 @@ Bucket with a private ACL. IAM user with only this policy:
  "Resource":"arn:aws:s3:::BUCKET/pickem/*"}]}
 ```
 
-Set `S3_BUCKET`, `S3_REGION`, `S3_PREFIX` in `wrangler.toml`. Dumps land at
+Set `S3_REGION` and `S3_PREFIX` in `wrangler.toml`; the bucket name is the
+`S3_BUCKET` repository variable (section 1). Dumps land at
 `<prefix>/pickem-YYYY-MM-DD.sql` at 09:00 UTC. The export call to the D1 REST
 API and its polling loop are **unverified**; check the first run with
 `wrangler tail` (trigger it from the dashboard: Worker > Settings > Triggers >

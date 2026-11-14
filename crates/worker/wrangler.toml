@@ -1,10 +1,11 @@
 # Run wrangler from this directory. Secrets are set with `wrangler secret put`
 # and are never written here: EMAIL_HASH_KEY, AWS_ACCESS_KEY_ID,
-# AWS_SECRET_ACCESS_KEY, D1_EXPORT_TOKEN. See docs/deploy.md.
+# AWS_SECRET_ACCESS_KEY, D1_EXPORT_TOKEN. See docs/deploy.md. The __NAME__
+# tokens are filled from GitHub repository variables by the deploy workflow.
 name = "pickem"
 main = "build/worker/shim.mjs"
 compatibility_date = "2026-08-01"
-routes = [{ pattern = "pickem.example.com", custom_domain = true }]
+routes = [{ pattern = "__PICKEM_HOSTNAME__", custom_domain = true }]
 
 [build]
 command = "worker-build --release"
@@ -21,7 +22,7 @@ run_worker_first = ["/api/*", "/login"]
 [[d1_databases]]
 binding = "DB"
 database_name = "pickem"
-database_id = "REPLACE-WITH-OUTPUT-OF-wrangler-d1-create"
+database_id = "f661afdb-50cc-401a-b937-5dc3e57d729c"
 migrations_dir = "../../migrations"
 
 # 09:00 UTC is 4-5am US Eastern/Central, outside game windows.
@@ -29,10 +30,10 @@ migrations_dir = "../../migrations"
 crons = ["0 9 * * *"]
 
 [vars]
-ACCESS_TEAM_DOMAIN = "REPLACE.cloudflareaccess.com"
-ACCESS_AUD = "REPLACE-WITH-ACCESS-APPLICATION-AUD-TAG"
-CF_ACCOUNT_ID = "REPLACE-WITH-CLOUDFLARE-ACCOUNT-ID"
-D1_DATABASE_ID = "REPLACE-WITH-OUTPUT-OF-wrangler-d1-create"
-S3_BUCKET = "REPLACE-BUCKET"
+ACCESS_TEAM_DOMAIN = "cool-breeze-25b2.cloudflareaccess.com"
+ACCESS_AUD = "970e471f6d9cb33552018fa90a410494054a495e875d05f1c21bf95e944d6558"
+CF_ACCOUNT_ID = "60b129195731562f33864fb68ba1565e"
+D1_DATABASE_ID = "f661afdb-50cc-401a-b937-5dc3e57d729c"
+S3_BUCKET = "__S3_BUCKET__"
 S3_REGION = "us-east-2"
 S3_PREFIX = "pickem"
