@@ -1,0 +1,65 @@
+.try { max-width: 34rem; margin: 0 auto; padding: 0 8px 4rem; --line: #d5dbe5; }
+.try button { font: inherit; min-height: 44px; min-width: 44px; border: 1px solid #b8c0cf; border-radius: 8px; background: #fff; color: #1d2433; padding: 0 10px; cursor: pointer; }
+.try button.primary { background: #1a56c4; border-color: #1a56c4; color: #fff; font-weight: 600; }
+.try button.ghost { border-color: transparent; background: transparent; color: #1a56c4; font-size: 0.9rem; }
+.try button:disabled { opacity: 0.4; }
+.try h2 { font-size: 0.95rem; margin: 14px 4px 6px; color: #566074; text-transform: uppercase; letter-spacing: 0.03em; }
+.try h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.try small, .try .meta { color: #566074; }
+.try .head { position: sticky; top: 0; z-index: 20; background: #f6f7fa; padding: 8px 0 6px; border-bottom: 1px solid var(--line); }
+.try .seg { display: flex; gap: 4px; background: #e4e8ef; padding: 3px; border-radius: 10px; }
+.try .seg button { flex: 1; border: 0; background: transparent; font-weight: 600; }
+.try .seg button.sel { background: #fff; box-shadow: 0 1px 3px #0003; }
+.try .status { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; margin-top: 4px; font-size: 0.9rem; }
+.try .status .saved { color: #1c7a3e; flex: 1; }
+.try .row { display: flex; gap: 6px; background: #fff; border: 1px solid var(--line); border-radius: 10px; margin: 6px 0; padding: 6px; scroll-margin-top: 250px; }
+.try .row.lifted { outline: 3px solid #1a56c4; background: #eaf1ff; }
+.try .row.fixed { border-color: #b8c0cf; background: #fffbe8; }
+.try .rk { width: 38px; min-width: 38px !important; padding: 0 !important; font-weight: 700; font-size: 1.1rem; border: 0 !important; background: transparent !important; text-align: center; align-self: center; font-variant-numeric: tabular-nums; }
+.try .mid { flex: 1; min-width: 0; }
+.try .top { display: flex; align-items: center; gap: 6px; }
+.try .bowl { flex: 1; min-width: 0; text-align: left; border: 0 !important; background: transparent !important; font-weight: 600; padding: 0 !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.try .badge { background: #e4e8ef; border-radius: 6px; padding: 2px 6px; font-size: 0.8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.try button.i { border-radius: 50%; width: 44px; font-style: italic; font-family: serif; font-weight: 700; }
+.try .pickbtns { display: flex; gap: 6px; margin-top: 2px; }
+.try .chip { flex: 1; min-width: 0; display: flex !important; flex-direction: column; align-items: flex-start; justify-content: center; border-left: 6px solid var(--c) !important; text-align: left; line-height: 1.15; }
+.try .chip .nm { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 0.92rem; }
+.try .chip .rec { font-size: 0.75rem; opacity: 0.7; }
+.try .chip.on { background: var(--c) !important; color: var(--ink) !important; border-color: var(--c) !important; border-left-color: rgba(0, 0, 0, 0.35) !important; }
+.try button.mv { background: #1d2433; color: #fff; border-color: #1d2433; font-weight: 600; }
+.try .slot { width: 100%; border: 2px dashed #1a56c4 !important; background: #eaf1ff !important; color: #1a56c4 !important; margin-top: 2px; font-weight: 600; }
+.try .liftbar { margin-top: 6px; background: #eaf1ff; border: 2px solid #1a56c4; border-radius: 10px; padding: 6px; display: grid; gap: 6px; }
+.try .lt { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+.try .lt b { font-size: 0.9rem; }
+.try button.cancel { background: #a31d1d; border-color: #a31d1d; color: #fff; font-weight: 700; }
+.try .row5 { display: flex; gap: 6px; }
+.try .row5 button { flex: 1; padding: 0 4px; font-size: 0.9rem; }
+.try .num { display: flex; gap: 6px; align-items: center; }
+.try .num label { display: flex; align-items: center; gap: 6px; flex: 1; font-size: 0.9rem; }
+.try .num input { flex: 1; min-width: 0; min-height: 44px; font: inherit; border: 1px solid #b8c0cf; border-radius: 8px; padding: 0 8px; }
+.try .modal, .spot, .sheetbg { position: fixed; inset: 0; z-index: 50; }
+.try .modal { background: #000a; display: grid; place-items: center; z-index: 60; padding: 12px; overflow: auto; }
+.try .mbox { background: #fff; border-radius: 14px; padding: 14px; width: 100%; max-width: 26rem; display: grid; gap: 8px; max-height: 100%; overflow: auto; }
+.try .big { font-size: 1.15rem; }
+.try .h2hbtn { height: auto !important; padding: 10px !important; text-align: left; border-width: 2px !important; display: grid; gap: 2px; }
+.try .h2hbtn em { font-size: 0.8rem; color: #1a56c4; }
+.try .h2hcard { display: grid; gap: 2px; }
+.try .tierbtns { display: flex; gap: 6px; }
+.try .tierbtns button { flex: 1; font-weight: 700; min-height: 52px; }
+.try .tier.lock { background: #1c7a3e !important; color: #fff; }
+.try .tier.lean { background: #c98a00 !important; color: #fff; }
+.try .tier.coin { background: #566074 !important; color: #fff; }
+.try .spot { background: #141828f2; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 8px; overflow: hidden; backdrop-filter: blur(1px); }
+.try .dim { height: 44px; flex: none; background: #fff; opacity: 0.4; border-radius: 8px; padding: 0 12px; display: flex; align-items: center; gap: 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.try .dim.empty { background: transparent; }
+.try .card { background: #fff; border-radius: 14px; padding: 12px; display: grid; gap: 8px; box-shadow: 0 8px 30px #0007; border: 3px solid #1a56c4; max-height: calc(100dvh - 330px); min-height: 0; overflow: auto; }
+.try .teams { display: flex; align-items: stretch; gap: 6px; }
+.try .vs { align-self: center; font-size: 0.8rem; color: #566074; }
+.try .tinfo { flex: 1; min-width: 0; border-left: 6px solid var(--c); padding: 2px 8px; font-size: 0.9rem; }
+.try .meta { margin: 0; font-size: 0.9rem; }
+.try .fact { margin: 0; font-style: italic; font-size: 0.9rem; }
+.try .arrows { display: flex; gap: 8px; }
+.try .arrows .big { flex: 1; min-height: 64px; font-size: 1.8rem; }
+.try .sheetbg { background: #0006; display: flex; align-items: flex-end; }
+.try .sheet { background: #fff; width: 100%; max-width: 34rem; margin: 0 auto; border-radius: 16px 16px 0 0; padding: 14px; display: grid; gap: 8px; }
+@media (min-width: 700px) { .try .card { max-height: calc(100dvh - 300px); } .try .spot { align-items: center; } .try .spot > * { width: 100%; max-width: 30rem; } }
