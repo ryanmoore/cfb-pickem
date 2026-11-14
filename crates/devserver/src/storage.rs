@@ -2,14 +2,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
+use pickem_core::sql;
 use pickem_core::{
     email_hash, EmailHash, Game, GameId, GameResult, GameSlot, Pick, ResultSource, SeasonId, Season, SlotId,
     SlotSource, Storage, TeamSeasonId, User, UserId,
 };
 use rusqlite::types::Type;
 use rusqlite::{params, Connection, Row};
-
-const NOW: &str = "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')";
 
 fn migrations_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../migrations")
@@ -71,26 +70,19 @@ impl Storage for SqliteStorage {
     type Error = rusqlite::Error;
 
     async fn seasons(&self) -> Result<Vec<Season>, Self::Error> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT id, year, locks_at, generation FROM season")?;
+        let mut stmt = self.conn.prepare(sql::SEASONS)?;
         let seasons = stmt.query_map([], season_row)?;
         seasons.collect()
     }
 
     async fn season_by_year(&self, year: u16) -> Result<Option<Season>, Self::Error> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT id, year, locks_at, generation FROM season WHERE year = ?")?;
+        let mut stmt = self.conn.prepare(sql::SEASON_BY_YEAR)?;
         let mut rows = stmt.query([year])?;
         rows.next()?.map(season_row).transpose()
     }
 
     async fn games_for_season(&self, season: SeasonId) -> Result<Vec<Game>, Self::Error> {
-        let mut stmt = self.conn.prepare(
-            "SELECT id, season_id, event_id, display_name, kickoff_at, fixed_wager
-             FROM game WHERE season_id = ? ORDER BY id",
-        )?;
+        let mut stmt = self.conn.prepare(sql::GAMES_FOR_SEASON)?;
         let games = stmt.query_map([season.0], |r| {
             Ok(Game {
                 id: GameId(r.get(0)?),
@@ -105,11 +97,7 @@ impl Storage for SqliteStorage {
     }
 
     async fn slots_for_season(&self, season: SeasonId) -> Result<Vec<GameSlot>, Self::Error> {
-        let mut stmt = self.conn.prepare(
-            "SELECT s.id, s.game_id, s.slot_index, s.team_season_id, s.feeder_game_id, s.seed
-             FROM game_slot s JOIN game g ON g.id = s.game_id
-             WHERE g.season_id = ? ORDER BY s.id",
-        )?;
+        let mut stmt = self.conn.prepare(sql::SLOTS_FOR_SEASON)?;
         let slots = stmt.query_map([season.0], |r| {
             let team: Option<i64> = r.get(3)?;
             let feeder: Option<i64> = r.get(4)?;
@@ -129,11 +117,7 @@ impl Storage for SqliteStorage {
     }
 
     async fn results_for_season(&self, season: SeasonId) -> Result<Vec<GameResult>, Self::Error> {
-        let mut stmt = self.conn.prepare(
-            "SELECT r.game_id, r.winner_slot_id, r.source
-             FROM game_result r JOIN game g ON g.id = r.game_id
-             WHERE g.season_id = ? ORDER BY r.game_id",
-        )?;
+        let mut stmt = self.conn.prepare(sql::RESULTS_FOR_SEASON)?;
         let results = stmt.query_map([season.0], |r| {
             Ok(GameResult {
                 game_id: GameId(r.get(0)?),
@@ -149,10 +133,7 @@ impl Storage for SqliteStorage {
     }
 
     async fn picks_for_season(&self, season: SeasonId) -> Result<Vec<Pick>, Self::Error> {
-        let mut stmt = self.conn.prepare(
-            "SELECT user_id, game_id, season_id, slot_id, confidence
-             FROM pick WHERE season_id = ? ORDER BY user_id, game_id",
-        )?;
+        let mut stmt = self.conn.prepare(sql::PICKS_FOR_SEASON)?;
         let picks = stmt.query_map([season.0], |r| {
             Ok(Pick {
                 user_id: UserId(r.get(0)?),
@@ -166,17 +147,13 @@ impl Storage for SqliteStorage {
     }
 
     async fn user_by_email_hash(&self, hash: &EmailHash) -> Result<Option<User>, Self::Error> {
-        let mut stmt = self.conn.prepare(
-            "SELECT id, email_hash, display_name, is_admin FROM app_user WHERE email_hash = ?",
-        )?;
+        let mut stmt = self.conn.prepare(sql::USER_BY_EMAIL_HASH)?;
         let mut rows = stmt.query([hash.as_str()])?;
         rows.next()?.map(user_row).transpose()
     }
 
     async fn users(&self) -> Result<Vec<User>, Self::Error> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT id, email_hash, display_name, is_admin FROM app_user ORDER BY id")?;
+        let mut stmt = self.conn.prepare(sql::USERS)?;
         let users = stmt.query_map([], user_row)?;
         users.collect()
     }
@@ -188,16 +165,10 @@ impl Storage for SqliteStorage {
         picks: &[Pick],
     ) -> Result<u64, Self::Error> {
         let tx = self.conn.unchecked_transaction()?;
-        tx.execute(
-            "DELETE FROM pick WHERE user_id = ? AND season_id = ?",
-            params![user.0, season.0],
-        )?;
+        tx.execute(sql::DELETE_PICKS, params![user.0, season.0])?;
         for p in picks {
             tx.execute(
-                &format!(
-                    "INSERT INTO pick (user_id, game_id, season_id, slot_id, confidence, updated_at)
-                     VALUES (?, ?, ?, ?, ?, {NOW})"
-                ),
+                sql::INSERT_PICK,
                 params![user.0, p.game_id.0, season.0, p.slot_id.0, p.confidence],
             )?;
         }
@@ -208,23 +179,13 @@ impl Storage for SqliteStorage {
 
     async fn record_result(&self, result: GameResult) -> Result<u64, Self::Error> {
         let tx = self.conn.unchecked_transaction()?;
-        let season: i64 = tx.query_row(
-            "SELECT season_id FROM game WHERE id = ?",
-            [result.game_id.0],
-            |r| r.get(0),
-        )?;
+        let season: i64 = tx.query_row(sql::GAME_SEASON, [result.game_id.0], |r| r.get(0))?;
         let source = match result.source {
             ResultSource::Manual => "manual",
             ResultSource::Cfbd => "cfbd",
             ResultSource::Import => "import",
         };
-        tx.execute(
-            &format!(
-                "INSERT OR REPLACE INTO game_result (game_id, winner_slot_id, source, recorded_at)
-                 VALUES (?, ?, ?, {NOW})"
-            ),
-            params![result.game_id.0, result.winner_slot_id.0, source],
-        )?;
+        tx.execute(sql::UPSERT_RESULT, params![result.game_id.0, result.winner_slot_id.0, source])?;
         let generation = bump_generation(&tx, SeasonId(season))?;
         tx.commit()?;
         Ok(generation)
@@ -250,9 +211,5 @@ fn user_row(r: &Row) -> rusqlite::Result<User> {
 }
 
 fn bump_generation(tx: &rusqlite::Transaction, season: SeasonId) -> rusqlite::Result<u64> {
-    tx.query_row(
-        "UPDATE season SET generation = generation + 1 WHERE id = ? RETURNING generation",
-        [season.0],
-        |r| r.get(0),
-    )
+    tx.query_row(sql::BUMP_GENERATION, [season.0], |r| r.get(0))
 }

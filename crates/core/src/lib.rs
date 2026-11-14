@@ -9,6 +9,7 @@ pub mod api;
 pub mod model;
 pub mod scoring;
 pub mod sigv4;
+pub mod sql;
 pub mod storage;
 
 pub use model::*;

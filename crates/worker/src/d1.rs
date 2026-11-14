@@ -4,6 +4,7 @@
 //! BigInt, which D1 rejects.
 
 use chrono::{DateTime, Utc};
+use pickem_core::sql;
 use pickem_core::{
     EmailHash, EventId, Game, GameId, GameResult, GameSlot, Pick, ResultSource, Season, SeasonId, SlotId,
     Storage, User, UserId,
@@ -30,8 +31,6 @@ struct SeasonRow {
 }
 
 impl SeasonRow {
-    const COLUMNS: &str = "id, year, locks_at, generation";
-
     fn into_season(self) -> Result<Season> {
         Ok(Season {
             id: SeasonId(self.id),
@@ -98,24 +97,18 @@ impl Storage for D1Storage {
     type Error = Error;
 
     async fn seasons(&self) -> Result<Vec<Season>> {
-        let sql = format!("SELECT {} FROM season", SeasonRow::COLUMNS);
-        let rows: Vec<SeasonRow> = self.query(&sql, &[]).await?;
+        let rows: Vec<SeasonRow> = self.query(sql::SEASONS, &[]).await?;
         rows.into_iter().map(SeasonRow::into_season).collect()
     }
 
     async fn season_by_year(&self, year: u16) -> Result<Option<Season>> {
-        let sql = format!("SELECT {} FROM season WHERE year = ?", SeasonRow::COLUMNS);
-        let rows: Vec<SeasonRow> = self.query(&sql, &[year.into()]).await?;
+        let rows: Vec<SeasonRow> = self.query(sql::SEASON_BY_YEAR, &[year.into()]).await?;
         rows.into_iter().next().map(SeasonRow::into_season).transpose()
     }
 
     async fn games_for_season(&self, season: SeasonId) -> Result<Vec<Game>> {
         let rows: Vec<GameRow> = self
-            .query(
-                "SELECT id, season_id, event_id, display_name, kickoff_at, fixed_wager
-                 FROM game WHERE season_id = ? ORDER BY id",
-                &[season.0],
-            )
+            .query(sql::GAMES_FOR_SEASON, &[season.0])
             .await?;
         rows.into_iter()
             .map(|r| {
@@ -137,12 +130,7 @@ impl Storage for D1Storage {
 
     async fn results_for_season(&self, season: SeasonId) -> Result<Vec<GameResult>> {
         let rows: Vec<ResultRow> = self
-            .query(
-                "SELECT r.game_id, r.winner_slot_id, r.source
-                 FROM game_result r JOIN game g ON g.id = r.game_id
-                 WHERE g.season_id = ? ORDER BY r.game_id",
-                &[season.0],
-            )
+            .query(sql::RESULTS_FOR_SEASON, &[season.0])
             .await?;
         Ok(rows
             .into_iter()
@@ -160,11 +148,7 @@ impl Storage for D1Storage {
 
     async fn picks_for_season(&self, season: SeasonId) -> Result<Vec<Pick>> {
         let rows: Vec<PickRow> = self
-            .query(
-                "SELECT user_id, game_id, season_id, slot_id, confidence
-                 FROM pick WHERE season_id = ? ORDER BY user_id, game_id",
-                &[season.0],
-            )
+            .query(sql::PICKS_FOR_SEASON, &[season.0])
             .await?;
         Ok(rows
             .into_iter()
@@ -181,7 +165,7 @@ impl Storage for D1Storage {
     async fn user_by_email_hash(&self, hash: &EmailHash) -> Result<Option<User>> {
         let rows: Vec<UserRow> = self
             .0
-            .prepare("SELECT id, email_hash, display_name, is_admin FROM app_user WHERE email_hash = ?")
+            .prepare(sql::USER_BY_EMAIL_HASH)
             .bind(&[hash.as_str().into()])?
             .all()
             .await?
@@ -191,8 +175,7 @@ impl Storage for D1Storage {
 
     async fn users(&self) -> Result<Vec<User>> {
         let rows: Vec<UserRow> = self
-            .query("SELECT id, email_hash, display_name, is_admin FROM app_user ORDER BY id", &[])
-            .await?;
+            .query(sql::USERS, &[]).await?;
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
