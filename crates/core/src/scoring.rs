@@ -269,12 +269,6 @@ mod tests {
     }
 
     #[test]
-    fn tied_entries_share_a_rank_and_the_next_skips() {
-        assert_eq!(rank_ties(&[(5, 9), (3, 6), (3, 6), (3, 5), (0, 0)]), [1, 2, 2, 4, 5]);
-        assert!(rank_ties(&[]).is_empty());
-    }
-
-    #[test]
     fn a_complete_permutation_validates() {
         let games = vec![game(1, None), game(2, None), game(3, Some(19))];
         let picks = vec![

@@ -196,12 +196,11 @@ impl Storage for SqliteStorage {
         Ok(generation)
     }
 
-    async fn record_result(&self, result: GameResult) -> Result<u64, Self::Error> {
+    async fn record_result(&self, season: SeasonId, result: GameResult) -> Result<u64, Self::Error> {
         let tx = self.conn.unchecked_transaction()?;
-        let season: i64 = tx.query_row(sql::GAME_SEASON, [result.game_id.0], |r| r.get(0))?;
         let args = params![result.game_id.0, result.winner_slot_id.0, result.source.as_str()];
         tx.execute(sql::UPSERT_RESULT, args)?;
-        let generation = bump_generation(&tx, SeasonId(season))?;
+        let generation = bump_generation(&tx, season)?;
         tx.commit()?;
         Ok(generation)
     }

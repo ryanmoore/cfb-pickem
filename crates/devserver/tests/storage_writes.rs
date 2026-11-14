@@ -43,7 +43,7 @@ fn writes_bump_the_generation_and_failed_writes_change_nothing() {
     assert_eq!(picks, vec![pick(1, 1, 1), pick(2, 2, 2)]);
 
     let result = GameResult { game_id: GameId(1), winner_slot_id: SlotId(1), source: ResultSource::Manual };
-    assert_eq!(pollster::block_on(storage.record_result(result)).unwrap(), 3);
+    assert_eq!(pollster::block_on(storage.record_result(SeasonId(1), result)).unwrap(), 3);
     assert_eq!(pollster::block_on(storage.results_for_season(SeasonId(1))).unwrap(), vec![result]);
     fs::remove_file(path).unwrap();
 }

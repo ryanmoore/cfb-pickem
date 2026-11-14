@@ -47,5 +47,5 @@ pub trait Storage {
     ) -> Result<u64, Self::Error>;
 
     /// Record a winner and bump the season's generation in one transaction.
-    async fn record_result(&self, result: GameResult) -> Result<u64, Self::Error>;
+    async fn record_result(&self, season: SeasonId, result: GameResult) -> Result<u64, Self::Error>;
 }

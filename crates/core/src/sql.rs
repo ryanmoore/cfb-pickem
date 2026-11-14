@@ -38,8 +38,6 @@ pub const DELETE_PICKS: &str = "DELETE FROM pick WHERE user_id = ?1 AND season_i
 pub const INSERT_PICK: &str = "INSERT INTO pick (user_id, game_id, season_id, slot_id, confidence, updated_at)
      VALUES (?1, ?2, ?3, ?4, ?5, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))";
 
-pub const GAME_SEASON: &str = "SELECT season_id FROM game WHERE id = ?1";
-
 /// Parameters: game, winning slot, source.
 pub const UPSERT_RESULT: &str = "INSERT OR REPLACE INTO game_result (game_id, winner_slot_id, source, recorded_at)
      VALUES (?1, ?2, ?3, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))";
@@ -60,7 +58,6 @@ pub const ALL: &[&str] = &[
     USERS,
     DELETE_PICKS,
     INSERT_PICK,
-    GAME_SEASON,
     UPSERT_RESULT,
     BUMP_GENERATION,
 ];

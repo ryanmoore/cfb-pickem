@@ -120,9 +120,8 @@ impl From<UserRow> for User {
 }
 
 impl D1Storage {
-    async fn query<T: DeserializeOwned>(&self, sql: &str, args: &[i64]) -> Result<Vec<T>> {
-        let args: Vec<JsValue> = args.iter().map(|&n| num(n)).collect();
-        self.0.prepare(sql).bind(&args)?.all().await?.results()
+    async fn query<T: DeserializeOwned>(&self, sql: &str, args: &[JsValue]) -> Result<Vec<T>> {
+        self.0.prepare(sql).bind(args)?.all().await?.results()
     }
 
     /// Run `statements` as one transaction; the last must be the generation
@@ -131,10 +130,6 @@ impl D1Storage {
         let results = self.0.batch(statements).await?;
         let rows: Vec<GenerationRow> = results.last().ok_or_else(|| Error::RustError("empty batch".into()))?.results()?;
         rows.first().map(|r| r.generation).ok_or_else(|| Error::RustError("season not found".into()))
-    }
-
-    fn statement(&self, sql: &str, args: &[JsValue]) -> Result<D1PreparedStatement> {
-        self.0.prepare(sql).bind(args)
     }
 }
 
@@ -153,7 +148,7 @@ impl Storage for D1Storage {
 
     async fn games_for_season(&self, season: SeasonId) -> Result<Vec<Game>> {
         let rows: Vec<GameRow> = self
-            .query(sql::GAMES_FOR_SEASON, &[season.0])
+            .query(sql::GAMES_FOR_SEASON, &[num(season.0)])
             .await?;
         rows.into_iter()
             .map(|r| {
@@ -170,7 +165,7 @@ impl Storage for D1Storage {
     }
 
     async fn slots_for_season(&self, season: SeasonId) -> Result<Vec<GameSlot>> {
-        let rows: Vec<SlotRow> = self.query(sql::SLOTS_FOR_SEASON, &[season.0]).await?;
+        let rows: Vec<SlotRow> = self.query(sql::SLOTS_FOR_SEASON, &[num(season.0)]).await?;
         Ok(rows
             .into_iter()
             .map(|r| GameSlot {
@@ -188,7 +183,7 @@ impl Storage for D1Storage {
     }
 
     async fn team_seasons_for_season(&self, season: SeasonId) -> Result<Vec<TeamSeason>> {
-        let rows: Vec<TeamSeasonRow> = self.query(sql::TEAM_SEASONS_FOR_SEASON, &[season.0]).await?;
+        let rows: Vec<TeamSeasonRow> = self.query(sql::TEAM_SEASONS_FOR_SEASON, &[num(season.0)]).await?;
         Ok(rows
             .into_iter()
             .map(|r| TeamSeason { id: TeamSeasonId(r.id), name: r.name, rank: r.rank, record: r.record })
@@ -202,7 +197,7 @@ impl Storage for D1Storage {
 
     async fn results_for_season(&self, season: SeasonId) -> Result<Vec<GameResult>> {
         let rows: Vec<ResultRow> = self
-            .query(sql::RESULTS_FOR_SEASON, &[season.0])
+            .query(sql::RESULTS_FOR_SEASON, &[num(season.0)])
             .await?;
         Ok(rows
             .into_iter()
@@ -220,7 +215,7 @@ impl Storage for D1Storage {
 
     async fn picks_for_season(&self, season: SeasonId) -> Result<Vec<Pick>> {
         let rows: Vec<PickRow> = self
-            .query(sql::PICKS_FOR_SEASON, &[season.0])
+            .query(sql::PICKS_FOR_SEASON, &[num(season.0)])
             .await?;
         Ok(rows
             .into_iter()
@@ -235,13 +230,7 @@ impl Storage for D1Storage {
     }
 
     async fn user_by_email_hash(&self, hash: &EmailHash) -> Result<Option<User>> {
-        let rows: Vec<UserRow> = self
-            .0
-            .prepare(sql::USER_BY_EMAIL_HASH)
-            .bind(&[hash.as_str().into()])?
-            .all()
-            .await?
-            .results()?;
+        let rows: Vec<UserRow> = self.query(sql::USER_BY_EMAIL_HASH, &[hash.as_str().into()]).await?;
         Ok(rows.into_iter().next().map(Into::into))
     }
 
@@ -252,27 +241,21 @@ impl Storage for D1Storage {
     }
 
     async fn replace_picks(&self, user: UserId, season: SeasonId, picks: &[Pick]) -> Result<u64> {
-        let mut statements = vec![self.statement(sql::DELETE_PICKS, &[num(user.0), num(season.0)])?];
+        let mut statements = vec![self.0.prepare(sql::DELETE_PICKS).bind(&[num(user.0), num(season.0)])?];
         for p in picks {
             let confidence = p.confidence.map_or(JsValue::NULL, |c| num(c.into()));
             let args = [num(user.0), num(p.game_id.0), num(season.0), num(p.slot_id.0), confidence];
-            statements.push(self.statement(sql::INSERT_PICK, &args)?);
+            statements.push(self.0.prepare(sql::INSERT_PICK).bind(&args)?);
         }
-        statements.push(self.statement(sql::BUMP_GENERATION, &[num(season.0)])?);
+        statements.push(self.0.prepare(sql::BUMP_GENERATION).bind(&[num(season.0)])?);
         self.batch_generation(statements).await
     }
 
-    async fn record_result(&self, result: GameResult) -> Result<u64> {
-        #[derive(Deserialize)]
-        struct GameSeason {
-            season_id: i64,
-        }
-        let seasons: Vec<GameSeason> = self.query(sql::GAME_SEASON, &[result.game_id.0]).await?;
-        let season = seasons.first().ok_or_else(|| Error::RustError("game not found".into()))?.season_id;
+    async fn record_result(&self, season: SeasonId, result: GameResult) -> Result<u64> {
         let upsert = [num(result.game_id.0), num(result.winner_slot_id.0), result.source.as_str().into()];
         self.batch_generation(vec![
-            self.statement(sql::UPSERT_RESULT, &upsert)?,
-            self.statement(sql::BUMP_GENERATION, &[num(season)])?,
+            self.0.prepare(sql::UPSERT_RESULT).bind(&upsert)?,
+            self.0.prepare(sql::BUMP_GENERATION).bind(&[num(season.0)])?,
         ])
         .await
     }

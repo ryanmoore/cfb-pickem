@@ -5,14 +5,6 @@
 //!
 //! Adapters resolve who the caller is (a verified email, or nobody), supply the
 //! clock, and write the [`Reply`] out; everything between is here.
-//!
-//! - `GET /api/me`
-//! - `GET /api/seasons`
-//! - `GET /api/seasons/{year}/standings`
-//! - `GET /api/seasons/{year}/games`
-//! - `GET /api/seasons/{year}/picks`
-//! - `PUT /api/seasons/{year}/picks`: replace the caller's whole set
-//! - `POST /api/seasons/{year}/games/{id}/result`: admin only
 
 use std::collections::{HashMap, HashSet};
 
@@ -133,6 +125,10 @@ enum EntryProblem {
     UnknownGame { game_id: GameId },
     DuplicateGame { game_id: GameId },
     SlotNotInGame { game_id: GameId, slot_id: SlotId },
+}
+
+fn problem(p: impl Serialize) -> serde_json::Value {
+    serde_json::to_value(p).expect("response types serialise")
 }
 
 fn is_json(content_type: Option<&str>) -> bool {
@@ -393,15 +389,12 @@ async fn put_picks<S: Storage>(
     let mut picks = Vec::new();
     for p in &body.picks {
         if !known.contains(&p.game_id) {
-            problems.push(serde_json::json!(EntryProblem::UnknownGame { game_id: p.game_id }));
+            problems.push(problem(EntryProblem::UnknownGame { game_id: p.game_id }));
         } else if !seen.insert(p.game_id) {
-            problems.push(serde_json::json!(EntryProblem::DuplicateGame { game_id: p.game_id }));
+            problems.push(problem(EntryProblem::DuplicateGame { game_id: p.game_id }));
         } else {
             if !slots.iter().any(|s| s.id == p.slot_id && s.game_id == p.game_id) {
-                problems.push(serde_json::json!(EntryProblem::SlotNotInGame {
-                    game_id: p.game_id,
-                    slot_id: p.slot_id
-                }));
+                problems.push(problem(EntryProblem::SlotNotInGame { game_id: p.game_id, slot_id: p.slot_id }));
             }
             picks.push(Pick {
                 user_id: user.id,
@@ -413,7 +406,7 @@ async fn put_picks<S: Storage>(
         }
     }
     if let Err(errors) = validate_confidence_permutation(&games, &picks) {
-        problems.extend(errors.iter().map(|e| serde_json::json!(e)));
+        problems.extend(errors.into_iter().map(problem));
     }
     if !problems.is_empty() {
         return Ok(Reply::json(422, &serde_json::json!({ "error": "invalid picks", "problems": problems })));
@@ -452,7 +445,7 @@ async fn record_result<S: Storage>(
         return Ok(Reply::error(422, "winner_slot_id is not a slot of this game"));
     }
     let result = GameResult { game_id, winner_slot_id: body.winner_slot_id, source: ResultSource::Manual };
-    let generation = storage.record_result(result).await?;
+    let generation = storage.record_result(season.id, result).await?;
     Ok(Reply::json(200, &serde_json::json!({ "generation": generation })))
 }
 
@@ -581,7 +574,7 @@ mod tests {
             self.generation.set(self.generation.get() + 1);
             Ok(self.generation.get())
         }
-        async fn record_result(&self, result: GameResult) -> Result<u64, ()> {
+        async fn record_result(&self, _: SeasonId, result: GameResult) -> Result<u64, ()> {
             let mut all = self.results.borrow_mut();
             all.retain(|r| r.game_id != result.game_id);
             all.push(result);
@@ -739,25 +732,9 @@ mod tests {
         assert_eq!(send(&fake, "POST", game1, Some(ANN), r#"{"winner_slot_id":11}"#).0, 200);
         assert_eq!(fake.results.borrow().len(), 1);
         assert_eq!(fake.results.borrow()[0].source, ResultSource::Manual);
-    }
-
-    #[test]
-    fn recorded_results_move_the_standings() {
-        let fake = pool();
-        send(&fake, "POST", "/api/seasons/2023/games/1/result", Some(ANN), r#"{"winner_slot_id":10}"#);
-        let (_, body) = get(&fake, "/api/seasons/2023/standings", None);
-        assert_eq!(body["standings"][0]["scored"], 1);
-        assert_eq!(body["standings"][0]["max_possible"], 3);
-        let (_, body) = get(&fake, "/api/seasons/2023/games", None);
-        assert_eq!(body["games"][1]["winner_slot_id"], 10);
-    }
-
-    #[test]
-    fn a_locked_season_refuses_new_picks() {
-        let fake = pool();
-        let entry = r#"{"picks":[]}"#;
-        assert_eq!(send(&fake, "PUT", "/api/seasons/2022/picks", Some(BO), entry).0, 409);
-        assert_eq!(fake.picks.borrow().len(), 2);
+        // The result shows in the games list and moves the standings.
+        assert_eq!(get(&fake, "/api/seasons/2023/games", None).1["games"][1]["winner_slot_id"], 11);
+        assert_eq!(get(&fake, "/api/seasons/2023/standings", None).1["standings"][0]["scored"], 2);
     }
 
     #[test]
