@@ -22,12 +22,14 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - uses: Swatinem/rust-cache@v2.7.5
+      # Major tags, not exact pins: releases older than GitHub's cache service
+      # migration fail to restore or save ("Cache service responded with 400").
+      - uses: Swatinem/rust-cache@v2
 
       # The archive reconciliation test skips itself without PICKEM_LEGACY_DB.
       - run: cargo test --locked
 
-      - uses: actions/setup-node@v4.1.0
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
@@ -36,7 +38,14 @@ jobs:
       - run: npm ci && npm run build
         working-directory: frontend
 
-      - run: cargo install worker-build --version 0.8.7 --locked
+      - uses: actions/cache@v4
+        id: worker-build
+        with:
+          path: ~/.cargo/bin/worker-build
+          key: worker-build-0.8.7-${{ runner.os }}
+
+      - if: steps.worker-build.outputs.cache-hit != 'true'
+        run: cargo install worker-build --version 0.8.7 --locked
 
       # Deployment-specific names live in repository variables, not in git.
       - name: Fill deployment values into wrangler.toml
