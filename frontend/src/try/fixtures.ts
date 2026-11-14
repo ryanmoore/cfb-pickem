@@ -10,12 +10,14 @@ export type Team = {
   record: string;
   rank?: number;
 };
+// The favourite's index and the points it is favoured by; 0 is a pick'em.
+export type Line = { fav: 0 | 1; pts: number };
 export type Game = {
   id: string;
   bowl: string;
   date: string;
   teams: [Team, Team];
-  line: string;
+  line: Line;
   fact?: string;
   fixed: boolean;
 };
@@ -126,10 +128,10 @@ const FACTS = [
   "The winner's mascot gets a trophy that weighs more than the mascot.",
 ];
 
-const lineFor = (i: number, ts: [Team, Team]) => {
-  const spread = (((i * 7) % 13) + 1) / 2 + 0.5;
-  return `${ts[i % 2].abbr} -${spread}`;
-};
+const lineFor = (i: number): Line => ({
+  fav: (i % 2) as 0 | 1,
+  pts: i % 9 === 4 ? 0 : (((i * 7) % 13) + 1) / 2 + 0.5,
+});
 
 let t = 0;
 const mk = (): Team => {
@@ -147,7 +149,7 @@ const build = (name: string, i: number, fixed: boolean): Game => {
     bowl: fixed ? name : `${name} Bowl`,
     date: new Date(2026, 11, 18 + ((i * 3) % 14)).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     teams,
-    line: lineFor(i, teams),
+    line: lineFor(i),
     fact: i % 4 === 3 ? undefined : FACTS[i % FACTS.length],
     fixed,
   };

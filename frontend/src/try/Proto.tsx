@@ -1,15 +1,14 @@
 // Throwaway prototype for choosing a pick-entry design. Delete this directory
 // and the /try/picks branch in main.tsx once a design is chosen.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FIXED, FIXED_POINTS, GAMES, type Game, type Team } from "./fixtures";
 import "./try.css";
 
 type Pick = 0 | 1;
-type Design = "A" | "F";
-type S = { order: string[]; picks: Record<string, Pick>; design: Design };
+type S = { order: string[]; picks: Record<string, Pick> };
 type Tier = "lock" | "lean" | "coin";
 
-const KEY = "try-picks-v1";
+const KEY = "try-picks-v2";
 const N = GAMES.length;
 const BY_ID: Record<string, Game> = Object.fromEntries([...GAMES, ...FIXED].map((g) => [g.id, g]));
 
@@ -21,7 +20,7 @@ const shuffle = <T,>(a: T[]): T[] => {
   }
   return r;
 };
-const fresh = (design: Design = "A"): S => ({ order: shuffle(GAMES.map((g) => g.id)), picks: {}, design });
+const fresh = (): S => ({ order: shuffle(GAMES.map((g) => g.id)), picks: {} });
 const load = (): S => {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) ?? "");
@@ -42,46 +41,33 @@ const inkOn = (hex: string) => {
   return r * 0.299 + g * 0.587 + b * 0.114 > 160 ? "#111" : "#fff";
 };
 const tl = (t: Team) => (t.rank ? `#${t.rank} ` : "") + t.name;
+const lineText = (g: Game) => (g.line.pts ? `${g.teams[g.line.fav].name} favored by ${g.line.pts}` : "Even");
+const tint = (t: Team, on: boolean) => ({ "--c": t.color, "--ink": on ? inkOn(t.color) : undefined }) as React.CSSProperties;
 
 function Chip({ g, i, pick, onPick }: { g: Game; i: 0 | 1; pick?: Pick; onPick: (p: Pick) => void }) {
   const t = g.teams[i];
   const on = pick === i;
   return (
-    <button
-      className={"chip" + (on ? " on" : "")}
-      style={{ "--c": t.color, "--ink": on ? inkOn(t.color) : undefined } as React.CSSProperties}
-      aria-pressed={on}
-      onClick={() => onPick(i)}
-    >
+    <button className={"chip" + (on ? " on" : "")} style={tint(t, on)} aria-pressed={on} onClick={() => onPick(i)}>
       <span className="nm">{tl(t)}</span>
       <span className="rec">{t.record}</span>
     </button>
   );
 }
 
-function TeamInfo({ t }: { t: Team }) {
-  return (
-    <div className="tinfo" style={{ "--c": t.color } as React.CSSProperties}>
-      <b>{tl(t)}</b>
-      <div>{t.mascot}</div>
-      <small>
-        {t.conf} · {t.record}
-      </small>
-    </div>
-  );
-}
-
+// Mascot, conference, date and the fact: what the card does not already show.
 function Info({ g }: { g: Game }) {
   return (
     <>
       <div className="teams">
-        <TeamInfo t={g.teams[0]} />
-        <span className="vs">vs</span>
-        <TeamInfo t={g.teams[1]} />
+        {g.teams.map((t, i) => (
+          <div key={i} className="tinfo">
+            <div>{t.mascot}</div>
+            <small>{t.conf}</small>
+          </div>
+        ))}
       </div>
-      <p className="meta">
-        {g.date} · {g.line}
-      </p>
+      <p className="meta">{g.date}</p>
       {g.fact && <p className="fact">{g.fact}</p>}
     </>
   );
@@ -96,32 +82,53 @@ function Picks({ g, pick, onPick }: { g: Game; pick?: Pick; onPick: (p: Pick) =>
   );
 }
 
-function Num({ label, onGo, max = N }: { label: string; onGo: (n: number) => void; max?: number }) {
-  const [v, setV] = useState("");
-  const go = () => {
-    const n = parseInt(v, 10);
-    if (n >= 1 && n <= max) {
-      onGo(n);
-      setV("");
-    }
-  };
+const NoPick = () => <b className="np">no pick</b>;
+
+// Bowl name (secondary), the line, and a marker when nothing is picked yet.
+function Top({ g, pick, onOpen }: { g: Game; pick?: Pick; onOpen?: () => void }) {
   return (
-    <span className="num">
-      <label>
-        {label}
-        <input
-          type="number"
-          inputMode="numeric"
-          min={1}
-          max={max}
-          value={v}
-          aria-label={label}
-          onChange={(e) => setV(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && go()}
-        />
-      </label>
-      <button onClick={go}>Go</button>
-    </span>
+    <>
+      <div className="top">
+        {onOpen ? (
+          <button className="bowl" onClick={onOpen}>
+            {g.bowl}
+          </button>
+        ) : (
+          <span className="bowl">{g.bowl}</span>
+        )}
+        {pick === undefined && <NoPick />}
+      </div>
+      <small className="ln">{lineText(g)}</small>
+    </>
+  );
+}
+
+// Compact two-line matchup for the dimmed list: teams with the picked one
+// filled, then the line and a no-pick marker.
+function Matchup({ g, pick }: { g: Game; pick?: Pick }) {
+  return (
+    <div className="mu">
+      <div className="mt">
+        {[0, 1].map((i) => (
+          <span key={i} className="tg-wrap">
+            {i === 1 && <span className="vs">vs</span>}
+            <span className={"tg" + (pick === i ? " on" : "")} style={tint(g.teams[i], pick === i)}>
+              {pick === i && "✓ "}
+              {g.teams[i].name}
+            </span>
+          </span>
+        ))}
+      </div>
+      <div className="ml">
+        {lineText(g)}
+        {pick === undefined && (
+          <>
+            {" · "}
+            <NoPick />
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -139,9 +146,10 @@ function Head2Head({ s, id, onPlace, onClose }: { s: S; id: string; onPlace: (id
     <div className="h2hcard">
       <b>{g.bowl}</b>
       <small>
-        {g.teams[0].abbr} vs {g.teams[1].abbr} · {g.line}
+        {tl(g.teams[0])} vs {tl(g.teams[1])} · {lineText(g)}
       </small>
-      <small>Currently #{rankOf(s, g.id)}</small>
+      <small>{s.picks[g.id] === undefined ? "No pick yet" : `Pick: ${g.teams[s.picks[g.id]].name}`}</small>
+      <small>Currently {rankOf(s, g.id)} pts</small>
     </div>
   );
   return (
@@ -190,6 +198,7 @@ function Tiers({ s, setS, onClose }: { s: S; setS: (f: (s: S) => S) => void; onC
         {g ? (
           <>
             <b className="big">{g.bowl}</b>
+            <p className="meta">{lineText(g)}</p>
             <Info g={g} />
             <Picks g={g} pick={s.picks[g.id]} onPick={pick} />
             <div className="tierbtns">
@@ -217,73 +226,363 @@ function Tiers({ s, setS, onClose }: { s: S; setS: (f: (s: S) => S) => void; onC
   );
 }
 
-function Spotlight({ s, id, setS, move, onHelp, onClose }: {
+const ROW = 44;
+// From this width the controls sit under the card instead of along the bottom
+// edge; keep in sync with the media query in try.css.
+const desk = window.matchMedia("(min-width: 700px)");
+const clamp = (j: number) => Math.max(0, Math.min(N - 1, j));
+const HINT_KEY = "try-spot-hint-v1";
+const DRAG_PX = 6;
+
+// The list scrolls under a fixed card. The list holds every game but the
+// spotlighted one; scrollTop = j * ROW means the game sits between rest[j-1]
+// and rest[j]. Rows above that point are translated up and rows below down by
+// half the card's height (a transform, so snap points stay on the layout
+// grid), which opens a card-sized gap and keeps both neighbours fully visible.
+// Rows are keyed by position: the browser re-snaps to the same DOM node after
+// a reorder, which would shift the list by a row on every commit.
+function Spotlight({ s, id, setS, move, active, onHelp, onDone, onCancel }: {
   s: S;
   id: string;
   setS: (f: (s: S) => S) => void;
   move: (idx: number) => void;
+  active: boolean;
   onHelp: () => void;
-  onClose: () => void;
+  onDone: () => void;
+  onCancel: () => void;
 }) {
   const g = BY_ID[id];
   const i = s.order.indexOf(id);
-  const slot = (j: number) => {
-    const o = s.order[j];
-    return o ? (
-      <div key={j} className="dim" onClick={onClose}>
-        <b>{N - j}</b> {BY_ID[o].bowl}
-      </div>
-    ) : (
-      <div key={j} className="dim empty" onClick={onClose} />
-    );
+  const rest = s.order.filter((x) => x !== id);
+  const [pos, setPos] = useState(i);
+  const [menu, setMenu] = useState(false);
+  const [sheet, setSheet] = useState(false);
+  const [hint, setHint] = useState(() => !localStorage.getItem(HINT_KEY));
+  const dragged = useRef(false);
+  const spot = useRef<HTMLDivElement>(null);
+  const wheel = useRef<HTMLDivElement>(null);
+  const card = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
+  const stack = useRef<HTMLDivElement>(null);
+  const timer = useRef<number>(undefined);
+  const acc = useRef({ dy: 0, t: 0 });
+  const committed = useRef(i);
+  const cur = useRef(i);
+  cur.current = i;
+
+  const layout = () => {
+    const w = wheel.current!;
+    const p = w.scrollTop / ROW;
+    const half = (desk.matches ? stack.current! : card.current!).offsetHeight / 2;
+    spot.current!.style.setProperty("--half", half + "px");
+    w.querySelectorAll<HTMLElement>(".dim").forEach((el, r) => {
+      el.style.transform = `translateY(${half * Math.max(-1, Math.min(1, 2 * (r + 0.5 - p)))}px)`;
+    });
+  };
+  const goto = (j: number) => {
+    wheel.current!.scrollTop = j * ROW;
+    layout();
+  };
+  const commit = () => {
+    const j = clamp(Math.round((wheel.current?.scrollTop ?? 0) / ROW));
+    if (j !== cur.current) {
+      committed.current = j;
+      move(j);
+    }
+  };
+  const to = (idx: number) => {
+    const j = clamp(idx);
+    committed.current = j;
+    setPos(j);
+    goto(j);
+    move(j);
+  };
+  const toRef = useRef(to);
+  toRef.current = to;
+
+  useLayoutEffect(() => goto(i), []);
+  useLayoutEffect(() => {
+    const ro = new ResizeObserver(layout);
+    ro.observe(card.current!);
+    ro.observe(bar.current!);
+    return () => ro.disconnect();
+  }, []);
+  // Placement made elsewhere (Help me place this) moves the list to match.
+  useEffect(() => {
+    if (i !== committed.current) {
+      committed.current = i;
+      setPos(i);
+      goto(i);
+    }
+  }, [i]);
+  useEffect(() => {
+    const el = wheel.current!;
+    el.addEventListener("scrollend", commit);
+    return () => el.removeEventListener("scrollend", commit);
+  }, []);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  // Wheel anywhere (card and bar included) moves the list by whole rows;
+  // leftover delta carries over so a trackpad's small steps still add up.
+  useEffect(() => {
+    const el = spot.current!;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const a = acc.current;
+      a.dy += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      const rows = Math.trunc(a.dy / ROW);
+      a.dy -= rows * ROW;
+      clearTimeout(a.t);
+      a.t = window.setTimeout(() => (a.dy = 0), 200);
+      if (rows) toRef.current(Math.round(wheel.current!.scrollTop / ROW) + rows);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // The hint shows on the first open and whenever the menu asks for it; any
+  // pointer, wheel or key input dismisses it.
+  useEffect(() => {
+    if (!hint) return;
+    localStorage.setItem(HINT_KEY, "1");
+    const off = () => setHint(false);
+    const evs = ["pointerdown", "wheel", "keydown"] as const;
+    evs.forEach((e) => window.addEventListener(e, off, { capture: true, passive: true }));
+    return () => evs.forEach((e) => window.removeEventListener(e, off, { capture: true }));
+  }, [hint]);
+
+  // A mouse cannot scroll the list by dragging natively, so dragging anywhere
+  // but a button does it, once past a small threshold that leaves clicks alone.
+  useEffect(() => {
+    const el = spot.current!;
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || e.button !== 0 || (e.target as HTMLElement).closest("button")) return;
+      const y0 = e.clientY;
+      const top0 = wheel.current!.scrollTop;
+      dragged.current = false;
+      const move = (m: PointerEvent) => {
+        if (Math.abs(m.clientY - y0) > DRAG_PX) dragged.current = true;
+        if (dragged.current) wheel.current!.scrollTop = top0 - (m.clientY - y0);
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        setTimeout(() => (dragged.current = false));
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    };
+    el.addEventListener("pointerdown", down);
+    return () => el.removeEventListener("pointerdown", down);
+  }, []);
+
+  const choose = (f: () => void) => {
+    setMenu(false);
+    f();
+  };
+  // A tap outside the menu closes it.
+  useEffect(() => {
+    if (!menu) return;
+    const off = (e: PointerEvent) => {
+      if (!(e.target as HTMLElement).closest(".menu, .more")) setMenu(false);
+    };
+    window.addEventListener("pointerdown", off, true);
+    return () => window.removeEventListener("pointerdown", off, true);
+  }, [menu]);
+
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) return;
+      if (menu || sheet) {
+        if (e.key === "Escape") {
+          setMenu(false);
+          setSheet(false);
+        }
+        return;
+      }
+      if (e.key === "Escape") onCancel();
+      else if (e.key === "Enter" && !(t.tagName === "BUTTON" && spot.current!.contains(t))) onDone();
+      else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+        toRef.current(cur.current + (e.key === "ArrowUp" ? -1 : 1));
+      } else if (e.key === "Home" || e.key === "End") {
+        e.preventDefault();
+        toRef.current(e.key === "Home" ? 0 : N - 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, menu, sheet, onCancel, onDone]);
+
+  const onScroll = () => {
+    layout();
+    setPos(clamp(Math.round(wheel.current!.scrollTop / ROW)));
+    if (!("onscrollend" in window)) {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(commit, 150);
+    }
   };
   const pick = (p: Pick) => setS((x) => ({ ...x, picks: { ...x.picks, [id]: x.picks[id] === p ? undefined! : p } }));
+  const top = pos === 0;
+  const bottom = pos === N - 1;
   return (
-    <div className="spot" role="dialog" aria-label="Spotlight" onClick={onClose}>
-      {[i - 3, i - 2, i - 1].map(slot)}
-      <div className="card" onClick={(e) => e.stopPropagation()}>
-        <h3>
-          #{N - i} · {g.bowl}
-        </h3>
-        <Info g={g} />
+    <div className="spot" role="dialog" aria-label="Spotlight" ref={spot}>
+      <div className="wheel" ref={wheel} onScroll={onScroll} data-testid="wheel">
+        <div className="sp" />
+        {rest.map((o, k) => (
+          <div key={k} className="slot">
+            <div className="dim" onClick={() => !dragged.current && to(k < pos ? k : k + 1)}>
+              <b className="pts">
+                {N - (k < pos ? k : k + 1)}
+                <i>pts</i>
+              </b>
+              <Matchup g={BY_ID[o]} pick={s.picks[o]} />
+            </div>
+          </div>
+        ))}
+        <div className="snapend" />
+        <div className="sp" />
+      </div>
+      <div className="hints left" aria-hidden>
+        <p>Scroll or <kbd>↑</kbd> <kbd>↓</kbd> to move</p>
+        <p><kbd>Home</kbd> / <kbd>End</kbd>: top / bottom</p>
+      </div>
+      <div className="hints right" aria-hidden>
+        <p><kbd>Enter</kbd>: done</p>
+        <p><kbd>Esc</kbd>: cancel</p>
+      </div>
+      {hint && (
+        <div className="hint" role="note" aria-live="polite">
+          Scroll the list to move this game, or tap where it should go.
+        </div>
+      )}
+      <div className="stack" ref={stack}>
+      <div className="card" ref={card}>
+        <div className="chead">
+          <div className="ctitle">
+            <h3>{N - pos} pts</h3>
+            <span className="cbowl">{g.bowl}</span>
+            <small className="ln">{lineText(g)}</small>
+          </div>
+          <div className="cbtns">
+            <button className="cancel" aria-label="Cancel" onClick={onCancel}>
+              ✕
+            </button>
+            <button className="primary" onClick={onDone}>
+              ✓ Done
+            </button>
+          </div>
+        </div>
         <Picks g={g} pick={s.picks[id]} onPick={pick} />
-        <div className="arrows">
-          <button className="big" aria-label="Up one" onClick={() => move(i - 1)}>
-            ▲
-          </button>
-          <button className="big" aria-label="Down one" onClick={() => move(i + 1)}>
-            ▼
-          </button>
-        </div>
-        <div className="row5">
-          <button onClick={() => move(i - 5)}>+5</button>
-          <button onClick={() => move(i + 5)}>−5</button>
-          <button onClick={() => move(0)}>Top</button>
-          <button onClick={() => move(N - 1)}>Bottom</button>
-        </div>
-        <Num label="Move to #" onGo={(n) => move(N - n)} />
-        <div className="row5">
-          <button onClick={onHelp}>Help me place this</button>
-          <button className="primary" onClick={onClose}>
-            Done
-          </button>
+      </div>
+      <div className="bar" ref={bar}>
+        <div className="barin">
+          {menu && (
+            <div className="menu" role="menu">
+              <button role="menuitem" onClick={() => choose(() => setSheet(true))}>
+                Details
+              </button>
+              <button role="menuitem" onClick={() => choose(() => setHint(true))}>
+                Show hint
+              </button>
+              <button role="menuitem" onClick={() => choose(onHelp)}>
+                Help me place
+              </button>
+            </div>
+          )}
+          <div className="barrow">
+            <button disabled={top} onClick={() => to(0)}>
+              ⤒ Top
+            </button>
+            <button disabled={top} onClick={() => to(pos - 1)}>
+              ▲ Surer
+            </button>
+            <button disabled={bottom} onClick={() => to(pos + 1)}>
+              ▼ Less sure
+            </button>
+            <button disabled={bottom} onClick={() => to(N - 1)}>
+              ⤓ Bottom
+            </button>
+            <button className="more" aria-label="More" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>
+              ⋯
+            </button>
+          </div>
         </div>
       </div>
-      {[i + 1, i + 2, i + 3].map(slot)}
+      </div>
+      {sheet && (
+        <div className="modal" role="dialog" aria-label="Details">
+          <div className="mbox">
+            <h3>{g.bowl}</h3>
+            <Info g={g} />
+            <button onClick={() => setSheet(false)}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export function Proto() {
-  const [s, setS0] = useState<S>(load);
+  const [s, setS] = useState<S>(load);
   const [saved, setSaved] = useState(true);
   const [spot, setSpot] = useState<string>();
-  const [sheet, setSheet] = useState<string>();
-  const [lift, setLift] = useState<{ id: string; from: number }>();
   const [h2h, setH2h] = useState<string>();
   const [tiers, setTiers] = useState(false);
+  const [flash, setFlash] = useState<{ id: string; n: number; cancel: boolean }>();
   const first = useRef(true);
-  const setS = (f: (s: S) => S) => setS0(f);
+  const origin = useRef(0);
+  const keep = useRef(false);
+  const pushed = useRef(false);
+  const jumped = useRef(-1);
+
+  // Going back would otherwise restore the scroll position from before the
+  // spotlight opened, after the scroll to the game's row has already run.
+  useEffect(() => {
+    history.scrollRestoration = "manual";
+    return () => {
+      history.scrollRestoration = "auto";
+    };
+  }, []);
+
+  // Scroll the page to a game and flash it. The highlight overlay is re-keyed
+  // per call so a second flash restarts its CSS animation.
+  const show = (id: string, cancel = false) => setFlash((f) => ({ id, n: (f?.n ?? 0) + 1, cancel }));
+  useLayoutEffect(() => {
+    if (flash) document.getElementById("g-" + flash.id)?.scrollIntoView({ block: "center" });
+  }, [flash]);
+
+  const place = (id: string, idx: number) => setS((p) => ({ ...p, order: moved(p.order, id, idx) }));
+  const open = (id: string) => {
+    origin.current = s.order.indexOf(id);
+    setSpot(id);
+  };
+  // The spotlight owns one history entry, so the back button cancels it; the
+  // buttons close it by going back too, and the popstate handler does the work.
+  const close = (done: boolean) => {
+    keep.current = done;
+    history.back();
+  };
+  useEffect(() => {
+    if (!spot) return;
+    if (!pushed.current) {
+      history.pushState({ spot: true }, "");
+      pushed.current = true;
+    }
+    const onPop = () => {
+      pushed.current = false;
+      const done = keep.current;
+      if (!done) place(spot, origin.current);
+      keep.current = false;
+      show(spot, !done);
+      setH2h(undefined);
+      setSpot(undefined);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [spot]);
 
   useEffect(() => {
     localStorage.setItem(KEY, JSON.stringify(s));
@@ -296,182 +595,93 @@ export function Proto() {
     return () => clearTimeout(t);
   }, [s]);
 
-  const picked = Object.values(s.picks).filter((v) => v !== undefined).length;
-  const total = N + FIXED.length;
-  const place = (id: string, idx: number) => {
-    setS((p) => ({ ...p, order: moved(p.order, id, idx) }));
-    if (lift) setTimeout(() => document.getElementById("g-" + id)?.scrollIntoView({ block: "center" }), 0);
+  const all = [...FIXED.map((g) => g.id), ...s.order];
+  const total = all.length;
+  const unpicked = all.filter((id) => s.picks[id] === undefined);
+  const nextUnpicked = () => {
+    for (let k = 1; k <= total; k++) {
+      const j = (jumped.current + k) % total;
+      if (s.picks[all[j]] === undefined) {
+        jumped.current = j;
+        show(all[j]);
+        return;
+      }
+    }
   };
   const togglePick = (id: string) => (p: Pick) =>
     setS((x) => ({ ...x, picks: { ...x.picks, [id]: x.picks[id] === p ? undefined! : p } }));
-  const startMove = (id: string) => {
-    setSheet(undefined);
-    setLift({ id, from: s.order.indexOf(id) });
-  };
-  const jump = (rank: number) =>
-    document.getElementById("g-" + s.order[N - rank])?.scrollIntoView({ block: "start", behavior: "smooth" });
-  const liftIdx = lift ? s.order.indexOf(lift.id) : -1;
+  const hl = (id: string) => flash?.id === id && <span key={flash.n} className={"hl" + (flash.cancel ? " cancel" : "")} aria-hidden />;
 
-  const rowFor = (id: string, k: number) => {
-    const g = BY_ID[id];
-    const lifted = lift?.id === id;
-    const openSpot = () => s.design === "A" && setSpot(id);
-    return (
-      <div key={id}>
-        {lift && !lifted && k !== liftIdx + 1 && (
-          <button className="slot" onClick={() => { place(lift.id, k > liftIdx ? k - 1 : k); setLift(undefined); }}>
-            place here: {N - (k > liftIdx ? k - 1 : k)}
-          </button>
-        )}
-        <div id={"g-" + id} className={"row" + (lifted ? " lifted" : "")}>
-          <button className="rk" onClick={openSpot} aria-label={`Rank ${N - k}`}>
-            {N - k}
-          </button>
-          <div className="mid">
-            <div className="top">
-              <button className="bowl" onClick={openSpot}>
-                {g.bowl}
-              </button>
-              <span className="badge">{g.line}</span>
-              {s.design === "F" && (
-                <button className="i" aria-label={`Info: ${g.bowl}`} onClick={() => setSheet(id)}>
-                  i
-                </button>
-              )}
-            </div>
-            <div className="pickbtns">
-              <Chip g={g} i={0} pick={s.picks[id]} onPick={togglePick(id)} />
-              <Chip g={g} i={1} pick={s.picks[id]} onPick={togglePick(id)} />
-              {s.design === "F" && (
-                <button className="mv" disabled={!!lift} onClick={() => startMove(id)}>
-                  Move
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const lg = lift && BY_ID[lift.id];
-  const sg = sheet ? BY_ID[sheet] : undefined;
   return (
     <div className="try">
       <div className="head">
-        <div className="seg" role="tablist">
-          {(["A", "F"] as Design[]).map((d) => (
-            <button
-              key={d}
-              role="tab"
-              aria-selected={s.design === d}
-              className={s.design === d ? "sel" : ""}
-              onClick={() => {
-                setLift(undefined);
-                setSpot(undefined);
-                setS((p) => ({ ...p, design: d }));
-              }}
-            >
-              {d === "A" ? "A · Spotlight" : "F · Ladder"}
-            </button>
-          ))}
-        </div>
         <div className="status">
-          <b>
-            picked {picked}/{total}
-          </b>
+          <button className="ghost jump" disabled={!unpicked.length} onClick={nextUnpicked}>
+            {unpicked.length ? `picked ${total - unpicked.length}/${total} · next unpicked` : `picked ${total}/${total} ✓`}
+          </button>
           <span className="saved">{saved ? "Saved ✓" : "Saving…"}</span>
           <button className="ghost" onClick={() => setTiers(true)}>
             Sort into tiers
           </button>
-          <button
-            className="ghost"
-            onClick={() => {
-              if (confirm("Reshuffle and clear all picks?")) {
-                setLift(undefined);
-                setS((p) => fresh(p.design));
-              }
-            }}
-          >
-            Reset
-          </button>
         </div>
-        {lg && (
-          <div className="liftbar">
-            <div className="lt">
-              <b>
-                Moving: {lg.bowl} (now #{N - liftIdx})
-              </b>
-              <button
-                className="cancel"
-                aria-label="Cancel move"
-                onClick={() => {
-                  place(lift.id, lift.from);
-                  setLift(undefined);
-                }}
-              >
-                ✕ Cancel
-              </button>
-            </div>
-            <Num label="Put at #" onGo={(n) => place(lift.id, N - n)} />
-            <div className="row5">
-              {[
-                ["Top", N],
-                ["30", 30],
-                ["20", 20],
-                ["10", 10],
-                ["Bottom", 1],
-              ].map(([l, r]) => (
-                <button key={l} onClick={() => jump(r as number)}>
-                  {l}
-                </button>
-              ))}
-            </div>
-            <div className="row5">
-              <button onClick={() => place(lift.id, liftIdx - 1)}>▲ up one</button>
-              <button onClick={() => place(lift.id, liftIdx + 1)}>▼ down one</button>
-              <button onClick={() => setH2h(lift.id)}>Help me place this</button>
-              <button className="primary" onClick={() => setLift(undefined)}>
-                Done
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+      <p className="how">
+        Pick a winner in every game. Then put the games you are surest of at the top: the top game is worth {N} pts, the
+        next {N - 1}, and so on down to 1.
+      </p>
 
       <h2>Fixed wager · {FIXED_POINTS} pts each</h2>
       {FIXED.map((g) => (
-        <div key={g.id} className="row fixed">
-          <span className="rk">{FIXED_POINTS}</span>
+        <div key={g.id} id={"g-" + g.id} className={"row fixed" + (s.picks[g.id] === undefined ? " nopick" : "")}>
+          {hl(g.id)}
+          <span className="rk">
+            {FIXED_POINTS}
+            <i>pts</i>
+          </span>
           <div className="mid">
-            <div className="top">
-              <span className="bowl">{g.bowl}</span>
-              <span className="badge">{g.line}</span>
-            </div>
+            <Top g={g} pick={s.picks[g.id]} />
             <Picks g={g} pick={s.picks[g.id]} onPick={togglePick(g.id)} />
           </div>
         </div>
       ))}
-      <h2>Ranked games · {N} to 1</h2>
-      {s.order.map(rowFor)}
-
-      {spot && (
-        <Spotlight s={s} id={spot} setS={setS} move={(idx) => place(spot, idx)} onHelp={() => setH2h(spot)} onClose={() => setSpot(undefined)} />
-      )}
-      {sg && (
-        <div className="sheetbg" onClick={() => setSheet(undefined)}>
-          <div className="sheet" role="dialog" aria-label="Game info" onClick={(e) => e.stopPropagation()}>
-            <h3>
-              #{rankOf(s, sg.id)} · {sg.bowl}
-            </h3>
-            <Info g={sg} />
-            <Picks g={sg} pick={s.picks[sg.id]} onPick={togglePick(sg.id)} />
-            <div className="row5">
-              <button onClick={() => startMove(sg.id)}>Move</button>
-              <button onClick={() => setSheet(undefined)}>Close</button>
+      <h2>Ranked games · {N} to 1 pts</h2>
+      {s.order.map((id, k) => {
+        const g = BY_ID[id];
+        return (
+          <div key={id} id={"g-" + id} className={"row" + (s.picks[id] === undefined ? " nopick" : "")}>
+            {hl(id)}
+            <button className="rk" onClick={() => open(id)} aria-label={`${N - k} points, open`}>
+              {N - k}
+              <i>pts</i>
+            </button>
+            <div className="mid">
+              <Top g={g} pick={s.picks[id]} onOpen={() => open(id)} />
+              <Picks g={g} pick={s.picks[id]} onPick={togglePick(id)} />
             </div>
           </div>
-        </div>
+        );
+      })}
+      <button
+        className="danger"
+        onClick={() => {
+          if (confirm("Reshuffle and clear all picks?")) setS(fresh());
+        }}
+      >
+        Reset all picks
+      </button>
+
+      {spot && (
+        <Spotlight
+          key={spot}
+          s={s}
+          id={spot}
+          setS={setS}
+          move={(idx) => place(spot, idx)}
+          active={!h2h}
+          onHelp={() => setH2h(spot)}
+          onDone={() => close(true)}
+          onCancel={() => close(false)}
+        />
       )}
       {h2h && (
         <Head2Head
