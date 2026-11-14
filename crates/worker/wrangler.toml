@@ -33,6 +33,10 @@ migrations_dir = "../../migrations"
 [triggers]
 crons = ["0 9 * * *"]
 
+# Keeps invocation logs in the dashboard; the nightly backup runs unwatched.
+[observability]
+enabled = true
+
 [vars]
 ACCESS_TEAM_DOMAIN = "cool-breeze-25b2.cloudflareaccess.com"
 ACCESS_AUD = "970e471f6d9cb33552018fa90a410494054a495e875d05f1c21bf95e944d6558"
