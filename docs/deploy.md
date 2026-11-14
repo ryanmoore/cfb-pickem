@@ -31,13 +31,15 @@ and `[vars] D1_DATABASE_ID`. Fill `CF_ACCOUNT_ID` and the `routes` pattern too.
 
 Zero Trust dashboard:
 
-1. Settings > Authentication > add **One-time PIN**.
+1. Integrations > Identity providers > add **One-time PIN**. Newer orgs default
+   to the Cloudflare identity provider and don't add it automatically.
 2. Access > Applications > Add > Self-hosted. Domain `pickem.example.com`,
-   **path `/login`** only. Policy: Allow, emails = the users' addresses.
-   Nothing else is protected; the rest of the site is public by design.
+   **path `/login`** only, login method One-time PIN. Policy: Allow, emails =
+   the users' addresses. Nothing else is protected; the rest of the site is
+   public by design.
 3. Copy the application's **Audience (AUD) tag** to `ACCESS_AUD`.
-4. Copy the team domain (Settings > Custom Pages shows `<team>.cloudflareaccess.com`)
-   to `ACCESS_TEAM_DOMAIN`.
+4. Set `ACCESS_TEAM_DOMAIN` to `<team>.cloudflareaccess.com`, where `<team>` is
+   the team name chosen when Zero Trust was set up.
 
 Sign-in flow: the SPA links to `/login`; Access authenticates, sets
 `CF_Authorization`, and the Worker redirects to `/`. The Worker reads that
