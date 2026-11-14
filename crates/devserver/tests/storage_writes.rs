@@ -9,7 +9,7 @@ fn pick(game: i64, slot: i64, confidence: u32) -> Pick {
         user_id: UserId(1),
         game_id: GameId(game),
         season_id: SeasonId(1),
-        slot_id: SlotId(slot),
+        slot_id: Some(SlotId(slot)),
         confidence: Some(confidence),
     }
 }

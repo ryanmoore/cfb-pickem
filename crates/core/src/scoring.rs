@@ -59,8 +59,11 @@ pub fn standings(games: &[Game], picks: &[Pick], results: &[GameResult]) -> Vec<
             remaining: 0,
         });
 
+        if pick.slot_id.is_none() {
+            continue; // no side chosen: scores nothing and keeps nothing in play
+        }
         match winners.get(&pick.game_id) {
-            Some(winning_slot) if *winning_slot == pick.slot_id => entry.scored += wager,
+            Some(winning_slot) if Some(*winning_slot) == pick.slot_id => entry.scored += wager,
             Some(_) => {} // picked the losing side: nothing banked, nothing left
             None => entry.remaining += wager,
         }
@@ -95,7 +98,7 @@ pub fn rank_ties(points: &[(u32, u32)]) -> Vec<u32> {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]
 #[serde(rename_all = "snake_case", tag = "problem")]
 pub enum PermutationError {
-    #[error("game {game_id} has no pick")]
+    #[error("game {game_id} is missing from the entry")]
     MissingPick { game_id: GameId },
     #[error("game {game_id} takes a fixed wager, so it must not carry a confidence value")]
     UnexpectedConfidence { game_id: GameId },
@@ -192,7 +195,7 @@ mod tests {
             user_id: UserId(user),
             game_id: GameId(game),
             season_id: SeasonId(1),
-            slot_id: SlotId(slot),
+            slot_id: Some(SlotId(slot)),
             confidence,
         }
     }

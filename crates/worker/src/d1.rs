@@ -96,7 +96,7 @@ struct PickRow {
     user_id: i64,
     game_id: i64,
     season_id: i64,
-    slot_id: i64,
+    slot_id: Option<i64>,
     confidence: Option<u32>,
 }
 
@@ -223,7 +223,7 @@ impl Storage for D1Storage {
                 user_id: UserId(r.user_id),
                 game_id: GameId(r.game_id),
                 season_id: SeasonId(r.season_id),
-                slot_id: SlotId(r.slot_id),
+                slot_id: r.slot_id.map(SlotId),
                 confidence: r.confidence,
             })
             .collect())
@@ -244,7 +244,8 @@ impl Storage for D1Storage {
         let mut statements = vec![self.0.prepare(sql::DELETE_PICKS).bind(&[num(user.0), num(season.0)])?];
         for p in picks {
             let confidence = p.confidence.map_or(JsValue::NULL, |c| num(c.into()));
-            let args = [num(user.0), num(p.game_id.0), num(season.0), num(p.slot_id.0), confidence];
+            let slot = p.slot_id.map_or(JsValue::NULL, |s| num(s.0));
+            let args = [num(user.0), num(p.game_id.0), num(season.0), slot, confidence];
             statements.push(self.0.prepare(sql::INSERT_PICK).bind(&args)?);
         }
         statements.push(self.0.prepare(sql::BUMP_GENERATION).bind(&[num(season.0)])?);

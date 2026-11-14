@@ -199,8 +199,8 @@ pub struct Pick {
     pub user_id: UserId,
     pub game_id: GameId,
     pub season_id: SeasonId,
-    /// Which side the player took.
-    pub slot_id: SlotId,
+    /// Which side the player took; `None` until they choose one.
+    pub slot_id: Option<SlotId>,
     /// `None` exactly when the game carries a fixed wager.
     pub confidence: Option<u32>,
 }

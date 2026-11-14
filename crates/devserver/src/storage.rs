@@ -158,7 +158,7 @@ impl Storage for SqliteStorage {
                 user_id: UserId(r.get(0)?),
                 game_id: GameId(r.get(1)?),
                 season_id: SeasonId(r.get(2)?),
-                slot_id: SlotId(r.get(3)?),
+                slot_id: r.get::<_, Option<i64>>(3)?.map(SlotId),
                 confidence: r.get(4)?,
             })
         })?;
@@ -188,7 +188,7 @@ impl Storage for SqliteStorage {
         for p in picks {
             tx.execute(
                 sql::INSERT_PICK,
-                params![user.0, p.game_id.0, season.0, p.slot_id.0, p.confidence],
+                params![user.0, p.game_id.0, season.0, p.slot_id.map(|s| s.0), p.confidence],
             )?;
         }
         let generation = bump_generation(&tx, season)?;

@@ -104,7 +104,7 @@ struct PlayerPicks<'a> {
 #[derive(Serialize, Deserialize)]
 struct PickView {
     game_id: GameId,
-    slot_id: SlotId,
+    slot_id: Option<SlotId>,
     confidence: Option<u32>,
 }
 
@@ -170,11 +170,12 @@ pub async fn route<S: Storage>(
         ("GET", ["api", "seasons", year, "standings"]) => standings_reply(storage, year).await,
         ("GET", ["api", "seasons", year, "games"]) => games(storage, year).await,
         ("GET", ["api", "seasons", year, "picks"]) => picks(storage, year, identity, key, now).await,
+        ("GET", ["api", "seasons", year, "progress"]) => progress(storage, year).await,
         ("PUT", ["api", "seasons", year, "picks"]) => put_picks(storage, year, req, key, now).await,
         ("POST", ["api", "seasons", year, "games", id, "result"]) => {
             record_result(storage, year, id, req, key).await
         }
-        (_, ["api", "me" | "seasons"] | ["api", "seasons", _, "standings" | "games" | "picks"])
+        (_, ["api", "me" | "seasons"] | ["api", "seasons", _, "standings" | "games" | "picks" | "progress"])
         | (_, ["api", "seasons", _, "games", _, "result"]) => Ok(Reply::error(405, "method not allowed")),
         _ => Ok(Reply::error(404, "not found")),
     }
@@ -360,6 +361,27 @@ async fn picks<S: Storage>(
     ))
 }
 
+/// How many winners each player has chosen. Reveals no picks, so it is public
+/// before the lock.
+async fn progress<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error> {
+    let Some(season) = season_by_year(storage, year).await? else {
+        return Ok(Reply::error(404, "no such season"));
+    };
+    let total = storage.games_for_season(season.id).await?.len();
+    let picks = storage.picks_for_season(season.id).await?;
+    let mut players: Vec<_> = storage
+        .users()
+        .await?
+        .iter()
+        .map(|u| {
+            let picked = picks.iter().filter(|p| p.user_id == u.id && p.slot_id.is_some()).count();
+            serde_json::json!({ "display_name": u.display_name, "picked": picked, "total": total })
+        })
+        .collect();
+    players.sort_by(|a, b| a["display_name"].as_str().cmp(&b["display_name"].as_str()));
+    Ok(Reply::json(200, &serde_json::json!({ "year": season.year, "players": players })))
+}
+
 async fn put_picks<S: Storage>(
     storage: &S,
     year: &str,
@@ -393,8 +415,10 @@ async fn put_picks<S: Storage>(
         } else if !seen.insert(p.game_id) {
             problems.push(problem(EntryProblem::DuplicateGame { game_id: p.game_id }));
         } else {
-            if !slots.iter().any(|s| s.id == p.slot_id && s.game_id == p.game_id) {
-                problems.push(problem(EntryProblem::SlotNotInGame { game_id: p.game_id, slot_id: p.slot_id }));
+            if let Some(slot_id) = p.slot_id {
+                if !slots.iter().any(|s| s.id == slot_id && s.game_id == p.game_id) {
+                    problems.push(problem(EntryProblem::SlotNotInGame { game_id: p.game_id, slot_id }));
+                }
             }
             picks.push(Pick {
                 user_id: user.id,
@@ -493,7 +517,7 @@ mod tests {
             user_id: UserId(user),
             game_id: GameId(game),
             season_id: SeasonId(1),
-            slot_id: SlotId(slot),
+            slot_id: Some(SlotId(slot)),
             confidence: Some(confidence),
         }
     }
@@ -759,6 +783,36 @@ mod tests {
         assert_eq!(problems(r#"{"picks":[{"game_id":1,"slot_id":10,"confidence":1}]}"#), ["missing_pick", "unused"]);
         assert_eq!(put("not json").0, 400);
         assert_eq!(fake.picks.borrow().len(), 2, "rejected entries change nothing");
+    }
+
+    #[test]
+    fn unset_winners_save_read_back_score_nothing_and_show_in_progress() {
+        let fake = pool();
+        let picks = "/api/seasons/2023/picks";
+        // Game 1 has no winner chosen yet; every game is still present.
+        let entry = r#"{"picks":[{"game_id":1,"slot_id":null,"confidence":2},{"game_id":2,"slot_id":20,"confidence":1}]}"#;
+        assert_eq!(send(&fake, "PUT", picks, Some(BO), entry).0, 200);
+        let (_, body) = get(&fake, picks, Some(BO));
+        assert_eq!(body["players"][0]["picks"][0], serde_json::json!({"game_id": 1, "slot_id": null, "confidence": 2}));
+
+        // Progress is public before the lock and counts only chosen winners.
+        let (status, body) = get(&fake, "/api/seasons/2023/progress", None);
+        assert_eq!(status, 200);
+        assert_eq!(
+            body["players"],
+            serde_json::json!([
+                {"display_name": "Ann", "picked": 0, "total": 2},
+                {"display_name": "Bo", "picked": 1, "total": 2},
+            ])
+        );
+
+        // The unset game scores 0 even once decided, and was never in play.
+        let before = get(&fake, "/api/seasons/2023/standings", None).1["standings"][0].clone();
+        assert_eq!((before["scored"].clone(), before["remaining"].clone()), (0.into(), 1.into()));
+        send(&fake, "POST", "/api/seasons/2023/games/1/result", Some(ANN), r#"{"winner_slot_id":10}"#);
+        let after = get(&fake, "/api/seasons/2023/standings", None).1["standings"][0].clone();
+        assert_eq!((after["scored"].clone(), after["max_possible"].clone()), (0.into(), 1.into()));
+        assert_eq!(get(&fake, "/api/seasons/1999/progress", None).0, 404);
     }
 
     #[test]
