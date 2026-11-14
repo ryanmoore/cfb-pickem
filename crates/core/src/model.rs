@@ -105,6 +105,21 @@ pub struct Season {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Event {
+    pub id: EventId,
+    pub name: String,
+}
+
+/// A team as it stood in one season.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TeamSeason {
+    pub id: TeamSeasonId,
+    pub name: String,
+    pub rank: Option<u32>,
+    pub record: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Game {
     pub id: GameId,
     pub season_id: SeasonId,
@@ -166,6 +181,17 @@ pub enum ResultSource {
     Manual,
     Cfbd,
     Import,
+}
+
+impl ResultSource {
+    /// The value stored in `game_result.source`.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Manual => "manual",
+            Self::Cfbd => "cfbd",
+            Self::Import => "import",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

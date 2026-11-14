@@ -14,6 +14,12 @@ pub const SLOTS_FOR_SEASON: &str = "SELECT s.id, s.game_id, s.slot_index, s.team
      FROM game_slot s JOIN game g ON g.id = s.game_id
      WHERE g.season_id = ?1 ORDER BY s.id";
 
+pub const TEAM_SEASONS_FOR_SEASON: &str = "SELECT ts.id, t.name, ts.rank, ts.record
+     FROM team_season ts JOIN team t ON t.id = ts.team_id
+     WHERE ts.season_id = ?1 ORDER BY ts.id";
+
+pub const EVENTS: &str = "SELECT id, name FROM event ORDER BY id";
+
 pub const RESULTS_FOR_SEASON: &str = "SELECT r.game_id, r.winner_slot_id, r.source
      FROM game_result r JOIN game g ON g.id = r.game_id
      WHERE g.season_id = ?1 ORDER BY r.game_id";
@@ -46,6 +52,8 @@ pub const ALL: &[&str] = &[
     SEASON_BY_YEAR,
     GAMES_FOR_SEASON,
     SLOTS_FOR_SEASON,
+    TEAM_SEASONS_FOR_SEASON,
+    EVENTS,
     RESULTS_FOR_SEASON,
     PICKS_FOR_SEASON,
     USER_BY_EMAIL_HASH,

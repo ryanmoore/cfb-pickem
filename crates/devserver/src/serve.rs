@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::DateTime;
-use pickem_core::api::{route, Reply};
+use pickem_core::api::{route, Reply, Request as ApiRequest};
 use tiny_http::{Header, Method, Request, Response};
 
 use crate::storage::SqliteStorage;
@@ -63,9 +63,16 @@ fn respond(request: Request, status: u16, content_type: &str, body: Vec<u8>) {
     }
 }
 
-fn handle(storage: &SqliteStorage, config: &Config, request: Request) {
+fn header_value(request: &Request, name: &'static str) -> Option<String> {
+    let found = request.headers().iter().find(|h| h.field.equiv(name));
+    found.map(|h| h.value.as_str().to_string())
+}
+
+fn handle(storage: &SqliteStorage, config: &Config, mut request: Request) {
     let method = match request.method() {
         Method::Get => "GET",
+        Method::Put => "PUT",
+        Method::Post => "POST",
         _ => "OTHER",
     };
     let path = request.url().split('?').next().unwrap_or("/").to_string();
@@ -81,7 +88,22 @@ fn handle(storage: &SqliteStorage, config: &Config, request: Request) {
         let secs = SystemTime::now().duration_since(UNIX_EPOCH).expect("clock").as_secs();
         let now = DateTime::from_timestamp(secs as i64, 0).expect("in range");
         let identity = config.dev_email.as_deref();
-        let reply = pollster::block_on(route(storage, method, &path, identity, &config.email_key, now))
+        let (content_type, origin, host) =
+            (header_value(&request, "Content-Type"), header_value(&request, "Origin"), header_value(&request, "Host"));
+        let mut body = Vec::new();
+        if let Err(e) = request.as_reader().read_to_end(&mut body) {
+            eprintln!("read failed: {e}");
+        }
+        let req = ApiRequest {
+            method,
+            path: &path,
+            identity,
+            content_type: content_type.as_deref(),
+            origin: origin.as_deref(),
+            host: host.as_deref(),
+            body: &body,
+        };
+        let reply = pollster::block_on(route(storage, &req, &config.email_key, now))
             .unwrap_or_else(|e| {
                 eprintln!("storage error: {e:?}");
                 Reply::error(500, "internal error")

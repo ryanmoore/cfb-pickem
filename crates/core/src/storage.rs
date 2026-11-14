@@ -5,7 +5,7 @@
 //! Because both sit behind this one trait, the two build paths differ only in
 //! their adapter — there is no second copy of the rules to drift.
 
-use crate::model::{EmailHash, Game, GameResult, GameSlot, Pick, Season, SeasonId, User, UserId};
+use crate::model::{EmailHash, Event, Game, GameResult, GameSlot, Pick, Season, SeasonId, TeamSeason, User, UserId};
 
 /// Reads and writes the app needs.
 ///
@@ -20,6 +20,8 @@ pub trait Storage {
 
     async fn games_for_season(&self, season: SeasonId) -> Result<Vec<Game>, Self::Error>;
     async fn slots_for_season(&self, season: SeasonId) -> Result<Vec<GameSlot>, Self::Error>;
+    async fn team_seasons_for_season(&self, season: SeasonId) -> Result<Vec<TeamSeason>, Self::Error>;
+    async fn events(&self) -> Result<Vec<Event>, Self::Error>;
     async fn results_for_season(&self, season: SeasonId) -> Result<Vec<GameResult>, Self::Error>;
 
     /// Every player's picks for the season — standings need all of them, and

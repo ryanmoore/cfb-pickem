@@ -6,15 +6,24 @@
 use chrono::{DateTime, Utc};
 use pickem_core::sql;
 use pickem_core::{
-    EmailHash, EventId, Game, GameId, GameResult, GameSlot, Pick, ResultSource, Season, SeasonId, SlotId,
-    Storage, User, UserId,
+    EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, ResultSource, Season, SeasonId, SlotId,
+    SlotSource, Storage, TeamSeason, TeamSeasonId, User, UserId,
 };
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use wasm_bindgen::JsValue;
-use worker::{D1Database, Error, Result};
+use worker::{D1Database, D1PreparedStatement, Error, Result};
 
 pub struct D1Storage(pub D1Database);
+
+fn num(n: i64) -> JsValue {
+    JsValue::from_f64(n as f64)
+}
+
+#[derive(Deserialize)]
+struct GenerationRow {
+    generation: u64,
+}
 
 fn time(text: &str) -> Result<DateTime<Utc>> {
     DateTime::parse_from_rfc3339(text)
@@ -49,6 +58,30 @@ struct GameRow {
     display_name: Option<String>,
     kickoff_at: String,
     fixed_wager: Option<u32>,
+}
+
+#[derive(Deserialize)]
+struct SlotRow {
+    id: i64,
+    game_id: i64,
+    slot_index: u8,
+    team_season_id: Option<i64>,
+    feeder_game_id: Option<i64>,
+    seed: Option<u16>,
+}
+
+#[derive(Deserialize)]
+struct TeamSeasonRow {
+    id: i64,
+    name: String,
+    rank: Option<u32>,
+    record: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct EventRow {
+    id: i64,
+    name: String,
 }
 
 #[derive(Deserialize)]
@@ -88,8 +121,20 @@ impl From<UserRow> for User {
 
 impl D1Storage {
     async fn query<T: DeserializeOwned>(&self, sql: &str, args: &[i64]) -> Result<Vec<T>> {
-        let args: Vec<JsValue> = args.iter().map(|&n| JsValue::from_f64(n as f64)).collect();
+        let args: Vec<JsValue> = args.iter().map(|&n| num(n)).collect();
         self.0.prepare(sql).bind(&args)?.all().await?.results()
+    }
+
+    /// Run `statements` as one transaction; the last must be the generation
+    /// bump, whose row is returned.
+    async fn batch_generation(&self, statements: Vec<D1PreparedStatement>) -> Result<u64> {
+        let results = self.0.batch(statements).await?;
+        let rows: Vec<GenerationRow> = results.last().ok_or_else(|| Error::RustError("empty batch".into()))?.results()?;
+        rows.first().map(|r| r.generation).ok_or_else(|| Error::RustError("season not found".into()))
+    }
+
+    fn statement(&self, sql: &str, args: &[JsValue]) -> Result<D1PreparedStatement> {
+        self.0.prepare(sql).bind(args)
     }
 }
 
@@ -124,8 +169,35 @@ impl Storage for D1Storage {
             .collect()
     }
 
-    async fn slots_for_season(&self, _: SeasonId) -> Result<Vec<GameSlot>> {
-        Err(Error::RustError("slots are not served yet".into()))
+    async fn slots_for_season(&self, season: SeasonId) -> Result<Vec<GameSlot>> {
+        let rows: Vec<SlotRow> = self.query(sql::SLOTS_FOR_SEASON, &[season.0]).await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| GameSlot {
+                id: SlotId(r.id),
+                game_id: GameId(r.game_id),
+                slot_index: r.slot_index,
+                source: match (r.team_season_id, r.feeder_game_id) {
+                    (Some(t), _) => SlotSource::Team { team_season_id: TeamSeasonId(t) },
+                    (None, Some(g)) => SlotSource::WinnerOf { game_id: GameId(g) },
+                    (None, None) => unreachable!("game_slot CHECK admits exactly one source"),
+                },
+                seed: r.seed,
+            })
+            .collect())
+    }
+
+    async fn team_seasons_for_season(&self, season: SeasonId) -> Result<Vec<TeamSeason>> {
+        let rows: Vec<TeamSeasonRow> = self.query(sql::TEAM_SEASONS_FOR_SEASON, &[season.0]).await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| TeamSeason { id: TeamSeasonId(r.id), name: r.name, rank: r.rank, record: r.record })
+            .collect())
+    }
+
+    async fn events(&self) -> Result<Vec<Event>> {
+        let rows: Vec<EventRow> = self.query(sql::EVENTS, &[]).await?;
+        Ok(rows.into_iter().map(|r| Event { id: EventId(r.id), name: r.name }).collect())
     }
 
     async fn results_for_season(&self, season: SeasonId) -> Result<Vec<GameResult>> {
@@ -179,11 +251,29 @@ impl Storage for D1Storage {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn replace_picks(&self, _: UserId, _: SeasonId, _: &[Pick]) -> Result<u64> {
-        Err(Error::RustError("writes are not served yet".into()))
+    async fn replace_picks(&self, user: UserId, season: SeasonId, picks: &[Pick]) -> Result<u64> {
+        let mut statements = vec![self.statement(sql::DELETE_PICKS, &[num(user.0), num(season.0)])?];
+        for p in picks {
+            let confidence = p.confidence.map_or(JsValue::NULL, |c| num(c.into()));
+            let args = [num(user.0), num(p.game_id.0), num(season.0), num(p.slot_id.0), confidence];
+            statements.push(self.statement(sql::INSERT_PICK, &args)?);
+        }
+        statements.push(self.statement(sql::BUMP_GENERATION, &[num(season.0)])?);
+        self.batch_generation(statements).await
     }
 
-    async fn record_result(&self, _: GameResult) -> Result<u64> {
-        Err(Error::RustError("writes are not served yet".into()))
+    async fn record_result(&self, result: GameResult) -> Result<u64> {
+        #[derive(Deserialize)]
+        struct GameSeason {
+            season_id: i64,
+        }
+        let seasons: Vec<GameSeason> = self.query(sql::GAME_SEASON, &[result.game_id.0]).await?;
+        let season = seasons.first().ok_or_else(|| Error::RustError("game not found".into()))?.season_id;
+        let upsert = [num(result.game_id.0), num(result.winner_slot_id.0), result.source.as_str().into()];
+        self.batch_generation(vec![
+            self.statement(sql::UPSERT_RESULT, &upsert)?,
+            self.statement(sql::BUMP_GENERATION, &[num(season)])?,
+        ])
+        .await
     }
 }

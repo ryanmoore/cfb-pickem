@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Utc};
 use pickem_core::sql;
 use pickem_core::{
-    email_hash, EmailHash, Game, GameId, GameResult, GameSlot, Pick, ResultSource, SeasonId, Season, SlotId,
+    email_hash, EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, ResultSource, SeasonId, Season, SlotId, TeamSeason,
     SlotSource, Storage, TeamSeasonId, User, UserId,
 };
 use rusqlite::types::Type;
@@ -87,7 +87,7 @@ impl Storage for SqliteStorage {
             Ok(Game {
                 id: GameId(r.get(0)?),
                 season_id: SeasonId(r.get(1)?),
-                event_id: pickem_core::EventId(r.get(2)?),
+                event_id: EventId(r.get(2)?),
                 display_name: r.get(3)?,
                 kickoff_at: timestamp(r, 4)?,
                 fixed_wager: r.get(5)?,
@@ -114,6 +114,25 @@ impl Storage for SqliteStorage {
             })
         })?;
         slots.collect()
+    }
+
+    async fn team_seasons_for_season(&self, season: SeasonId) -> Result<Vec<TeamSeason>, Self::Error> {
+        let mut stmt = self.conn.prepare(sql::TEAM_SEASONS_FOR_SEASON)?;
+        let rows = stmt.query_map([season.0], |r| {
+            Ok(TeamSeason {
+                id: TeamSeasonId(r.get(0)?),
+                name: r.get(1)?,
+                rank: r.get(2)?,
+                record: r.get(3)?,
+            })
+        })?;
+        rows.collect()
+    }
+
+    async fn events(&self) -> Result<Vec<Event>, Self::Error> {
+        let mut stmt = self.conn.prepare(sql::EVENTS)?;
+        let rows = stmt.query_map([], |r| Ok(Event { id: EventId(r.get(0)?), name: r.get(1)? }))?;
+        rows.collect()
     }
 
     async fn results_for_season(&self, season: SeasonId) -> Result<Vec<GameResult>, Self::Error> {
@@ -180,12 +199,8 @@ impl Storage for SqliteStorage {
     async fn record_result(&self, result: GameResult) -> Result<u64, Self::Error> {
         let tx = self.conn.unchecked_transaction()?;
         let season: i64 = tx.query_row(sql::GAME_SEASON, [result.game_id.0], |r| r.get(0))?;
-        let source = match result.source {
-            ResultSource::Manual => "manual",
-            ResultSource::Cfbd => "cfbd",
-            ResultSource::Import => "import",
-        };
-        tx.execute(sql::UPSERT_RESULT, params![result.game_id.0, result.winner_slot_id.0, source])?;
+        let args = params![result.game_id.0, result.winner_slot_id.0, result.source.as_str()];
+        tx.execute(sql::UPSERT_RESULT, args)?;
         let generation = bump_generation(&tx, SeasonId(season))?;
         tx.commit()?;
         Ok(generation)

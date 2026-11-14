@@ -6,7 +6,7 @@ mod d1;
 mod identity;
 
 use chrono::{DateTime, Utc};
-use pickem_core::api::{route, Reply};
+use pickem_core::api::{route, Reply, Request as ApiRequest};
 use worker::{
     console_error, event, Context, Date, Env, Headers, Request, Response, Result, ScheduleContext,
     ScheduledEvent,
@@ -28,7 +28,7 @@ fn json_response(reply: Reply) -> Result<Response> {
 /// Only `/login` and `/api/*` reach the Worker; everything else is served by
 /// the assets binding before any code runs.
 #[event(fetch)]
-async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
+async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
     let url = req.url()?;
     if url.path() == "/login" {
         let headers = Headers::new();
@@ -48,7 +48,24 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     .await;
     let key = env.secret("EMAIL_HASH_KEY")?.to_string();
     let storage = d1::D1Storage(env.d1("DB")?);
-    match route(&storage, req.method().as_ref(), url.path(), email.as_deref(), key.as_bytes(), now).await {
+    let host = url.host_str().map(|h| match url.port() {
+        Some(port) => format!("{h}:{port}"),
+        None => h.to_string(),
+    });
+    let header = |name: &str| req.headers().get(name).ok().flatten();
+    let (content_type, origin) = (header("Content-Type"), header("Origin"));
+    let method = req.method().to_string();
+    let body = req.bytes().await?;
+    let api_req = ApiRequest {
+        method: &method,
+        path: url.path(),
+        identity: email.as_deref(),
+        content_type: content_type.as_deref(),
+        origin: origin.as_deref(),
+        host: host.as_deref(),
+        body: &body,
+    };
+    match route(&storage, &api_req, key.as_bytes(), now).await {
         Ok(reply) => json_response(reply),
         Err(e) => {
             console_error!("storage error: {e}");
