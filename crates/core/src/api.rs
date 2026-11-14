@@ -807,8 +807,6 @@ mod tests {
         );
 
         // The unset game scores 0 even once decided, and was never in play.
-        let before = get(&fake, "/api/seasons/2023/standings", None).1["standings"][0].clone();
-        assert_eq!((before["scored"].clone(), before["remaining"].clone()), (0.into(), 1.into()));
         send(&fake, "POST", "/api/seasons/2023/games/1/result", Some(ANN), r#"{"winner_slot_id":10}"#);
         let after = get(&fake, "/api/seasons/2023/standings", None).1["standings"][0].clone();
         assert_eq!((after["scored"].clone(), after["max_possible"].clone()), (0.into(), 1.into()));

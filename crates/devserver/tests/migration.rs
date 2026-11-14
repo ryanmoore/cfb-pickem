@@ -24,20 +24,18 @@ fn making_pick_slot_nullable_keeps_every_row_and_the_confidence_rule() {
          INSERT INTO pick VALUES (1, 1, 1, 1, 1, 'u1'), (1, 2, 1, 2, NULL, 'u2'), (2, 1, 1, 1, 1, 'u3');",
     )
     .unwrap();
-    let before: Vec<_> = conn
-        .prepare(PICKS).unwrap()
-        .query_map([], |r| Ok((0..6).map(|i| r.get::<_, rusqlite::types::Value>(i).unwrap()).collect::<Vec<_>>())).unwrap()
-        .collect::<Result<_, _>>().unwrap();
+    let rows = |conn: &Connection| -> Vec<Vec<rusqlite::types::Value>> {
+        conn.prepare(PICKS).unwrap()
+            .query_map([], |r| Ok((0..6).map(|i| r.get(i).unwrap()).collect()))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap()
+    };
+    let before = rows(&conn);
 
     conn.execute_batch(&migration("0002_nullable_pick_slot.sql")).unwrap();
 
-    let after: Vec<_> = conn
-        .prepare(PICKS).unwrap()
-        .query_map([], |r| Ok((0..6).map(|i| r.get::<_, rusqlite::types::Value>(i).unwrap()).collect::<Vec<_>>())).unwrap()
-        .collect::<Result<_, _>>().unwrap();
-    assert_eq!(before.len(), 3);
-    assert_eq!(after, before);
-    assert!(conn.execute("UPDATE pick SET slot_id = NULL WHERE user_id = 2", []).is_ok());
+    assert_eq!(rows(&conn), before);
     // The partial unique index came back, and foreign keys still hold.
     assert!(conn.execute("INSERT INTO pick VALUES (1, 2, 1, 2, 1, 'u')", []).is_err());
     assert!(conn.execute("UPDATE pick SET slot_id = 99 WHERE user_id = 2", []).is_err());

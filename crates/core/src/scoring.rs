@@ -60,7 +60,7 @@ pub fn standings(games: &[Game], picks: &[Pick], results: &[GameResult]) -> Vec<
         });
 
         if pick.slot_id.is_none() {
-            continue; // no side chosen: scores nothing and keeps nothing in play
+            continue;
         }
         match winners.get(&pick.game_id) {
             Some(winning_slot) if Some(*winning_slot) == pick.slot_id => entry.scored += wager,
