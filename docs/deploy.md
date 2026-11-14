@@ -55,7 +55,10 @@ Zero Trust dashboard:
 4. Copy the team domain (Settings) to the `ACCESS_TEAM_DOMAIN` repository
    variable. The team is account-wide, so name it after the account, not the
    app. Renaming it later changes the token issuer: update the variable and
-   redeploy, or sign-in stops working.
+   redeploy, or sign-in stops working. Existing sessions still carry the old
+   issuer and Access lets them through without a PIN, so each user clears the
+   site's cookies once. The login page's organization name is a separate
+   setting and keeps the old name until edited.
 
 Each user who signs in takes one of the free plan's 50 seats. A PIN is sent
 only to addresses the policy allows, so an email list keeps strangers out.
