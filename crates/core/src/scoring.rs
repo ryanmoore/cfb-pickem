@@ -78,6 +78,19 @@ pub fn standings(games: &[Game], picks: &[Pick], results: &[GameResult]) -> Vec<
     out
 }
 
+/// Competition ranks (1, 1, 3) for entries already sorted best first, given
+/// each entry's `(scored, max_possible)`; entries tie when both match.
+pub fn rank_ties(points: &[(u32, u32)]) -> Vec<u32> {
+    let mut ranks: Vec<u32> = Vec::with_capacity(points.len());
+    for (i, p) in points.iter().enumerate() {
+        ranks.push(match i.checked_sub(1) {
+            Some(prev) if points[prev] == *p => ranks[prev],
+            _ => i as u32 + 1,
+        });
+    }
+    ranks
+}
+
 /// Every way a player's confidence assignment can be wrong.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]
 #[serde(rename_all = "snake_case", tag = "problem")]
@@ -253,6 +266,12 @@ mod tests {
         let s = standings(&games, &picks, &results);
         assert_eq!(s[0].user_id, UserId(11));
         assert_eq!(s[1].user_id, UserId(10));
+    }
+
+    #[test]
+    fn tied_entries_share_a_rank_and_the_next_skips() {
+        assert_eq!(rank_ties(&[(5, 9), (3, 6), (3, 6), (3, 5), (0, 0)]), [1, 2, 2, 4, 5]);
+        assert!(rank_ties(&[]).is_empty());
     }
 
     #[test]

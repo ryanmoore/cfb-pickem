@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 use crate::model::{email_hash, User, UserId};
-use crate::scoring::standings;
+use crate::scoring::{rank_ties, standings};
 use crate::storage::Storage;
 
 pub struct Reply {
@@ -64,79 +64,81 @@ pub async fn route<S: Storage>(
         return Ok(Reply::error(405, "method not allowed"));
     }
     let segments: Vec<&str> = path.trim_matches('/').split('/').collect();
-    Ok(match segments.as_slice() {
-        ["api", "seasons"] => {
-            let mut seasons = storage.seasons().await?;
-            seasons.sort_by_key(|s| std::cmp::Reverse(s.year));
-            let seasons: Vec<_> = seasons
-                .iter()
-                .map(|s| SeasonSummary { year: s.year, locked: now >= s.locks_at })
-                .collect();
-            Reply::json(200, &serde_json::json!({ "seasons": seasons }))
-        }
-        ["api", "seasons", year, "standings"] => {
-            let season = match year.parse() {
-                Ok(y) => storage.season_by_year(y).await?,
-                Err(_) => None,
-            };
-            let Some(season) = season else {
-                return Ok(Reply::error(404, "no such season"));
-            };
-            let games = storage.games_for_season(season.id).await?;
-            let picks = storage.picks_for_season(season.id).await?;
-            let results = storage.results_for_season(season.id).await?;
-            let users = storage.users().await?;
-            let names: HashMap<UserId, &str> =
-                users.iter().map(|u| (u.id, u.display_name.as_str())).collect();
-            let mut rows: Vec<_> = standings(&games, &picks, &results)
-                .into_iter()
-                .filter_map(|s| Some((names.get(&s.user_id)?, s)))
-                .collect();
-            rows.sort_by(|(an, a), (bn, b)| {
-                b.scored
-                    .cmp(&a.scored)
-                    .then(b.max_possible().cmp(&a.max_possible()))
-                    .then(an.cmp(bn))
-            });
-            let mut ranked: Vec<StandingRow> = Vec::with_capacity(rows.len());
-            for (i, (name, s)) in rows.iter().enumerate() {
-                let rank = match ranked.last() {
-                    Some(prev) if prev.scored == s.scored && prev.max_possible == s.max_possible() => {
-                        prev.rank
-                    }
-                    _ => i as u32 + 1,
-                };
-                ranked.push(StandingRow {
-                    rank,
-                    display_name: name,
-                    scored: s.scored,
-                    remaining: s.remaining,
-                    max_possible: s.max_possible(),
-                });
-            }
-            Reply::json(200, &serde_json::json!({ "year": season.year, "standings": ranked }))
-        }
-        ["api", "me"] => {
-            let user: Option<User> = match identity {
-                Some(email) => storage.user_by_email_hash(&email_hash(email_key, email)).await?,
-                None => None,
-            };
-            Reply::json(
-                200,
-                &match (identity, &user) {
-                    (None, _) => Me::Anonymous { signed_in: false },
-                    (Some(_), None) => Me::Unknown { signed_in: true, known: false },
-                    (Some(_), Some(u)) => Me::Player {
-                        signed_in: true,
-                        known: true,
-                        display_name: &u.display_name,
-                        is_admin: u.is_admin,
-                    },
-                },
-            )
-        }
-        _ => Reply::error(404, "not found"),
-    })
+    match (method, segments.as_slice()) {
+        ("GET", ["api", "seasons"]) => seasons(storage, now).await,
+        ("GET", ["api", "seasons", year, "standings"]) => standings_reply(storage, year).await,
+        ("GET", ["api", "me"]) => me(storage, identity, email_key).await,
+        _ => Ok(Reply::error(404, "not found")),
+    }
+}
+
+async fn seasons<S: Storage>(storage: &S, now: DateTime<Utc>) -> Result<Reply, S::Error> {
+    let mut seasons = storage.seasons().await?;
+    seasons.sort_by_key(|s| std::cmp::Reverse(s.year));
+    let seasons: Vec<_> = seasons
+        .iter()
+        .map(|s| SeasonSummary { year: s.year, locked: now >= s.locks_at })
+        .collect();
+    Ok(Reply::json(200, &serde_json::json!({ "seasons": seasons })))
+}
+
+async fn standings_reply<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error> {
+    let season = match year.parse() {
+        Ok(y) => storage.season_by_year(y).await?,
+        Err(_) => None,
+    };
+    let Some(season) = season else {
+        return Ok(Reply::error(404, "no such season"));
+    };
+    let games = storage.games_for_season(season.id).await?;
+    let picks = storage.picks_for_season(season.id).await?;
+    let results = storage.results_for_season(season.id).await?;
+    let users = storage.users().await?;
+    let names: HashMap<UserId, &str> = users.iter().map(|u| (u.id, u.display_name.as_str())).collect();
+    let mut rows: Vec<_> = standings(&games, &picks, &results)
+        .into_iter()
+        .filter_map(|s| Some((names.get(&s.user_id)?, s)))
+        .collect();
+    rows.sort_by(|(an, a), (bn, b)| {
+        b.scored.cmp(&a.scored).then(b.max_possible().cmp(&a.max_possible())).then(an.cmp(bn))
+    });
+    let points: Vec<_> = rows.iter().map(|(_, s)| (s.scored, s.max_possible())).collect();
+    let ranked: Vec<_> = rank_ties(&points)
+        .into_iter()
+        .zip(&rows)
+        .map(|(rank, (name, s))| StandingRow {
+            rank,
+            display_name: name,
+            scored: s.scored,
+            remaining: s.remaining,
+            max_possible: s.max_possible(),
+        })
+        .collect();
+    Ok(Reply::json(200, &serde_json::json!({ "year": season.year, "standings": ranked })))
+}
+
+async fn me<S: Storage>(
+    storage: &S,
+    identity: Option<&str>,
+    email_key: &[u8],
+) -> Result<Reply, S::Error> {
+    let user: Option<User> = match identity {
+        Some(email) => storage.user_by_email_hash(&email_hash(email_key, email)).await?,
+        None => None,
+    };
+    Ok(Reply::json(
+        200,
+        &match (identity, &user) {
+            (None, _) => Me::Anonymous { signed_in: false },
+            (Some(_), None) => Me::Unknown { signed_in: true, known: false },
+            (Some(_), Some(u)) => Me::Player {
+                signed_in: true,
+                known: true,
+                display_name: &u.display_name,
+                is_admin: u.is_admin,
+            },
+        },
+    ))
 }
 
 #[cfg(test)]
