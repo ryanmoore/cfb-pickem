@@ -44,10 +44,11 @@ jobs:
         env:
           PICKEM_HOSTNAME: ${{ vars.PICKEM_HOSTNAME }}
           S3_BUCKET: ${{ vars.S3_BUCKET }}
+          ACCESS_TEAM_DOMAIN: ${{ vars.ACCESS_TEAM_DOMAIN }}
         run: |
-          test -n "$PICKEM_HOSTNAME" -a -n "$S3_BUCKET" || { echo "set repository variables PICKEM_HOSTNAME and S3_BUCKET"; exit 1; }
-          sed -i "s/__PICKEM_HOSTNAME__/$PICKEM_HOSTNAME/; s/__S3_BUCKET__/$S3_BUCKET/" wrangler.toml
-          ! grep -n '__PICKEM_HOSTNAME__\|__S3_BUCKET__' wrangler.toml
+          test -n "$PICKEM_HOSTNAME" -a -n "$S3_BUCKET" -a -n "$ACCESS_TEAM_DOMAIN" || { echo "set repository variables PICKEM_HOSTNAME, S3_BUCKET and ACCESS_TEAM_DOMAIN"; exit 1; }
+          sed -i "s/__PICKEM_HOSTNAME__/$PICKEM_HOSTNAME/; s/__S3_BUCKET__/$S3_BUCKET/; s/__ACCESS_TEAM_DOMAIN__/$ACCESS_TEAM_DOMAIN/" wrangler.toml
+          ! grep -n '__[A-Z_]*__' wrangler.toml
 
       - run: npx --yes wrangler@4.152.0 d1 migrations apply pickem --remote
         working-directory: crates/worker

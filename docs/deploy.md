@@ -23,9 +23,10 @@ valid or is not authorized".
 - **Export** (Worker secret `D1_EXPORT_TOKEN`): Account > D1 Edit only.
 
 Also add the account id as GitHub secret `CLOUDFLARE_ACCOUNT_ID`; both are
-repository secrets. Add two repository **variables** (not secrets, which mask
-them in logs): `PICKEM_HOSTNAME`, the site's hostname, and `S3_BUCKET`. The
-deploy workflow writes them into `wrangler.toml`, so the names stay out of git.
+repository secrets. Add three repository **variables** (not secrets, which mask
+them in logs): `PICKEM_HOSTNAME`, the site's hostname; `S3_BUCKET`; and
+`ACCESS_TEAM_DOMAIN` (section 3). The deploy workflow writes them into
+`wrangler.toml`, so the names stay out of git.
 
 ## 2. D1
 
@@ -51,9 +52,10 @@ Zero Trust dashboard:
    site is public by design.
 3. Copy the **Application Audience (AUD) Tag** (Configure on the application,
    under Additional settings or Basic information) to `ACCESS_AUD`.
-4. Copy the team domain (Settings) to `ACCESS_TEAM_DOMAIN`. Renaming the team
-   later changes the token issuer, so update this value and redeploy, or
-   sign-in stops working.
+4. Copy the team domain (Settings) to the `ACCESS_TEAM_DOMAIN` repository
+   variable. The team is account-wide, so name it after the account, not the
+   app. Renaming it later changes the token issuer: update the variable and
+   redeploy, or sign-in stops working.
 
 Each user who signs in takes one of the free plan's 50 seats. A PIN is sent
 only to addresses the policy allows, so an email list keeps strangers out.
