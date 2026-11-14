@@ -2,13 +2,20 @@
 
 Site: `pickem.example.com` on a domain already in Cloudflare. Items marked
 **unverified** have not run against real Cloudflare or AWS yet; if one fails,
-the error is in the Worker's logs (`wrangler tail`) or the Actions run.
+the error is in the Worker's logs (dashboard: Compute > Workers & Pages >
+pickem > Logs) or the Actions run.
 
 Everything runs from `crates/worker` unless noted. Use `npx wrangler@4.152.0`.
 
-## 1. Cloudflare API tokens
+## 1. Cloudflare account and API tokens
 
-Two tokens (dashboard > My Profile > API Tokens):
+Open Compute > Workers & Pages in the dashboard once. That creates the
+account's `workers.dev` subdomain, without which Cloudflare refuses the cron
+trigger. The Worker itself is not served there (`workers_dev = false`).
+
+Two tokens (My Profile > API Tokens). On each, **Account Resources must include
+this account**; otherwise every call fails with code 7403, "account is not
+valid or is not authorized".
 
 - **Deploy** (GitHub secret `CLOUDFLARE_API_TOKEN`): Account > Workers Scripts
   Edit, Account > D1 Edit, Zone > Workers Routes Edit, Zone > DNS Edit (for the
@@ -44,15 +51,20 @@ Zero Trust dashboard:
    site is public by design.
 3. Copy the **Application Audience (AUD) Tag** (Configure on the application,
    under Additional settings or Basic information) to `ACCESS_AUD`.
-4. Copy the team domain (Settings) to `ACCESS_TEAM_DOMAIN`.
+4. Copy the team domain (Settings) to `ACCESS_TEAM_DOMAIN`. Renaming the team
+   later changes the token issuer, so update this value and redeploy, or
+   sign-in stops working.
 
-Sign-in flow: the SPA links to `/login`; Access authenticates, sets
+Each user who signs in takes one of the free plan's 50 seats. A PIN is sent
+only to addresses the policy allows, so an email list keeps strangers out.
+
+Sign-in flow: the SPA links to `/login`; Access authenticates and sets
 `CF_Authorization`, and the Worker redirects to `/`. The Worker reads that
-cookie on public routes (**unverified**: that the cookie reaches `/api/*`).
+cookie on public routes.
 
 ## 4. S3 backup
 
-Bucket with a private ACL. IAM user with only this policy:
+Bucket in the global namespace, private. IAM user with only this policy:
 
 ```json
 {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"s3:PutObject",
@@ -61,29 +73,31 @@ Bucket with a private ACL. IAM user with only this policy:
 
 Set `S3_REGION` and `S3_PREFIX` in `wrangler.toml`; the bucket name is the
 `S3_BUCKET` repository variable (section 1). Dumps land at
-`<prefix>/pickem-YYYY-MM-DD.sql` at 09:00 UTC. The export call to the D1 REST
-API and its polling loop are **unverified**; check the first run with
-`wrangler tail` (trigger it from the dashboard: Worker > Settings > Triggers >
-Cron). A failed backup fails the invocation.
+`<prefix>/pickem-YYYY-MM-DD.sql` at 09:00 UTC. A deployed Worker's cron cannot
+be triggered by hand, so check the first scheduled run in the Logs tab. The
+export call to the D1 REST API and its polling loop are **unverified**. A
+failed backup fails the invocation.
 
-## 5. Secrets
+## 5. Deploy
+
+Push to `rust-rewrite` or `main`; the Deploy workflow tests, builds the
+frontend, applies migrations, and deploys. A manual run (Actions > Deploy > Run
+workflow) is offered only once the workflow file is on the default branch.
+
+## 6. Secrets
+
+The Worker must exist first, so this follows the first deploy. `secret put`
+prompts for each value, which keeps it out of shell history.
 
 ```sh
-npx wrangler@4.152.0 secret put EMAIL_HASH_KEY       # long random string; keep a copy outside D1 and the backups
+openssl rand -hex 32    # the EMAIL_HASH_KEY; store it outside D1 and the backups first
+npx wrangler@4.152.0 secret put EMAIL_HASH_KEY
 npx wrangler@4.152.0 secret put AWS_ACCESS_KEY_ID
 npx wrangler@4.152.0 secret put AWS_SECRET_ACCESS_KEY
 npx wrangler@4.152.0 secret put D1_EXPORT_TOKEN
 ```
 
 Losing `EMAIL_HASH_KEY` orphans every account (see `adr/0001`).
-If `secret put` says the Worker does not exist, run step 6 first (the first
-run will deploy without secrets and `/api/me` will error until they are set).
-
-## 6. Deploy
-
-Push to `rust-rewrite` or `main`; the Deploy workflow tests, builds the
-frontend, applies migrations, and deploys. A manual run (Actions > Deploy > Run
-workflow) is offered only once the workflow file is on the default branch.
 
 ## 7. Load the archive
 
@@ -100,22 +114,22 @@ transaction statements. Keep these files out of git; they hold real names.
 
 ## 8. Attach an email to a player
 
-Imported accounts cannot sign in until they have an address digest. Use the
-same key as the `EMAIL_HASH_KEY` secret. Find the username with
-`sqlite3 /tmp/pickem.sqlite3 'SELECT legacy_username, display_name FROM app_user'`.
+Imported accounts cannot sign in until they have an address digest: the
+HMAC-SHA256 of the trimmed, lowercased address under `EMAIL_HASH_KEY`, in hex.
+Reading the key into a variable keeps it out of shell history:
 
 ```sh
-PICKEM_EMAIL_KEY=<the key> cargo run -p pickem-devserver -- attach-email /tmp/pickem.sqlite3 <legacy_username> <email>
-```
-
-It prints the digest. Apply it to D1:
-
-```sh
+npx wrangler@4.152.0 d1 execute pickem --remote --command "SELECT legacy_username, display_name FROM app_user"
+read -rs KEY
+printf '%s' 'player@example.com' | openssl dgst -sha256 -hmac "$KEY" | awk '{print $NF}'
+unset KEY
 npx wrangler@4.152.0 d1 execute pickem --remote \
   --command "UPDATE app_user SET email_hash = '<digest>' WHERE legacy_username = '<legacy_username>'"
 ```
 
-Then sign in at `https://pickem.example.com/login` and check `/api/me`.
+`cargo run -p pickem-devserver -- attach-email` computes the same digest
+against a local database. Add the address to the Access policy too, then sign
+in at `https://pickem.example.com/login` and check `/api/me`.
 
 ## Local development
 
