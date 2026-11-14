@@ -373,6 +373,9 @@ async fn progress<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error
         .users()
         .await?
         .iter()
+        // A player who can sign in, or who played this season; old accounts
+        // that can do neither would only add rows of zeros.
+        .filter(|u| u.email_hash.is_some() || picks.iter().any(|p| p.user_id == u.id))
         .map(|u| {
             let picked = picks.iter().filter(|p| p.user_id == u.id && p.slot_id.is_some()).count();
             serde_json::json!({ "display_name": u.display_name, "picked": picked, "total": total })
