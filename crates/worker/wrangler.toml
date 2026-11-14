@@ -6,6 +6,10 @@ name = "pickem"
 main = "build/worker/shim.mjs"
 compatibility_date = "2026-08-01"
 routes = [{ pattern = "__PICKEM_HOSTNAME__", custom_domain = true }]
+# Served only at the custom domain. The account still needs a workers.dev
+# subdomain to exist, or Cloudflare refuses the cron trigger.
+workers_dev = false
+preview_urls = false
 
 [build]
 command = "worker-build --release"
