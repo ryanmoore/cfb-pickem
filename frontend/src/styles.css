@@ -198,6 +198,7 @@ table.medals { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
 .medals td:first-child { padding-left: 12px; border-left: 1px solid var(--line); border-radius: 12px 0 0 12px; }
 .medals td:last-child { border-right: 1px solid var(--line); border-radius: 0 12px 12px 0; }
 .medals td.z { color: #cbbfa6; }
+.medals td.seasons { color: var(--muted); font-weight: 700; }
 .disc { display: inline-block; width: 16px; height: 16px; border-radius: 50%; vertical-align: -3px; }
 .disc.g { background: radial-gradient(circle at 35% 30%, #ffe8a3, var(--gold) 60%, var(--gold-dk)); }
 .disc.s { background: radial-gradient(circle at 35% 30%, #fff, #c9ced6 60%, #8d95a1); }
@@ -222,8 +223,8 @@ table.medals { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
 
 .yc-pick { margin: 4px 0 12px; }
 .yc { display: flex; gap: 6px; }
-.yc-axis { flex: none; display: flex; flex-direction: column; justify-content: space-between; width: 2.2rem; height: 9rem; font: 700 0.7rem system-ui; color: var(--muted); }
-.yc-cols { display: flex; flex: 1; min-width: 0; margin: 0; padding: 0 0 6px; list-style: none; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.yc-axis { flex: none; margin-top: 6px; display: flex; flex-direction: column; justify-content: space-between; width: 2.2rem; height: 9rem; font: 700 0.7rem system-ui; color: var(--muted); }
+.yc-cols { display: flex; flex: 1; min-width: 0; margin: 0; padding: 6px 4px; list-style: none; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; }
 .yc-cols li { flex: 1 0 3rem; scroll-snap-align: start; }
 .yc-col { display: grid; justify-items: center; width: 100%; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; cursor: pointer; }
 .yc-col.gap { cursor: default; color: #cbbfa6; }

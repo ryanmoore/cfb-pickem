@@ -25,7 +25,10 @@ function Banners({ seasons }: { seasons: Data["seasons"] }) {
   );
 }
 
-function MedalTable({ medals }: { medals: Data["medals"] }) {
+function MedalTable({ medals, players }: { medals: Data["medals"]; players: Data["players"] }) {
+  const played = new Map(players.map((p) => [p.name, p.results.length]));
+  // Everyone who has played gets a row, medals or not, so the seasons column covers the whole group.
+  const rows = [...medals, ...players.filter((p) => !medals.some((m) => m.name === p.name)).map((p) => ({ name: p.name, gold: 0, silver: 0, bronze: 0 }))];
   return (
     <table className="medals">
       <thead>
@@ -34,15 +37,17 @@ function MedalTable({ medals }: { medals: Data["medals"] }) {
           <th><span className="disc g" role="img" aria-label="Gold" /></th>
           <th><span className="disc s" role="img" aria-label="Silver" /></th>
           <th><span className="disc bz" role="img" aria-label="Bronze" /></th>
+          <th>Seasons</th>
         </tr>
       </thead>
       <tbody>
-        {medals.map((m) => (
+        {rows.map((m) => (
           <tr key={m.name}>
             <td>{m.name}</td>
             {[m.gold, m.silver, m.bronze].map((n, i) => (
               <td key={i} className={n ? "" : "z"}>{n}</td>
             ))}
+            <td className="seasons">{played.get(m.name) ?? 0}</td>
           </tr>
         ))}
       </tbody>
@@ -143,7 +148,7 @@ export function History() {
         <section className="panel">
           <h3>Medal table</h3>
           <p className="note">Top-three finishes, {Math.min(...years)}–{Math.max(...years)}. Golds first, then silvers, then bronzes; a tie shares its medal.</p>
-          <MedalTable medals={data.medals} />
+          <MedalTable medals={data.medals} players={data.players} />
         </section>
         <section className="panel coalpanel">
           <h3><span className="coal" aria-hidden /> The Lump of Coal Club</h3>
