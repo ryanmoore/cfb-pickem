@@ -6,14 +6,14 @@ use pickem_devserver::import::import;
 use pickem_devserver::serve::{dist_dir, serve, Config};
 use pickem_devserver::SqliteStorage;
 
-const PORT: u16 = 8787;
+const DEFAULT_PORT: u16 = 8787;
 
 const USAGE: &str = "usage:
   devserver import <legacy.sqlite3> <out.sqlite3>
-  devserver serve <db.sqlite3>   (port 8787)
+  devserver serve <db.sqlite3>
   devserver attach-email <db.sqlite3> <legacy_username> <email>
 
-env: PICKEM_EMAIL_KEY (HMAC key for email digests), PICKEM_DEV_EMAIL (serve: sign every request in as this address), PICKEM_BIND (serve: listen address, default 127.0.0.1)";
+env: PICKEM_EMAIL_KEY (HMAC key for email digests), PICKEM_DEV_EMAIL (serve: sign every request in as this address), PICKEM_BIND (serve: listen address, default 127.0.0.1), PICKEM_PORT (serve: default 8787)";
 
 fn email_key() -> Vec<u8> {
     env::var("PICKEM_EMAIL_KEY").unwrap_or_else(|_| "dev-email-key".into()).into_bytes()
@@ -41,7 +41,8 @@ fn run(args: &[String]) -> Result<(), String> {
                 dist: dist_dir(),
             };
             let host = env::var("PICKEM_BIND").unwrap_or_else(|_| "127.0.0.1".into());
-            serve(&storage, &config, &host, PORT).map_err(|e| e.to_string())
+            let port = env::var("PICKEM_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(DEFAULT_PORT);
+            serve(&storage, &config, &host, port).map_err(|e| e.to_string())
         }
         _ => Err(USAGE.into()),
     }

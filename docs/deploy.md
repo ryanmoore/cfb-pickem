@@ -168,4 +168,4 @@ cargo run -p pickem-devserver -- import "$LEGACY" /tmp/pickem.sqlite3
 PICKEM_DEV_EMAIL=you@example.com cargo run -p pickem-devserver -- serve /tmp/pickem.sqlite3
 ```
 
-Serves the API and `frontend/dist` on port 8787, signed in as that address.
+Serves the API and `frontend/dist` on port 8787 (`PICKEM_PORT` changes it), signed in as that address.
