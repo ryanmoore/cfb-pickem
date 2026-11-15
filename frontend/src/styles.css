@@ -214,7 +214,6 @@ table.medals { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
 .gc header small { flex: none; color: var(--muted); font-size: 0.75rem; }
 .gc .when { margin: -2px 0 6px; font-size: 0.85rem; font-weight: 600; color: var(--turf-dk); }
 .sides { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 10px; }
-.sides section + section { margin-top: 0; }
 .sides h4 { margin: 0 0 4px; padding-bottom: 3px; font: 700 0.88rem/1.3 var(--round); overflow-wrap: anywhere; }
 .sides h4.won::before { content: "✓ "; color: var(--turf); }
 .pr { display: grid; margin: 0; padding: 0; list-style: none; }

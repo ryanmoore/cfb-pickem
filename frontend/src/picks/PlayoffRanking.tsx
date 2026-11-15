@@ -14,8 +14,10 @@ export const PLAYOFF_COACH: [string, string] = [
   "Tap a team to move it up or down. The higher you rank it, the more each of its wins is worth.",
 ];
 
-/** A playoff team as a row of the shared list: seed and path as the line, its most wins as the badge, its road in the details. */
-function teamGame(f: Field, id: number): Game {
+const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
+/** A playoff team as a row of the shared list: seed and path as the line, its most wins (or, once locked, its status) as the badge, its road in the details. */
+function teamGame(f: Field, id: number, decided: boolean): Game {
   const t = f.teams.get(id)!;
   const steps = road(f, id);
   const first = steps[0];
@@ -26,7 +28,7 @@ function teamGame(f: Field, id: number): Game {
     fixedWager: null,
     slots: [],
     line: `${t.seed ? `#${t.seed} · ` : ""}${first.game.round > 0 ? "bye" : `plays ${whoIn(f, first.opponent)}`}`,
-    badge: `up to ${t.max_wins} wins`,
+    badge: decided ? `${t.eliminated ? "Eliminated" : "Alive"} · ${plural(t.wins, "win")}` : `up to ${t.max_wins} wins`,
     details: (
       <>
         {steps.map(({ game, opponent }, k) => (
@@ -40,8 +42,6 @@ function teamGame(f: Field, id: number): Game {
     ),
   };
 }
-
-const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 
 /** What ranking is for, with a worked example sized to this field. */
 function Instructions({ field }: { field: Field }) {
@@ -93,7 +93,7 @@ export function PlayoffRanking({ field, ranking, move, done = false, onDone, onS
   onDone?: (done: boolean) => void;
   onSpot?: (open: boolean) => void;
 }) {
-  const games = useMemo(() => new Map(ranking.map((id) => [id, teamGame(field, id)])), [field, ranking]);
+  const games = useMemo(() => new Map(ranking.map((id) => [id, teamGame(field, id, !move)])), [field, ranking, move]);
   const [bracket, setBracket] = useState(false);
   const [editing, setEditing] = useState(false);
   const edit = !done || editing ? move : undefined;
@@ -124,7 +124,7 @@ export function PlayoffRanking({ field, ranking, move, done = false, onDone, onS
       ) : (
         <div className="list">
           {ranking.map((id, k) => (
-            <div key={id} id={"t-" + id} className={"row team" + (edit ? " tap" : "")} onClick={edit && (() => open(id))}>
+            <div key={id} id={"t-" + id} className={"row team" + (edit ? " tap" : "") + (!move && field.teams.get(id)!.eliminated ? " out" : "")} onClick={edit && (() => open(id))}>
               {hl(id)}
               <Cells game={games.get(id)!} pts={ranking.length - k} open={!!edit} />
             </div>

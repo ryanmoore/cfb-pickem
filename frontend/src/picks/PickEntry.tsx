@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import type { PicksDoc } from "../api";
 import { CoachMarks, HINT_MAIN, HINT_PLAYOFF, HINT_SPOT } from "./CoachMarks";
 import { PickList } from "./PickList";
+import { PickTabs, showTab, tabInUrl, type Tab } from "./PickTabs";
 import { PLAYOFF_COACH, PlayoffRanking } from "./PlayoffRanking";
 import type { Field } from "./bracket";
 import { ROW, Spotlight } from "./Spotlight";
@@ -21,11 +22,6 @@ const STATUS_TEXT: Record<Status["kind"], string> = {
   signedout: "Signed out — sign in to send your picks",
 };
 
-type Tab = "bowls" | "playoff";
-
-/** `?tab=playoff` names the playoff tab; anything else is the bowls. */
-const tabInUrl = (): Tab => (new URLSearchParams(location.search).get("tab") === "playoff" ? "playoff" : "bowls");
-
 type Props = { year: number; name: string; games: Game[]; field?: Field; teams: number[]; server: PicksDoc; version: string | null };
 
 export function PickEntry({ year, name, games, field, teams, server, version }: Props) {
@@ -42,12 +38,8 @@ export function PickEntry({ year, name, games, field, teams, server, version }: 
   }, [tab]);
   const chooseTab = (t: Tab) => {
     setCoach(!localStorage.getItem(hintOf(t)));
-    const q = new URLSearchParams(location.search);
-    if (t === "bowls") q.delete("tab");
-    else q.set("tab", t);
-    history.replaceState(null, "", `?${q}`);
+    showTab(t);
     setTab(t);
-    scrollTo(0, 0);
   };
   const jumped = useRef(-1);
   const { spot, closing, flash, from, open, close, closed, show } = useSpotlightFlow(entry.order, move);
@@ -73,13 +65,11 @@ export function PickEntry({ year, name, games, field, teams, server, version }: 
     <div className="picks" style={{ "--row": ROW + "px" } as React.CSSProperties}>
       <div className="head">
         {field && (
-          <div className="tabs" role="tablist" aria-label="Picks">
-            {(["bowls", "playoff"] as const).map((t) => (
-              <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => chooseTab(t)}>
-                {t === "bowls" ? `Bowls ${total - unpicked.length}/${total}` : entry.done ? "Playoff ✓" : "Playoff · to confirm"}
-              </button>
-            ))}
-          </div>
+          <PickTabs
+            tab={tab}
+            onChoose={chooseTab}
+            labels={{ bowls: `Bowls ${total - unpicked.length}/${total}`, playoff: entry.done ? "Playoff ✓" : "Playoff · to confirm" }}
+          />
         )}
         <div className="status">
           {tab === "bowls" && (

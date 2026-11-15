@@ -1,28 +1,40 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchGames, fetchMe, fetchPicks, type PicksDoc } from "../api";
 import { PanelError, SeasonPage, Skeleton } from "../ui";
 import { PickEntry } from "./PickEntry";
 import { PickList } from "./PickList";
+import { PickTabs, showTab, tabInUrl, type Tab } from "./PickTabs";
 import { PlayoffRanking } from "./PlayoffRanking";
 import { toField, type Field } from "./bracket";
 import { fromDoc, toGames, type Game } from "./model";
 import "./picks.css";
 
-/** The player's own picks, read-only once the season has locked. */
+/** The player's own picks as the open view lays them out, read-only and with results where decided. */
 function LockedPicks({ games, field, teams, doc }: { games: Game[]; field?: Field; teams: number[]; doc: PicksDoc }) {
   const byId = useMemo(() => new Map(games.map((g) => [g.id, g])), [games]);
+  const [tab, setTab] = useState<Tab>(tabInUrl);
   if (!doc.picks.length && !doc.playoff.length) return <p>You made no picks this season.</p>;
   const entry = fromDoc(games, teams, doc);
+  const decided = games.filter((g) => g.winner !== undefined).length;
   return (
     <div className="picks">
-      <p className="how">Picks are locked.</p>
-      <PickList
-        games={games}
-        byId={byId}
-        entry={entry}
-        playoff={field && <PlayoffRanking field={field} ranking={entry.ranking} />}
-      />
+      <div className="head">
+        {field && (
+          <PickTabs
+            tab={tab}
+            onChoose={(t) => {
+              showTab(t);
+              setTab(t);
+            }}
+            labels={{ bowls: "Bowls", playoff: "Playoff" }}
+          />
+        )}
+        <p className="lockbanner" role="status">
+          🔒 Picks are locked{decided > 0 && ` · ${decided} of ${games.length} games decided`}
+        </p>
+      </div>
+      {field && tab === "playoff" ? <PlayoffRanking field={field} ranking={entry.ranking} /> : <PickList games={games} byId={byId} entry={entry} />}
     </div>
   );
 }

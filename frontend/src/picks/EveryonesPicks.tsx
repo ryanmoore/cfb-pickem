@@ -16,7 +16,7 @@ function PickRows({ rows, max }: { rows: Row[]; max: number }) {
   if (!rows.length) return <p className="nobody">Nobody</p>;
   return (
     <ul className="pr">
-      {[...rows].sort(byPoints).map((r) => (
+      {rows.sort(byPoints).map((r) => (
         <li key={r.name} className={r.me ? "mine" : undefined}>
           <span className="nm">{r.name}</span>
           {r.points !== null && (
@@ -47,12 +47,12 @@ function GameCard({ game, players, max }: { game: ApiGame; players: Players; max
             return pick ? [{ name: p.display_name, me: p.is_me, points: pick.confidence, status }] : [];
           });
           return (
-            <section key={s.id}>
+            <div key={s.id}>
               <h4 className={status === "won" ? "won" : undefined}>
                 {s.team?.rank ? `#${s.team.rank} ` : ""}{teamName(s)}
               </h4>
               <PickRows rows={rows} max={max} />
-            </section>
+            </div>
           );
         })}
       </div>

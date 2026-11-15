@@ -9,6 +9,8 @@ export type Game = {
   /** Points of a playoff game, which is not ranked; null for a ranked game. */
   fixedWager: number | null;
   slots: Slot[];
+  /** The winning slot, once the game is decided. */
+  winner?: number;
   /** Betting line, shown when the data has one. */
   line?: string;
   /** Shown beside the team chips, for a row that is not a game. */
@@ -31,6 +33,7 @@ export function toGames(api: ApiGame[]): Game[] {
     name: g.name,
     kickoffAt: g.kickoff_at,
     fixedWager: g.fixed_wager,
+    winner: g.winner_slot_id ?? undefined,
     slots: g.slots.map((s) => ({
       id: s.id,
       label: s.team

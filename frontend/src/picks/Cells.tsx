@@ -2,12 +2,14 @@ import type { ReactNode } from "react";
 import { formatKickoff } from "./kickoff";
 import type { Game, Slot } from "./model";
 
+type Result = "won" | "lost";
+
 // Without onPick the chip is a plain span (read-only rows and the dimmed rows in the spotlight).
-function Chip({ slot, on, onPick }: { slot: Slot; on: boolean; onPick?: () => void }) {
+function Chip({ slot, on, result, onPick }: { slot: Slot; on: boolean; result?: Result; onPick?: () => void }) {
   const Tag = onPick ? "button" : "span";
   return (
     <Tag
-      className={"chip" + (on ? " on" : "")}
+      className={"chip" + (on ? " on" : "") + (on && result ? " " + result : "")}
       title={slot.label}
       {...(onPick && {
         "aria-pressed": on,
@@ -38,6 +40,7 @@ export function Cells({ game, pts, pick, onPick, open, end }: {
   end?: ReactNode;
 }) {
   // A row with no sides (a team in a ranking) has nothing to pick.
+  const result: Result | undefined = pick !== undefined && game.winner !== undefined ? (pick === game.winner ? "won" : "lost") : undefined;
   const unpicked = pick === undefined && game.slots.length > 0;
   return (
     <>
@@ -53,16 +56,19 @@ export function Cells({ game, pts, pick, onPick, open, end }: {
               <span className="ml">{[game.kickoffAt && formatKickoff(game.kickoffAt), game.line].filter(Boolean).join(" · ")}</span>
             )}
           </div>
-          {end ?? (
-            <span className="chev" aria-hidden>
-              {open && "›"}
-            </span>
-          )}
+          {end ??
+            (result ? (
+              <span className={"res " + result}>{result === "won" ? "✓ Won" : "✗ Lost"}</span>
+            ) : (
+              <span className="chev" aria-hidden>
+                {open && "›"}
+              </span>
+            ))}
         </div>
         <div className="mt">
           {game.badge && <span className="badge">{game.badge}</span>}
           {game.slots.map((s) => (
-            <Chip key={s.id} slot={s} on={pick === s.id} onPick={onPick && (() => onPick(s.id))} />
+            <Chip key={s.id} slot={s} on={pick === s.id} result={result} onPick={onPick && (() => onPick(s.id))} />
           ))}
         </div>
       </div>
