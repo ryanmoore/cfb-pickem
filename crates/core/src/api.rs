@@ -64,6 +64,8 @@ struct StandingRow<'a> {
     playoff: f64,
     total: f64,
     remaining: f64,
+    remaining_bowls: f64,
+    remaining_playoff: f64,
     max_possible: f64,
 }
 
@@ -340,6 +342,8 @@ fn ranked_standings<'a>(season: &Season, locked: bool, data: &Archive, users: &'
                 playoff: of(r[2]),
                 total: of(total),
                 remaining: of(max - total),
+                remaining_bowls: f64::from(r[1]),
+                remaining_playoff: of(r[3]),
                 max_possible: of(max),
             }
         })
@@ -1295,7 +1299,7 @@ mod tests {
         let (_, body) = send_at(fake, LOCKED, "GET", "/api/seasons/2023/standings", None, "");
         let row = &body["standings"][0];
         assert_eq!(row["display_name"], "Bo");
-        ["bowls", "playoff", "total", "remaining", "max_possible"].map(|k| row[k].as_f64().unwrap()).into()
+        ["bowls", "playoff", "total", "remaining", "max_possible", "remaining_bowls", "remaining_playoff"].map(|k| row[k].as_f64().unwrap()).into()
     }
 
     #[test]
@@ -1303,7 +1307,7 @@ mod tests {
         let fake = rank_pool(12, 4);
         assert_eq!(send(&fake, "PUT", PUT_PICKS, Some(BO), &entry(&by_seed(12).join(","))).0, 200);
         // Ranks 12..1 by seed: seeds 1-4 can win 3 games, the rest 4, besides the bowls' 1 + 2.
-        assert_eq!(bo_standing(&fake), [0.0, 0.0, 0.0, 273.0, 273.0]);
+        assert_eq!(bo_standing(&fake), [0.0, 0.0, 0.0, 273.0, 273.0, 3.0, 270.0]);
 
         // Seed 5 beats 12, 9 beats 8, 1 beats 9, 5 beats 4, then 1 beats 5.
         for (game, slot) in [(100, 1000), (103, 1031), (104, 1040), (107, 1071), (108, 1080)] {
@@ -1311,7 +1315,7 @@ mod tests {
         }
         // Seed 1 won twice at rank 12, seed 5 twice at rank 8, seed 9 once at rank 4. Seeds
         // 1, 2, 3, 6, 7, 10 and 11 are alive; the bowls' 3 points are still open.
-        assert_eq!(bo_standing(&fake), [0.0, 44.0, 44.0, 150.0, 194.0]);
+        assert_eq!(bo_standing(&fake), [0.0, 44.0, 44.0, 150.0, 194.0, 3.0, 147.0]);
 
         let (_, body) = get(&fake, "/api/seasons/2023/games", None);
         assert_eq!(body["games"].as_array().unwrap().len(), 2, "bracket games are not pick games");
@@ -1414,7 +1418,8 @@ mod tests {
         let rows = before(&fake);
         let field = |row: usize, k: &str| rows[row][k].as_f64().unwrap();
         assert_eq!(rows.as_array().unwrap().len(), 2);
-        for k in ["playoff", "total", "remaining", "max_possible"] {
+        assert_eq!(field(0, "remaining_playoff"), 0.0);
+        for k in ["playoff", "total", "remaining", "remaining_playoff", "max_possible"] {
             assert_eq!(field(0, k), field(1, k), "{k}");
         }
         // The same entries count once the season locks.
