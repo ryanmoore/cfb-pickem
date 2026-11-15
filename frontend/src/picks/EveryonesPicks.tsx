@@ -60,6 +60,7 @@ function Tile({ game, state, players, max }: { game: ApiGame; state: GameState; 
 function TeamSummary({ team: t, rows, playing }: { team: ApiTeam; rows: Row[]; playing: boolean }) {
   const avg = rows.length ? rows.reduce((n, r) => n + (r.points ?? 0), 0) / rows.length : null;
   const mine = rows.find((r) => r.me);
+  const earned = (mine?.points ?? 0) * t.wins;
   const note = [t.eliminated ? "Out" : playing ? "Underway" : null, avg !== null && `avg ${fmt(Math.round(avg * 10) / 10)}`].filter(Boolean).join(" · ");
   return (
     <details className={"tm" + (t.eliminated ? " out" : "")}>
@@ -73,9 +74,9 @@ function TeamSummary({ team: t, rows, playing }: { team: ApiTeam; rows: Row[]; p
           {Array.from({ length: t.max_wins }, (_, i) => <i key={i} className={i < t.wins ? "on" : undefined} />)}
         </span>
         {mine && (
-          <span className="yr" title={`Your rank ${mine.points}, ${(mine.points ?? 0) * t.wins} points so far`}>
+          <span className="yr">
             <b>{mine.points}</b>
-            <small>{(mine.points ?? 0) * t.wins} pts</small>
+            <small>{earned} pts</small>
           </span>
         )}
       </summary>
@@ -90,7 +91,7 @@ export function PlayoffSummary({ year, teams, games, players }: { year: number; 
   const now = Date.now();
   const playing = new Set(games.filter((g) => gameState(g, now) === "live").flatMap((g) => g.slots.map((s) => s.team_season_id)));
   const ordered = [...teams.filter((t) => !t.eliminated), ...teams.filter((t) => t.eliminated)];
-  const alive = ordered.length - teams.filter((t) => t.eliminated).length;
+  const alive = teams.filter((t) => !t.eliminated).length;
   const rowsOf = new Map(teams.map((t) => [t.team_season_id, teamRows(t, players).sort(byPoints)]));
   const avg = (t: ApiTeam) => rowsOf.get(t.team_season_id)!.reduce((n, r) => n + (r.points ?? 0), 0) / Math.max(1, rowsOf.get(t.team_season_id)!.length);
   const favourite = [...ordered.slice(0, alive || undefined)].sort((a, b) => avg(b) - avg(a))[0];
