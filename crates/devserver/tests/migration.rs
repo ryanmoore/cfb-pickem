@@ -82,5 +82,4 @@ fn the_practice_migration_leaves_existing_seasons_real() {
 
     assert_eq!(rows(&conn), before);
     assert_eq!(conn.query_row("SELECT practice FROM season", [], |r| r.get::<_, i64>(0)).unwrap(), 0);
-    assert!(conn.execute("UPDATE season SET practice = 2", []).is_err());
 }

@@ -55,7 +55,7 @@ export function SeasonPill() {
       <select value={year ?? ""} onChange={(e) => setYear(Number(e.target.value))}>
         {seasons.map((s) => (
           <option key={s.year} value={s.year}>
-            {s.year}
+            {s.practice ? `${s.year} · Practice` : s.year}
           </option>
         ))}
       </select>

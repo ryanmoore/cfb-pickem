@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProgress, type Progress } from "./api";
+import { EveryonesPicks } from "./picks/EveryonesPicks";
 import { PanelError, SeasonPage, Skeleton, useSeason } from "./ui";
 
 /** Time left as the two largest units, or "Locked" once it has passed. */
@@ -102,23 +103,20 @@ function Season({ year }: { year: number }) {
   const season = seasons?.find((s) => s.year === year);
   if (!season) return <Skeleton lines={4} />;
   return (
-    <section className="panel">
+    <section>
       {season.locked ? (
-        <>
-          <h3>{year} picks</h3>
-          <p>Everyone's picks will show here.</p>
-        </>
+        <EveryonesPicks year={year} />
       ) : (
-        <>
+        <div className="panel">
           <Deadline locksAt={season.locks_at} />
           <PickProgress year={year} />
-        </>
+        </div>
       )}
     </section>
   );
 }
 
-/** The Picks tab: pick progress until the season locks. */
+/** The Picks tab: pick progress until the season locks, then everyone's picks. */
 export function PicksPage() {
   return (
     <>

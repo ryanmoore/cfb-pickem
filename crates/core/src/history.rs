@@ -51,8 +51,8 @@ struct Coal<'a> {
     /// Second places.
     so_close: u32,
     seasons: u32,
-    /// Mean of finish over field size; 1 would be last every year.
-    avg_finish: f64,
+    /// Mean finishing rank (competition ranks); lower is better.
+    avg_rank: f64,
 }
 
 #[derive(Serialize)]
@@ -67,7 +67,7 @@ struct Tally {
     medals: [u32; 3],
     coal: u32,
     seasons: u32,
-    finish: f64,
+    rank_sum: u32,
 }
 
 /// Newest season first in `seasons`; `finishes` may come in any order.
@@ -75,13 +75,12 @@ pub fn history<'a>(finishes: &[Finish<'a>]) -> History<'a> {
     let mut tallies: BTreeMap<&str, Tally> = BTreeMap::new();
     let mut seasons: Vec<SeasonLine> = Vec::new();
     for f in finishes {
-        let field = f.places.len();
         let worst = f.places.last().map_or(0, |p| p.rank);
         let named = |rank: u32| f.places.iter().filter(|p| p.rank == rank).map(|p| p.name).collect::<Vec<_>>();
         for p in &f.places {
             let t = tallies.entry(p.name).or_default();
             t.seasons += 1;
-            t.finish += f64::from(p.rank) / field as f64;
+            t.rank_sum += p.rank;
             if let Some(medal) = t.medals.get_mut(p.rank as usize - 1) {
                 *medal += 1;
             }
@@ -93,7 +92,7 @@ pub fn history<'a>(finishes: &[Finish<'a>]) -> History<'a> {
         let runner_up = f.places.iter().find(|p| p.rank > 1);
         seasons.push(SeasonLine {
             year: f.year,
-            players: field,
+            players: f.places.len(),
             podium: (1..=3).filter_map(|rank| Some(Podium { rank, names: named(rank) }).filter(|p| !p.names.is_empty())).collect(),
             margin: runner_up.filter(|_| champions.len() == 1).map(|r| f.places[0].total - r.total),
             last: if worst > 1 { named(worst) } else { Vec::new() },
@@ -116,11 +115,11 @@ pub fn history<'a>(finishes: &[Finish<'a>]) -> History<'a> {
             coal: t.coal,
             so_close: t.medals[1],
             seasons: t.seasons,
-            avg_finish: t.finish / f64::from(t.seasons),
+            avg_rank: f64::from(t.rank_sum) / f64::from(t.seasons),
         })
         .collect();
     coal_club.sort_by(|a, b| {
-        (b.coal, b.so_close).cmp(&(a.coal, a.so_close)).then(b.avg_finish.total_cmp(&a.avg_finish)).then(a.name.cmp(b.name))
+        (b.coal, b.so_close).cmp(&(a.coal, a.so_close)).then(b.avg_rank.total_cmp(&a.avg_rank)).then(a.name.cmp(b.name))
     });
     History { seasons, medals, coal_club }
 }
@@ -170,6 +169,6 @@ mod tests {
         let coal: Vec<_> = h["coal_club"].as_array().unwrap().iter().map(|c| (c["name"].as_str().unwrap(), c["coal"].as_u64().unwrap(), c["so_close"].as_u64().unwrap())).collect();
         assert_eq!(coal, [("Cy", 1, 1), ("Di", 1, 0), ("Bo", 0, 1)]);
         let di = &h["coal_club"][1];
-        assert_eq!((di["seasons"].as_u64(), di["avg_finish"].as_f64()), (Some(2), Some((1.0 + 0.5) / 2.0)));
+        assert_eq!((di["seasons"].as_u64(), di["avg_rank"].as_f64()), (Some(2), Some((4.0 + 1.0) / 2.0)));
     }
 }

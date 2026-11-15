@@ -1,4 +1,4 @@
-export type Season = { year: number; locked: boolean; locks_at: string };
+export type Season = { year: number; locked: boolean; locks_at: string; practice: boolean };
 
 export type Standing = {
   rank: number;
@@ -80,6 +80,22 @@ export type PicksResponse = {
 /** `playoff_ranked` is present only in a season that ranks its playoff teams. */
 export type Progress = { display_name: string; picked: number; total: number; playoff_ranked?: boolean };
 
+export type History = {
+  /** Newest first. */
+  seasons: {
+    year: number;
+    players: number;
+    /** First to third; a tie shares its place. */
+    podium: { rank: number; names: string[] }[];
+    /** Points ahead of the runner-up; null when the title is shared. */
+    margin: number | null;
+    last: string[];
+  }[];
+  medals: { name: string; gold: number; silver: number; bronze: number }[];
+  coal_club: { name: string; coal: number; so_close: number; seasons: number; avg_rank: number }[];
+};
+
+export const fetchHistory = () => get<History>("/api/history");
 export const fetchGames = (year: number) =>
   get<{ games: ApiGame[]; playoff?: ApiPlayoff }>(`/api/seasons/${year}/games`);
 export const fetchPicks = (year: number) => get<PicksResponse>(`/api/seasons/${year}/picks`);
