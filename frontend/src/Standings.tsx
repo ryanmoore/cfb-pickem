@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe, fetchStandings } from "./api";
 import { Deadline } from "./Progress";
 import { fmt, PanelError, SeasonPage, Skeleton, useSeason } from "./ui";
 
+type Sort = "total" | "reach";
+
 function StandingsList({ year }: { year: number }) {
+  const [sort, setSort] = useState<Sort>("total");
   const { data, error } = useQuery({
     queryKey: ["standings", year],
     queryFn: () => fetchStandings(year),
@@ -14,43 +18,64 @@ function StandingsList({ year }: { year: number }) {
   const { standings, playoff_ranked: split } = data;
   if (standings.length === 0) return <p>No standings for {year} yet.</p>;
   const scale = Math.max(1, ...standings.map((s) => s.max_possible));
-  const lead = standings[0].total;
+  const rows = sort === "reach"
+    ? [...standings].sort((a, b) => b.max_possible - a.max_possible || b.total - a.total)
+    : standings;
   const mine = me?.signed_in && me.known ? me.display_name : null;
+  const pct = (n: number) => `${(n / scale) * 100}%`;
+  const head = (key: Sort, label: string) => (
+    <th aria-sort={sort === key ? "descending" : undefined}>
+      <button type="button" onClick={() => setSort(key)}>{label}{sort === key && " ▾"}</button>
+    </th>
+  );
   return (
     <>
       <ul className="legend" aria-hidden>
         <li><i className="b" />{split ? "Bowl points" : "Points"}</li>
-        {standings.some((s) => s.playoff > 0) && <li><i className="p" />Playoff points</li>}
-        {standings.some((s) => s.remaining > 0) && <li><i className="h" />Still up for grabs (max possible)</li>}
+        {split && <li><i className="p" />Playoff points</li>}
+        {standings.some((s) => s.remaining_bowls > 0) && <li><i className="hb" />Bowl points left</li>}
+        {standings.some((s) => s.remaining_playoff > 0) && <li><i className="hp" />Playoff points left</li>}
       </ul>
-      <ol className="st" aria-label={`${year} standings`}>
-        {standings.map((s) => {
-          const you = s.display_name === mine;
-          return (
-            <li key={s.display_name} className={`st-row r${s.rank}${you ? " me-row" : ""}`}>
-              <span className="rank">{s.rank}</span>
-              <div className="who">
-                {s.display_name}
-                <small>
-                  {you && "You · "}
-                  {s.rank === 1 ? "Leading" : `${fmt(lead - s.total)} back`}
-                  {s.remaining > 0 && ` · could reach ${fmt(s.max_possible)}`}
-                </small>
-              </div>
-              <div className="pts">
-                {fmt(s.total)}
-                {split && <small>bowl {fmt(s.bowls)} · playoff {fmt(s.playoff)}</small>}
-              </div>
-              {s.max_possible > 0 && (
-                <div className="split" style={{ width: `${(s.max_possible / scale) * 100}%` }}>
-                  <i className="b" style={{ width: `${(s.bowls / s.max_possible) * 100}%` }} />
-                  <i className="p" style={{ width: `${(s.playoff / s.max_possible) * 100}%` }} />
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      <table className={`stt${split ? " split" : ""}`} aria-label={`${year} standings`}>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            {split && <th className="opt">Bowls</th>}
+            {split && <th className="opt">Playoff</th>}
+            {head("total", "Total")}
+            {head("reach", "Could reach")}
+            <th className="bar-h"><span className="sr-only">Points</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((s) => {
+            const you = s.display_name === mine;
+            return (
+              <tr key={s.display_name} className={`r${s.rank}${you ? " me-row" : ""}`}>
+                <td><span className="rank">{s.rank}</span></td>
+                <td className="who">
+                  {s.display_name}
+                  {you && <small>You</small>}
+                  {split && <small className="bp">bowls {fmt(s.bowls)} · playoff {fmt(s.playoff)}</small>}
+                </td>
+                {split && <td className="num opt">{fmt(s.bowls)}</td>}
+                {split && <td className="num opt">{fmt(s.playoff)}</td>}
+                <td className="num tot">{fmt(s.total)}</td>
+                <td className="num">{fmt(s.max_possible)}</td>
+                <td className="barc">
+                  <div className="split-bar">
+                    <i className="b" style={{ width: pct(s.bowls) }} />
+                    <i className="p" style={{ width: pct(s.playoff) }} />
+                    <i className="hb" style={{ width: pct(s.remaining_bowls) }} />
+                    <i className="hp" style={{ width: pct(s.remaining_playoff) }} />
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </>
   );
 }

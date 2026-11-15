@@ -6,7 +6,8 @@ export type Standing = {
   bowls: number;
   playoff: number;
   total: number;
-  remaining: number;
+  remaining_bowls: number;
+  remaining_playoff: number;
   max_possible: number;
 };
 
