@@ -125,6 +125,7 @@ export function usePickEntry(year: number, name: string, games: Game[], server: 
     entry,
     status,
     notice,
+    clearNotice: () => setNotice(undefined),
     /** Choose a side of a game; choosing the same side again clears it. */
     setWinner: (gameId: number, slotId: number) =>
       update((e) => {

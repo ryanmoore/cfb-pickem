@@ -90,6 +90,11 @@
 .picks .callout button { justify-self: end; }
 @keyframes callout-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .picks .callout { animation: none; } }
+.picks .toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 80; box-sizing: border-box; width: max-content; max-width: min(26rem, calc(100% - 32px)); padding: 10px 16px; border-radius: 12px; background: #fdecec; color: #8c1d18; border: 1px solid #f3b8ba; box-shadow: 0 6px 20px #0003; font-size: 0.9rem; text-align: center; cursor: pointer; animation: toast-in 0.25s ease-out; }
+.picks .toast.raised { bottom: calc(9.5rem + env(safe-area-inset-bottom)); }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px); } }
+@media (prefers-reduced-motion: reduce) { .picks .toast { animation: none; } }
+@media (min-width: 700px) { .picks .toast.raised { bottom: calc(16px + env(safe-area-inset-bottom)); } }
 .picks .stack { display: contents; }
 .picks .hints { display: none; }
 .picks .hl.cancel { background: #e5484d; }

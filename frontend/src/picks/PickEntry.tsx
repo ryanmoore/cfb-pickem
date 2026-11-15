@@ -3,6 +3,7 @@ import type { PickRow } from "../api";
 import { CoachMarks, HINT_MAIN, HINT_SPOT } from "./CoachMarks";
 import { PickList } from "./PickList";
 import { ROW, Spotlight } from "./Spotlight";
+import { Toast } from "./Toast";
 import type { Game } from "./model";
 import { usePickEntry } from "./usePickEntry";
 import { useSpotlightFlow } from "./useSpotlightFlow";
@@ -21,7 +22,7 @@ const STATUS_TEXT: Record<Status["kind"], string> = {
 type Props = { year: number; name: string; games: Game[]; server: PickRow[]; version: string | null };
 
 export function PickEntry({ year, name, games, server, version }: Props) {
-  const { entry, status, notice, setWinner, move, reset } = usePickEntry(year, name, games, server, version);
+  const { entry, status, notice, clearNotice, setWinner, move, reset } = usePickEntry(year, name, games, server, version);
   const byId = useMemo(() => new Map(games.map((g) => [g.id, g])), [games]);
   const [coach, setCoach] = useState(() => !localStorage.getItem(HINT_MAIN));
   const closeCoach = useCallback(() => {
@@ -80,7 +81,7 @@ export function PickEntry({ year, name, games, server, version }: Props) {
         </p>
       )}
       {frozen && !locked && <p role="alert" className="error">New changes are not being sent. Reload the page to continue.</p>}
-      {notice && <p role="status" className="how">{notice}</p>}
+      {notice && <Toast text={notice} raised={spot !== undefined} onDone={clearNotice} />}
       {!frozen && <p className="how">Pick every game, then rank them: the top game is worth {entry.order.length} pts.</p>}
 
       <PickList
