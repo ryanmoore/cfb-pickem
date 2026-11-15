@@ -26,6 +26,8 @@ function StandingsList({ year }: { year: number }) {
   const hasPlayoff = standings.some((s) => s.playoff > 0 || s.remaining_playoff > 0);
   const showDetail = hasPlayoff && detail;
   const pct = (n: number) => `${(n / scale) * 100}%`;
+  // Segments are sized within the row's own bar, so every bar keeps its rounded ends.
+  const share = (n: number, of: number) => `${of ? (n / of) * 100 : 0}%`;
   const head = (key: Sort, label: string) => (
     <th aria-sort={sort === key ? "descending" : undefined}>
       <button type="button" onClick={() => setSort(key)}>{label}{sort === key && " ▾"}</button>
@@ -38,8 +40,8 @@ function StandingsList({ year }: { year: number }) {
           {showDetail ? (
             <>
               <li><i className="bw" />Bowls won</li>
-              <li><i className="bl" />Bowls pending</li>
               <li><i className="pw" />Playoff won</li>
+              <li><i className="bl" />Bowls pending</li>
               <li><i className="pl" />Playoff pending</li>
             </>
           ) : (
@@ -91,18 +93,18 @@ function StandingsList({ year }: { year: number }) {
                 <td className="num tot">{fmt(s.total)}</td>
                 <td className="num">{fmt(s.max_possible)}</td>
                 <td className="barc">
-                  <div className="split-bar">
+                  <div className="split-bar" style={{ width: pct(s.max_possible) }}>
                     {showDetail ? (
                       <>
-                        <i className="bw" style={{ width: pct(s.bowls) }} />
-                        <i className="bl" style={{ width: pct(s.remaining_bowls) }} />
-                        <i className="pw" style={{ width: pct(s.playoff) }} />
-                        <i className="pl" style={{ width: pct(s.remaining_playoff) }} />
+                        <i className="bw" style={{ width: share(s.bowls, s.max_possible) }} />
+                        <i className="pw" style={{ width: share(s.playoff, s.max_possible) }} />
+                        <i className="bl" style={{ width: share(s.remaining_bowls, s.max_possible) }} />
+                        <i className="pl" style={{ width: share(s.remaining_playoff, s.max_possible) }} />
                       </>
                     ) : (
                       <>
-                        <i className="bw" style={{ width: pct(s.total) }} />
-                        <i className="bl" style={{ width: pct(s.max_possible - s.total) }} />
+                        <i className="bw" style={{ width: share(s.total, s.max_possible) }} />
+                        <i className="bl" style={{ width: share(s.max_possible - s.total, s.max_possible) }} />
                       </>
                     )}
                   </div>
