@@ -2,11 +2,11 @@ name: Deploy
 
 on:
   push:
-    branches: [main, rust-rewrite]
+    branches: [main, rust-rewrite, staging]
   workflow_dispatch:
 
 concurrency:
-  group: deploy
+  group: deploy-${{ github.ref_name == 'staging' && 'staging' || 'production' }}
   cancel-in-progress: false
 
 jobs:
@@ -15,6 +15,10 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # The staging branch deploys the staging environment; every other
+      # branch deploys production.
+      DB_NAME: ${{ github.ref_name == 'staging' && 'pickem-staging' || 'pickem' }}
+      WRANGLER_ENV_ARGS: ${{ github.ref_name == 'staging' && '--env staging' || '' }}
     steps:
       - uses: actions/checkout@v4.2.2
 
@@ -54,13 +58,23 @@ jobs:
           PICKEM_HOSTNAME: ${{ vars.PICKEM_HOSTNAME }}
           S3_BUCKET: ${{ vars.S3_BUCKET }}
           ACCESS_TEAM_DOMAIN: ${{ vars.ACCESS_TEAM_DOMAIN }}
+          STAGING_HOSTNAME: ${{ vars.STAGING_HOSTNAME }}
+          STAGING_ACCESS_AUD: ${{ vars.STAGING_ACCESS_AUD }}
         run: |
           test -n "$PICKEM_HOSTNAME" -a -n "$S3_BUCKET" -a -n "$ACCESS_TEAM_DOMAIN" || { echo "set repository variables PICKEM_HOSTNAME, S3_BUCKET and ACCESS_TEAM_DOMAIN"; exit 1; }
           sed -i "s/__PICKEM_HOSTNAME__/$PICKEM_HOSTNAME/; s/__S3_BUCKET__/$S3_BUCKET/; s/__ACCESS_TEAM_DOMAIN__/$ACCESS_TEAM_DOMAIN/" wrangler.toml
-          ! grep -n '__[A-Z_]*__' wrangler.toml
+          if [ -n "$WRANGLER_ENV_ARGS" ]; then
+            test -n "$STAGING_HOSTNAME" -a -n "$STAGING_ACCESS_AUD" || { echo "set repository variables STAGING_HOSTNAME and STAGING_ACCESS_AUD"; exit 1; }
+            sed -i "s/__STAGING_HOSTNAME__/$STAGING_HOSTNAME/; s/__STAGING_ACCESS_AUD__/$STAGING_ACCESS_AUD/" wrangler.toml
+            ! grep -n '__[A-Z_]*__' wrangler.toml
+          else
+            # Production leaves the staging placeholders unfilled and ignores them.
+            ! grep -n '__[A-Z_]*__' wrangler.toml | grep -v '__STAGING_'
+          fi
 
-      - run: npx --yes wrangler@4.152.0 d1 migrations apply pickem --remote
+      # WRANGLER_ENV_ARGS is empty for production and deliberately unquoted.
+      - run: npx --yes wrangler@4.152.0 d1 migrations apply "$DB_NAME" --remote $WRANGLER_ENV_ARGS
         working-directory: crates/worker
 
-      - run: npx --yes wrangler@4.152.0 deploy
+      - run: npx --yes wrangler@4.152.0 deploy $WRANGLER_ENV_ARGS
         working-directory: crates/worker

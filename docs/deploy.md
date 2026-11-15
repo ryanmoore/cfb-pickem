@@ -85,7 +85,7 @@ failed backup fails the invocation.
 
 ## 5. Deploy
 
-Push to `rust-rewrite` or `main`; the Deploy workflow tests, builds the
+Push to `rust-rewrite` or `main` (production); the Deploy workflow tests, builds the
 frontend, applies migrations, and deploys. A manual run (Actions > Deploy > Run
 workflow) is offered only once the workflow file is on the default branch.
 
@@ -135,6 +135,31 @@ npx wrangler@4.152.0 d1 execute pickem --remote \
 `cargo run -p pickem-devserver -- attach-email` computes the same digest
 against a local database. Add the address to the Access policy too, then sign
 in at `https://pickem.example.com/login` and check `/api/me`.
+
+## Staging
+
+A second Worker, `pickem-staging`, with its own D1 database `pickem-staging`
+and no backup cron. Pushes to `staging` deploy it; `main` and `rust-rewrite`
+deploy production. Its config is the `[env.staging]` section of
+`wrangler.toml`.
+
+1. Create the database (`wrangler d1 create pickem-staging`) and put its id in
+   `[[env.staging.d1_databases]]`.
+2. Add repository variables `STAGING_HOSTNAME` (e.g. `pickem-dev.example.com`)
+   and `STAGING_ACCESS_AUD`.
+3. Create a second Access application for the staging hostname, path `login`,
+   in the same team and with the same policy (section 3). Its AUD tag is
+   `STAGING_ACCESS_AUD`.
+4. After the first staging deploy, set `EMAIL_HASH_KEY` on the staging Worker
+   to the production value, so copied accounts match:
+   `npx wrangler@4.152.0 secret put EMAIL_HASH_KEY --env staging`.
+
+Pushing a tag named `refresh-staging-*` (e.g.
+`git tag refresh-staging-YYYY-MM-DD && git push origin refresh-staging-YYYY-MM-DD`)
+runs the Refresh staging workflow, which replaces staging's data with an
+export of production. That copies player
+names and email digests (HMAC), so Access protects staging as it does
+production. The next staging deploy applies any migrations production lacks.
 
 ## Local development
 

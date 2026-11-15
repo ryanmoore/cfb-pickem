@@ -46,3 +46,27 @@ D1_DATABASE_ID = "f661afdb-50cc-401a-b937-5dc3e57d729c"
 S3_BUCKET = "__S3_BUCKET__"
 S3_REGION = "us-east-2"
 S3_PREFIX = "pickem"
+
+# Staging: a separate Worker and database, deployed from the `staging` branch.
+# Wrangler does not inherit routes, vars, d1_databases or triggers into a named
+# environment, so each is set here; assets, build and observability are
+# inherited. There is no cron, so the backup's S3, account and database-id vars
+# are omitted. EMAIL_HASH_KEY is set by hand on this Worker.
+[env.staging]
+name = "pickem-staging"
+routes = [{ pattern = "__STAGING_HOSTNAME__", custom_domain = true }]
+workers_dev = false
+preview_urls = false
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "pickem-staging"
+database_id = "bbb7a55e-5891-4052-8c87-1eb56f6f77c0"
+migrations_dir = "../../migrations"
+
+[env.staging.triggers]
+crons = []
+
+[env.staging.vars]
+ACCESS_TEAM_DOMAIN = "__ACCESS_TEAM_DOMAIN__"
+ACCESS_AUD = "__STAGING_ACCESS_AUD__"

@@ -1,0 +1,54 @@
+name: Refresh staging
+
+# Runs when a refresh-staging-* tag is pushed. A push trigger is read from the
+# pushed commit, so this works without the file being on the default branch.
+on:
+  push:
+    tags: ["refresh-staging-*"]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Every write below goes to this database; the job aborts if it is not
+      # the staging one.
+      TARGET_DB: pickem-staging
+    defaults:
+      run:
+        working-directory: crates/worker
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Replace staging data with a copy of production
+        run: |
+          test "$TARGET_DB" = pickem-staging || { echo "refusing to write to $TARGET_DB"; exit 1; }
+          W="npx --yes wrangler@4.152.0"
+          dump="$RUNNER_TEMP/prod.sql"
+
+          $W d1 export pickem --remote --output "$dump"
+
+          # d1_migrations goes too: the dump carries production's copy.
+          $W d1 execute "$TARGET_DB" --remote --env staging --json --command \
+            "SELECT type, name FROM sqlite_master WHERE type IN ('view', 'table') AND name NOT LIKE 'sqlite\_%' ESCAPE '\' AND name NOT LIKE '\_cf\_%' ESCAPE '\' ORDER BY type DESC" \
+            | jq -r '"PRAGMA defer_foreign_keys = on;", (.[0].results[] | "DROP \(.type) IF EXISTS \"\(.name)\";")' \
+            > "$RUNNER_TEMP/drop.sql"
+          $W d1 execute "$TARGET_DB" --remote --env staging --file "$RUNNER_TEMP/drop.sql"
+          $W d1 execute "$TARGET_DB" --remote --env staging --file "$dump"
+
+      - name: Compare row counts
+        run: |
+          counts="SELECT 'app_user' AS t, count(*) AS n FROM app_user UNION ALL SELECT 'season', count(*) FROM season UNION ALL SELECT 'game', count(*) FROM game UNION ALL SELECT 'pick', count(*) FROM pick"
+          echo "production"
+          npx --yes wrangler@4.152.0 d1 execute pickem --remote --command "$counts"
+          echo "staging"
+          npx --yes wrangler@4.152.0 d1 execute pickem-staging --remote --env staging --command "$counts"
