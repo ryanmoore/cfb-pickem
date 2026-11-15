@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchGames, fetchPicks, type ApiGame, type PicksResponse } from "../api";
 import { PanelError, Skeleton } from "../ui";
+import { formatKickoff } from "./kickoff";
 
 type Players = PicksResponse["players"];
 type Chip = { name: string; me: boolean; points: number | null };
@@ -23,16 +24,13 @@ function Chips({ chips }: { chips: Chip[] }) {
 }
 
 function GameCard({ game, players }: { game: ApiGame; players: Players }) {
-  const kickoff = new Date(game.kickoff_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   return (
     <article className="gc">
       <header>
         <b>{game.name}</b>
-        <small>
-          {kickoff}
-          {game.fixed_wager !== null && ` · worth ${game.fixed_wager}`}
-        </small>
+        {game.fixed_wager !== null && <small>worth {game.fixed_wager}</small>}
       </header>
+      <p className="when">{formatKickoff(game.kickoff_at)}</p>
       <div className="sides">
         {game.slots.map((s) => {
           const chips = players.flatMap((p) => {

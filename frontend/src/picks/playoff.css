@@ -7,6 +7,7 @@
 .picks .bcol h3 { margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
 .picks .bgame { border: 1px solid var(--line); border-radius: 10px; background: var(--paper); overflow: hidden; }
 .picks .bowl { display: block; padding: 2px 8px; background: var(--sand); color: var(--muted); }
+.picks .bowl b { display: block; color: var(--ink); }
 .picks .bslot { padding: 5px 8px; display: grid; font-size: 0.9rem; }
 .picks .bslot + .bslot { border-top: 1px solid var(--line); }
 .picks .bslot small { color: var(--muted); }

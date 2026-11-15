@@ -1,4 +1,5 @@
 import { fmt } from "../ui";
+import { formatKickoff } from "./kickoff";
 import { earned, gameLabel, resolve, teamLabel, type BGame, type Field, type Ref } from "./bracket";
 
 /**
@@ -45,7 +46,10 @@ export function Bracket({ field: f, ranking }: { field: Field; ranking: number[]
                 .filter((g) => g.round === r)
                 .map((g) => (
                   <div key={g.id} className="bgame">
-                    {g.name && <small className="bowl">{g.name}</small>}
+                    <small className="bowl">
+                      {g.name && <b>{g.name}</b>}
+                      <span>{formatKickoff(g.kickoffAt)}</span>
+                    </small>
                     {slot(g, g.a)}
                     {slot(g, g.b)}
                   </div>

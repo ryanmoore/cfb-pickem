@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { formatKickoff } from "./kickoff";
 import type { Game, Slot } from "./model";
 
 // Without onPick the chip is a plain span (read-only rows and the dimmed rows in the spotlight).
@@ -48,7 +49,9 @@ export function Cells({ game, pts, pick, onPick, open, end }: {
         <div className="hd">
           <div className="tt">
             <b className="bt">{game.name}</b>
-            {game.line && <span className="ml">{game.line}</span>}
+            {(game.kickoffAt || game.line) && (
+              <span className="ml">{[game.kickoffAt && formatKickoff(game.kickoffAt), game.line].filter(Boolean).join(" · ")}</span>
+            )}
           </div>
           {end ?? (
             <span className="chev" aria-hidden>
@@ -70,13 +73,6 @@ export function Cells({ game, pts, pick, onPick, open, end }: {
 /** What the card does not already show: kickoff and each side's rank and record. */
 export function Details({ game }: { game: Game }) {
   if (game.details) return <>{game.details}</>;
-  const kickoff = new Date(game.kickoffAt).toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
   return (
     <>
       <div className="teams">
@@ -87,7 +83,7 @@ export function Details({ game }: { game: Game }) {
           </div>
         ))}
       </div>
-      <p className="meta">{kickoff}</p>
+      <p className="meta">{formatKickoff(game.kickoffAt)}</p>
     </>
   );
 }

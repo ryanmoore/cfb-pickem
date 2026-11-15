@@ -2,7 +2,7 @@ import type { ApiPlayoff, ApiTeam } from "../api";
 
 /** A game slot is a team (by id) or the winner of another game. */
 export type Ref = { team: number } | { winner: number };
-export type BGame = { id: number; round: number; name: string; a: Ref; b: Ref; winner?: number };
+export type BGame = { id: number; round: number; name: string; kickoffAt: string; a: Ref; b: Ref; winner?: number };
 export type Field = { teams: Map<number, ApiTeam>; games: BGame[]; rounds: string[] };
 
 const ref = (s: { team_season_id: number | null; winner_of: number | null }): Ref =>
@@ -17,7 +17,7 @@ export function toField({ teams, games }: ApiPlayoff): Field {
   });
   return {
     teams: new Map(teams.map((t) => [t.team_season_id, t])),
-    games: games.map((g) => ({ id: g.id, round: g.round!, name: g.name, a: ref(g.slots[0]), b: ref(g.slots[1]), winner: g.winner })),
+    games: games.map((g) => ({ id: g.id, round: g.round!, name: g.name, kickoffAt: g.kickoff_at, a: ref(g.slots[0]), b: ref(g.slots[1]), winner: g.winner })),
     rounds,
   };
 }
