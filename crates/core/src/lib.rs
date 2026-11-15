@@ -6,6 +6,7 @@
 
 pub mod access;
 pub mod api;
+pub mod bracket;
 pub mod model;
 pub mod scoring;
 pub mod sigv4;

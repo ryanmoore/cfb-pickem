@@ -3,10 +3,10 @@ import type { Flash } from "./PickList";
 
 /**
  * Opening and closing the spotlight over a ranked list whose rows have id
- * "g-<id>": the page scroll, the flash on the row it lands in, and the history
+ * `prefix` + id: the page scroll, the flash on the row it lands in, and the history
  * entry that makes the back button cancel. `move` puts an id at an index.
  */
-export function useSpotlightFlow(order: number[], move: (id: number, idx: number) => void) {
+export function useSpotlightFlow(order: number[], move: (id: number, idx: number) => void, prefix = "g-") {
   const [spot, setSpot] = useState<number>();
   const [closing, setClosing] = useState(false);
   const [flash, setFlash] = useState<Flash>();
@@ -28,18 +28,18 @@ export function useSpotlightFlow(order: number[], move: (id: number, idx: number
   // Scroll the page to a game and flash it.
   const show = (id: number, cancel = false) => setFlash((f) => ({ id, n: (f?.n ?? 0) + 1, cancel }));
   useLayoutEffect(() => {
-    if (flash) document.getElementById("g-" + flash.id)?.scrollIntoView({ block: "center" });
+    if (flash) document.getElementById(prefix + flash.id)?.scrollIntoView({ block: "center" });
   }, [flash]);
 
   const open = (id: number) => {
     origin.current = order.indexOf(id);
-    from.current = document.getElementById("g-" + id)!.getBoundingClientRect();
+    from.current = document.getElementById(prefix + id)!.getBoundingClientRect();
     setSpot(id);
   };
   // The page scrolls to the game's final row while the spotlight still covers
   // it; the spotlight then collapses into that row and the flash plays.
   useLayoutEffect(() => {
-    if (closing) document.getElementById("g-" + spot)?.scrollIntoView({ block: "center" });
+    if (closing) document.getElementById(prefix + spot)?.scrollIntoView({ block: "center" });
   }, [closing]);
   const closed = () => {
     setSpot(undefined);

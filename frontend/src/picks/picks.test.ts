@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { PickRow, SaveResult } from "../api";
-import { fromRows, moved, reconcile, sameRows, shuffle, toRows, type Game } from "./model";
+import type { PickRow, PicksDoc, SaveResult } from "../api";
+import { freshEntry, fromDoc, moved, reconcile, sameDoc, shuffle, toDoc, type Entry, type Game } from "./model";
 import { createSaveQueue, type Status } from "./saveQueue";
 
 const game = (id: number, fixedWager: number | null = null): Game => ({
@@ -11,6 +11,9 @@ const game = (id: number, fixedWager: number | null = null): Game => ({
   slots: [{ id: id * 10, label: "A" }, { id: id * 10 + 1, label: "B" }],
 });
 const games = [game(1), game(2), game(3), game(4), game(5, 4)];
+
+const doc = (picks: PickRow[], playoff: PicksDoc["playoff"] = []): PicksDoc => ({ picks, playoff });
+const entry = (order: number[], winners: Entry["winners"] = {}, ranking: number[] = []): Entry => ({ order, winners, ranking });
 
 const confidences = (rows: PickRow[]) =>
   rows.map((r) => r.confidence).filter((c) => c !== null).sort();
@@ -27,7 +30,7 @@ describe("entry model", () => {
   ])("moving a game %s keeps confidences 1..N and leaves playoff games unranked", (_, id, idx, order) => {
     const next = moved([1, 2, 3, 4], id, idx);
     expect(next).toEqual(order);
-    const rows = toRows(games, { order: next, winners: {} });
+    const rows = toDoc(games, entry(next)).picks;
     expect(confidences(rows)).toEqual([1, 2, 3, 4]);
     expect(rows.find((r) => r.game_id === 5)?.confidence).toBeNull();
     expect(rows.find((r) => r.game_id === next[0])?.confidence).toBe(4);
@@ -38,35 +41,78 @@ describe("entry model", () => {
       { game_id: 3, slot_id: 30, confidence: 2 },
       { game_id: 1, slot_id: 99, confidence: 1 },
     ];
-    const e = fromRows(games, rows);
+    const e = fromDoc(games, [], doc(rows));
     expect(e.order.slice(0, 2)).toEqual([3, 1]);
     expect([...e.order].sort()).toEqual([1, 2, 3, 4]);
     expect(e.winners).toEqual({ 3: 30 });
   });
 });
 
+describe("playoff ranking", () => {
+  const teams = [101, 102, 103, 104];
+
+  it("starts shuffled, never in seed order by default, and keeps every team once", () => {
+    const first = freshEntry(games, teams, () => 0);
+    expect(first.ranking).not.toEqual(teams);
+    expect([...first.ranking].sort()).toEqual(teams);
+    expect(freshEntry(games, teams, () => 0.9).ranking).not.toEqual(first.ranking);
+  });
+
+  it("shuffles the teams when an entry has no ranking yet", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const picksOnly = doc([{ game_id: 1, slot_id: 10, confidence: 2 }]);
+    for (const ranking of [fromDoc(games, teams, picksOnly).ranking, reconcile(games, teams, entry([1, 2, 3, 4])).ranking]) {
+      expect(ranking).not.toEqual(teams);
+      expect([...ranking].sort()).toEqual(teams);
+    }
+    vi.restoreAllMocks();
+  });
+
+  it("saves ranks N..1 down the ranking and reads them back", () => {
+    const e = entry([1, 2, 3, 4], {}, [103, 101, 104, 102]);
+    const saved = toDoc(games, e);
+    expect(saved.playoff).toEqual([
+      { team_season_id: 103, rank: 4 },
+      { team_season_id: 101, rank: 3 },
+      { team_season_id: 104, rank: 2 },
+      { team_season_id: 102, rank: 1 },
+    ]);
+    expect(fromDoc(games, teams, saved).ranking).toEqual(e.ranking);
+    // A team the saved ranking lacks goes last.
+    expect(fromDoc(games, teams, doc([], saved.playoff.slice(0, 2))).ranking).toEqual([103, 101, 102, 104]);
+  });
+
+  it("compares sets by value, rankings included", () => {
+    const a = doc([{ game_id: 1, slot_id: 10, confidence: 2 }], [{ team_season_id: 101, rank: 1 }]);
+    expect(sameDoc(a, { playoff: [{ rank: 1, team_season_id: 101 }], picks: [{ confidence: 2, game_id: 1, slot_id: 10 }] })).toBe(true);
+    expect(sameDoc(a, doc(a.picks, [{ team_season_id: 101, rank: 2 }]))).toBe(false);
+    expect(sameDoc(a, doc(a.picks))).toBe(false);
+  });
+});
+
 it("compares rows by value, whatever order the server writes their keys", () => {
-  const a: PickRow[] = [{ game_id: 1, slot_id: 10, confidence: 2 }];
-  expect(sameRows(a, [{ confidence: 2, game_id: 1, slot_id: 10 }])).toBe(true);
-  expect(sameRows(a, [{ confidence: 1, game_id: 1, slot_id: 10 }])).toBe(false);
+  const a = doc([{ game_id: 1, slot_id: 10, confidence: 2 }]);
+  expect(sameDoc(a, doc([{ confidence: 2, game_id: 1, slot_id: 10 }]))).toBe(true);
+  expect(sameDoc(a, doc([{ confidence: 1, game_id: 1, slot_id: 10 }]))).toBe(false);
 });
 
 describe("reconcile", () => {
   it.each([
-    ["nothing changed", { order: [1, 2], winners: { 1: 10 } }, [game(1), game(2)], { order: [1, 2], winners: { 1: 10 } }],
-    ["a ranked game is added at the bottom", { order: [2, 1], winners: {} }, [game(1), game(2), game(3)], { order: [2, 1, 3], winners: {} }],
-    ["a playoff game is not ranked", { order: [1], winners: {} }, [game(1), game(5, 4)], { order: [1], winners: {} }],
-    ["a game is removed, with its winner", { order: [3, 1, 2], winners: { 3: 30, 1: 10 } }, [game(1), game(2)], { order: [1, 2], winners: { 1: 10 } }],
-    ["a slot is removed", { order: [1], winners: { 1: 10 } }, [{ ...game(1), slots: [{ id: 11, label: "B" }] }], { order: [1], winners: {} }],
-  ])("%s", (_, entry, list, want) => {
-    expect(reconcile(list, entry)).toEqual(want);
+    ["nothing changed", entry([1, 2], { 1: 10 }), [game(1), game(2)], [], entry([1, 2], { 1: 10 })],
+    ["a ranked game is added at the bottom", entry([2, 1]), [game(1), game(2), game(3)], [], entry([2, 1, 3])],
+    ["a playoff game is not ranked", entry([1]), [game(1), game(5, 4)], [], entry([1])],
+    ["a game is removed, with its winner", entry([3, 1, 2], { 3: 30, 1: 10 }), [game(1), game(2)], [], entry([1, 2], { 1: 10 })],
+    ["a slot is removed", entry([1], { 1: 10 }), [{ ...game(1), slots: [{ id: 11, label: "B" }] }], [], entry([1])],
+    ["a playoff team is added at the bottom and one removed", entry([1], {}, [102, 101]), [game(1)], [101, 103], entry([1], {}, [101, 103])],
+  ])("%s", (_, e, list, teams, want) => {
+    expect(reconcile(list, teams, e)).toEqual(want);
   });
 });
 
 describe("save queue", () => {
-  const rows = (n: number): PickRow[] => [{ game_id: 1, slot_id: null, confidence: n }];
+  const rows = (n: number): PicksDoc => doc([{ game_id: 1, slot_id: null, confidence: n }]);
   let results: SaveResult[];
-  let sent: PickRow[][];
+  let sent: PicksDoc[];
   let statuses: Status["kind"][];
   let saved: number;
   let conflicts: (string | null)[];
@@ -165,7 +211,7 @@ describe("save queue", () => {
   });
 
   it("hands over the server's copy on a conflict and does not resend the stale set", async () => {
-    results = [{ kind: "conflict", picks: [], version: "v9" }];
+    results = [{ kind: "conflict", picks: [], playoff: [], version: "v9" }];
     const q = queue();
     q.change(rows(1));
     await vi.advanceTimersByTimeAsync(60000);

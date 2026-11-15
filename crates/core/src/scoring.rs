@@ -12,7 +12,8 @@ use std::collections::{BTreeSet, HashMap};
 
 use serde::{Deserialize, Serialize};
 
-use crate::model::{Game, GameId, GameResult, Pick, UserId};
+use crate::bracket::TeamRun;
+use crate::model::{Game, GameId, GameResult, Pick, PlayoffRank, TeamSeasonId, UserId};
 
 /// A player's position: points banked, and points still reachable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -81,9 +82,58 @@ pub fn standings(games: &[Game], picks: &[Pick], results: &[GameResult]) -> Vec<
     out
 }
 
+/// What a playoff win is worth, in units of `1/N` for a field of N teams, per
+/// point of rank. Scaling by 12/N keeps the playoff weighing the same at any
+/// field size; counting in units keeps a fractional score exact.
+const WIN_UNITS: u32 = 12;
+
+/// A player's playoff points as `(scored, remaining)` in units of `1/N`: each
+/// team earns its rank for every win it has, or can still get.
+pub fn playoff_units(ranks: &[PlayoffRank], runs: &[TeamRun]) -> (u32, u32) {
+    ranks.iter().fold((0, 0), |(scored, remaining), r| {
+        let run = runs.iter().find(|t| t.team == r.team_season_id);
+        let at = |wins: u32| r.rank * wins * WIN_UNITS;
+        (scored + run.map_or(0, |t| at(t.wins)), remaining + run.map_or(0, |t| at(t.remaining())))
+    })
+}
+
+/// Every way a submitted playoff ranking can be wrong.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case", tag = "problem")]
+pub enum RankingError {
+    UnknownTeam { team_season_id: TeamSeasonId },
+    DuplicateTeam { team_season_id: TeamSeasonId },
+    MissingTeam { team_season_id: TeamSeasonId },
+    /// A rank outside `1..=N`, or one another team already took.
+    BadRank { team_season_id: TeamSeasonId, rank: u32 },
+}
+
+/// Check one player's ranking against the playoff `teams`: every team exactly
+/// once, with ranks that are a permutation of `1..=N`.
+pub fn validate_ranking(teams: &[TeamSeasonId], ranks: &[PlayoffRank]) -> Result<(), Vec<RankingError>> {
+    let mut problems = Vec::new();
+    let mut seen_teams = BTreeSet::new();
+    let mut seen_ranks = BTreeSet::new();
+    for r in ranks {
+        let team_season_id = r.team_season_id;
+        if !teams.contains(&team_season_id) {
+            problems.push(RankingError::UnknownTeam { team_season_id });
+        } else if !seen_teams.insert(team_season_id) {
+            problems.push(RankingError::DuplicateTeam { team_season_id });
+        }
+        if r.rank == 0 || r.rank as usize > teams.len() || !seen_ranks.insert(r.rank) {
+            problems.push(RankingError::BadRank { team_season_id, rank: r.rank });
+        }
+    }
+    problems.extend(
+        teams.iter().filter(|t| !seen_teams.contains(t)).map(|&team_season_id| RankingError::MissingTeam { team_season_id }),
+    );
+    if problems.is_empty() { Ok(()) } else { Err(problems) }
+}
+
 /// Competition ranks (1, 1, 3) for entries already sorted best first, given
-/// each entry's `(scored, max_possible)`; entries tie when both match.
-pub fn rank_ties(points: &[(u32, u32)]) -> Vec<u32> {
+/// each entry's points; entries tie when theirs are equal.
+pub fn rank_ties<T: PartialEq>(points: &[T]) -> Vec<u32> {
     let mut ranks: Vec<u32> = Vec::with_capacity(points.len());
     for (i, p) in points.iter().enumerate() {
         ranks.push(match i.checked_sub(1) {
@@ -187,6 +237,7 @@ mod tests {
             display_name: None,
             kickoff_at: ts(),
             fixed_wager: fixed,
+            playoff: false,
         }
     }
 

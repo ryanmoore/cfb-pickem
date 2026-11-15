@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { PickRow } from "../api";
+import type { PicksDoc } from "../api";
 import { CoachMarks, HINT_MAIN, HINT_SPOT } from "./CoachMarks";
 import { PickList } from "./PickList";
+import { PlayoffRanking } from "./PlayoffRanking";
+import type { Field } from "./bracket";
 import { ROW, Spotlight } from "./Spotlight";
 import { Toast } from "./Toast";
 import type { Game } from "./model";
@@ -19,10 +21,10 @@ const STATUS_TEXT: Record<Status["kind"], string> = {
   signedout: "Signed out — sign in to send your picks",
 };
 
-type Props = { year: number; name: string; games: Game[]; server: PickRow[]; version: string | null };
+type Props = { year: number; name: string; games: Game[]; field?: Field; teams: number[]; server: PicksDoc; version: string | null };
 
-export function PickEntry({ year, name, games, server, version }: Props) {
-  const { entry, status, notice, clearNotice, setWinner, move, reset } = usePickEntry(year, name, games, server, version);
+export function PickEntry({ year, name, games, field, teams, server, version }: Props) {
+  const { entry, status, notice, clearNotice, setWinner, move, moveTeam, reset } = usePickEntry(year, name, games, teams, server, version);
   const byId = useMemo(() => new Map(games.map((g) => [g.id, g])), [games]);
   const [coach, setCoach] = useState(() => !localStorage.getItem(HINT_MAIN));
   const closeCoach = useCallback(() => {
@@ -91,6 +93,7 @@ export function PickEntry({ year, name, games, server, version }: Props) {
         flash={flash}
         onPick={frozen ? undefined : setWinner}
         onOpen={frozen ? undefined : open}
+        playoff={field && <PlayoffRanking field={field} ranking={entry.ranking} move={frozen ? undefined : moveTeam} hold={coach} />}
       />
       {!frozen && (
         <button

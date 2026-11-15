@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Utc};
 use pickem_core::sql;
 use pickem_core::{
-    email_hash, EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, ResultSource, SeasonId, Season, SlotId, TeamSeason,
+    email_hash, EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, ResultSource, SeasonId, Season, SlotId, TeamSeason,
     SlotSource, Storage, TeamSeasonId, User, UserId,
 };
 use rusqlite::types::Type;
@@ -91,6 +91,7 @@ impl Storage for SqliteStorage {
                 display_name: r.get(3)?,
                 kickoff_at: timestamp(r, 4)?,
                 fixed_wager: r.get(5)?,
+                playoff: r.get(6)?,
             })
         })?;
         games.collect()
@@ -165,6 +166,14 @@ impl Storage for SqliteStorage {
         picks.collect()
     }
 
+    async fn playoff_ranks_for_season(&self, season: SeasonId) -> Result<Vec<PlayoffRank>, Self::Error> {
+        let mut stmt = self.conn.prepare(sql::PLAYOFF_RANKS_FOR_SEASON)?;
+        let ranks = stmt.query_map([season.0], |r| {
+            Ok(PlayoffRank { user_id: UserId(r.get(0)?), team_season_id: TeamSeasonId(r.get(1)?), rank: r.get(2)? })
+        })?;
+        ranks.collect()
+    }
+
     async fn user_by_email_hash(&self, hash: &EmailHash) -> Result<Option<User>, Self::Error> {
         let mut stmt = self.conn.prepare(sql::USER_BY_EMAIL_HASH)?;
         let mut rows = stmt.query([hash.as_str()])?;
@@ -186,16 +195,21 @@ impl Storage for SqliteStorage {
         user: UserId,
         season: SeasonId,
         picks: &[Pick],
+        ranks: &[PlayoffRank],
         version: &str,
         base: Option<&str>,
     ) -> Result<Option<u64>, Self::Error> {
         let tx = self.conn.unchecked_transaction()?;
         tx.execute(sql::DELETE_PICKS, params![user.0, season.0, base])?;
+        tx.execute(sql::DELETE_RANKS, params![user.0, season.0, base])?;
         for p in picks {
             tx.execute(
                 sql::INSERT_PICK,
                 params![user.0, p.game_id.0, season.0, p.slot_id.map(|s| s.0), p.confidence, version],
             )?;
+        }
+        for r in ranks {
+            tx.execute(sql::INSERT_RANK, params![user.0, season.0, r.team_season_id.0, r.rank, version])?;
         }
         let generation = tx
             .query_row(sql::BUMP_GENERATION_FOR_PICKS, params![season.0, user.0, version], |r| r.get(0))
@@ -220,6 +234,7 @@ fn season_row(r: &Row) -> rusqlite::Result<Season> {
         year: r.get(1)?,
         locks_at: timestamp(r, 2)?,
         generation: r.get(3)?,
+        playoff_format: PlayoffFormat::from_stored(&r.get::<_, String>(4)?),
     })
 }
 

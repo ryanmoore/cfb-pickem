@@ -102,6 +102,24 @@ pub struct Season {
     /// Bumped by any write that changes derived data. Cacheable responses are
     /// addressed by it, so stale entries are superseded rather than purged.
     pub generation: u64,
+    pub playoff_format: PlayoffFormat,
+}
+
+/// How a season scores its playoff.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PlayoffFormat {
+    /// Playoff games are picked by slot like any other game.
+    Fixed,
+    /// Players rank every playoff team; a team scores its rank for each win.
+    Rank,
+}
+
+impl PlayoffFormat {
+    /// Reads the value stored in `season.playoff_format`.
+    pub fn from_stored(s: &str) -> Self {
+        if s == "rank" { Self::Rank } else { Self::Fixed }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -134,6 +152,8 @@ pub struct Game {
     /// The amount is chosen per season and is not derivable from the number
     /// of games.
     pub fixed_wager: Option<u32>,
+    /// A bracket game. In a ranked-playoff season it takes no picks.
+    pub playoff: bool,
 }
 
 impl Game {
@@ -203,6 +223,15 @@ pub struct Pick {
     pub slot_id: Option<SlotId>,
     /// `None` exactly when the game carries a fixed wager.
     pub confidence: Option<u32>,
+}
+
+/// One team's place in a player's playoff ranking.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlayoffRank {
+    pub user_id: UserId,
+    pub team_season_id: TeamSeasonId,
+    /// N for the most confident down to 1.
+    pub rank: u32,
 }
 
 #[cfg(test)]

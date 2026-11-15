@@ -1,10 +1,6 @@
 .picks .sechead { display: flex; align-items: center; gap: 8px; }
 .picks .sechead h2 { flex: 1; }
-.picks .fieldtoggle { display: flex; gap: 6px; }
-.picks .fieldtoggle button { flex: 1; max-width: 10rem; }
 .picks .bracketwrap { margin-top: 6px; }
-.picks .sim { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 0.9rem; }
-.picks .sim input { width: 20px; height: 20px; }
 .picks .bracket { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; margin: 0 -1rem; padding-inline: 1rem; scroll-padding-inline: 1rem; }
 .picks .bcol { flex: 0 0 84%; scroll-snap-align: start; display: flex; flex-direction: column; gap: 8px; }
 .picks .bgames { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 8px; }

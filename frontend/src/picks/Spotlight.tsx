@@ -35,8 +35,8 @@ const shift = (r: number, p: number, half: number, closed: boolean) => {
 // pitch lower and nothing is gapped) and eased to the gapped layout, while the
 // card grows from the game's page row. Closing runs that backwards into the
 // page row's final position, then calls onClosed.
-export function Spotlight({ entry, games, id, from, closing, setWinner, move, active, onDone, onCancel, onClosed }: {
-  entry: Entry;
+export function Spotlight({ entry, games, id, from, closing, setWinner, move, active, onDone, onCancel, onClosed, noun = "game", rowPrefix = "g-" }: {
+  entry: Pick<Entry, "order" | "winners">;
   games: Map<number, Game>;
   id: number;
   from: DOMRect;
@@ -47,6 +47,10 @@ export function Spotlight({ entry, games, id, from, closing, setWinner, move, ac
   onDone: () => void;
   onCancel: () => void;
   onClosed: () => void;
+  /** What the list holds, for the hint. */
+  noun?: string;
+  /** The page rows' id prefix; the card collapses back into row `rowPrefix + id`. */
+  rowPrefix?: string;
 }) {
   const N = entry.order.length;
   const clamp = (j: number) => Math.max(0, Math.min(N - 1, j));
@@ -150,7 +154,7 @@ export function Spotlight({ entry, games, id, from, closing, setWinner, move, ac
   useEffect(() => {
     if (!closing) return;
     goto(cur.current);
-    animate(document.getElementById("g-" + id)!.getBoundingClientRect(), true).then(onClosed);
+    animate(document.getElementById(rowPrefix + id)!.getBoundingClientRect(), true).then(onClosed);
   }, [closing]);
   useLayoutEffect(() => {
     const ro = new ResizeObserver(layout);
@@ -308,7 +312,7 @@ export function Spotlight({ entry, games, id, from, closing, setWinner, move, ac
       </div>
       {hint && (
         <div className="hint" role="note" aria-live="polite">
-          Scroll the list to move this game, or tap where it should go.
+          Scroll the list to move this {noun}, or tap where it should go.
         </div>
       )}
       <div className="stack" ref={stack}>

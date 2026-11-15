@@ -36,7 +36,8 @@ export function Cells({ game, pts, pick, onPick, open, end }: {
   open?: boolean;
   end?: ReactNode;
 }) {
-  const unpicked = pick === undefined;
+  // A row with no sides (a team in a ranking) has nothing to pick.
+  const unpicked = pick === undefined && game.slots.length > 0;
   return (
     <>
       <span className={"rk" + (unpicked ? " un" : "")} aria-label={`${pts} points${unpicked ? ", no pick yet" : ""}`}>

@@ -11,10 +11,12 @@ use std::collections::{HashMap, HashSet};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::bracket::Bracket;
 use crate::model::{
-    email_hash, GameId, GameResult, GameSlot, Pick, ResultSource, Season, SlotId, SlotSource, User, UserId,
+    email_hash, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, ResultSource, Season, SlotId,
+    SlotSource, TeamSeasonId, User, UserId,
 };
-use crate::scoring::{rank_ties, standings, validate_confidence_permutation};
+use crate::scoring::{playoff_units, rank_ties, standings, validate_confidence_permutation, validate_ranking};
 use crate::storage::Storage;
 
 pub struct Reply {
@@ -55,9 +57,11 @@ struct SeasonSummary {
 struct StandingRow<'a> {
     rank: u32,
     display_name: &'a str,
-    scored: u32,
-    remaining: u32,
-    max_possible: u32,
+    bowls: f64,
+    playoff: f64,
+    total: f64,
+    remaining: f64,
+    max_possible: f64,
 }
 
 #[derive(Serialize)]
@@ -71,6 +75,7 @@ enum Me<'a> {
 #[derive(Serialize)]
 struct SlotView<'a> {
     id: SlotId,
+    team_season_id: Option<TeamSeasonId>,
     team: Option<TeamView<'a>>,
     winner_of: Option<GameId>,
     seed: Option<u16>,
@@ -86,11 +91,29 @@ struct TeamView<'a> {
 #[derive(Serialize)]
 struct GameView<'a> {
     id: GameId,
-    name: &'a str,
+    name: String,
     kickoff_at: DateTime<Utc>,
     fixed_wager: Option<u32>,
     slots: Vec<SlotView<'a>>,
     winner_slot_id: Option<SlotId>,
+    /// Bracket games only: how many games precede it, and who won it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    round: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    winner: Option<TeamSeasonId>,
+}
+
+/// A playoff team and its run through the bracket.
+#[derive(Serialize)]
+struct BracketTeam<'a> {
+    team_season_id: TeamSeasonId,
+    name: &'a str,
+    rank: Option<u32>,
+    record: Option<&'a str>,
+    seed: Option<u16>,
+    max_wins: u32,
+    wins: u32,
+    eliminated: bool,
 }
 
 #[derive(Serialize)]
@@ -98,6 +121,14 @@ struct PlayerPicks<'a> {
     display_name: &'a str,
     is_me: bool,
     picks: Vec<PickView>,
+    playoff: Vec<RankView>,
+}
+
+/// One team of a playoff ranking as it is submitted and as it is shown.
+#[derive(Serialize, Deserialize)]
+struct RankView {
+    team_season_id: TeamSeasonId,
+    rank: u32,
 }
 
 /// One pick as it is submitted and as it is shown.
@@ -111,6 +142,9 @@ struct PickView {
 #[derive(Deserialize)]
 struct PicksBody {
     picks: Vec<PickView>,
+    /// A complete ranking of the playoff teams, for a season that ranks them.
+    #[serde(default)]
+    playoff: Vec<RankView>,
     /// The version the entry was based on: absent for an unconditional save,
     /// null for "I had no picks yet".
     #[serde(default, deserialize_with = "Option::deserialize")]
@@ -171,7 +205,7 @@ pub async fn route<S: Storage>(
     match (req.method, segments.as_slice()) {
         ("GET", ["api", "me"]) => me(storage, identity, key).await,
         ("GET", ["api", "seasons"]) => seasons(storage, now).await,
-        ("GET", ["api", "seasons", year, "standings"]) => standings_reply(storage, year).await,
+        ("GET", ["api", "seasons", year, "standings"]) => standings_reply(storage, year, now).await,
         ("GET", ["api", "seasons", year, "games"]) => games(storage, year).await,
         ("GET", ["api", "seasons", year, "picks"]) => picks(storage, year, identity, key, now).await,
         ("GET", ["api", "seasons", year, "progress"]) => progress(storage, year).await,
@@ -226,35 +260,86 @@ async fn seasons<S: Storage>(storage: &S, now: DateTime<Utc>) -> Result<Reply, S
     Ok(Reply::json(200, &serde_json::json!({ "seasons": seasons })))
 }
 
-async fn standings_reply<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error> {
+async fn standings_reply<S: Storage>(storage: &S, year: &str, now: DateTime<Utc>) -> Result<Reply, S::Error> {
     let Some(season) = season_by_year(storage, year).await? else {
         return Ok(Reply::error(404, "no such season"));
     };
-    let games = storage.games_for_season(season.id).await?;
+    let locked = now >= season.locks_at;
+    let (bracket_games, bowls) = split_games(&season, storage.games_for_season(season.id).await?);
+    let slots = storage.slots_for_season(season.id).await?;
     let picks = storage.picks_for_season(season.id).await?;
     let results = storage.results_for_season(season.id).await?;
+    let ranks = storage.playoff_ranks_for_season(season.id).await?;
     let users = storage.users().await?;
-    let names: HashMap<UserId, &str> = users.iter().map(|u| (u.id, u.display_name.as_str())).collect();
-    let mut rows: Vec<_> = standings(&games, &picks, &results)
-        .into_iter()
-        .filter_map(|s| Some((names.get(&s.user_id)?, s)))
-        .collect();
-    rows.sort_by(|(an, a), (bn, b)| {
-        b.scored.cmp(&a.scored).then(b.max_possible().cmp(&a.max_possible())).then(an.cmp(bn))
-    });
-    let points: Vec<_> = rows.iter().map(|(_, s)| (s.scored, s.max_possible())).collect();
-    let ranked: Vec<_> = rank_ties(&points)
-        .into_iter()
-        .zip(&rows)
-        .map(|(rank, (name, s))| StandingRow {
-            rank,
-            display_name: name,
-            scored: s.scored,
-            remaining: s.remaining,
-            max_possible: s.max_possible(),
+    let runs = Bracket::new(&bracket_games.iter().map(|g| g.id).collect::<Vec<_>>(), &slots, &results).runs();
+    // Playoff points are counted in units of 1/n, so ties compare exactly.
+    let n = runs.len().max(1) as u32;
+    let bowl_standings = standings(&bowls, &picks, &results);
+    // Per player: bowl points, bowl points left, playoff units, playoff units left.
+    let mut rows: Vec<(&str, [u32; 4])> = users
+        .iter()
+        .filter_map(|u| {
+            let bowl = bowl_standings.iter().find(|s| s.user_id == u.id);
+            // Rankings count only once locked: any playoff figure before then would
+            // show how the player weighed the bye teams.
+            let mine: Vec<PlayoffRank> = if locked {
+                ranks.iter().filter(|r| r.user_id == u.id).copied().collect()
+            } else {
+                Vec::new()
+            };
+            if bowl.is_none() && mine.is_empty() {
+                return None;
+            }
+            let (units, units_left) = playoff_units(&mine, &runs);
+            let (scored, left) = bowl.map_or((0, 0), |s| (s.scored, s.remaining));
+            Some((u.display_name.as_str(), [scored, left, units, units_left]))
         })
         .collect();
-    Ok(Reply::json(200, &serde_json::json!({ "year": season.year, "standings": ranked })))
+    let totals = |[scored, left, units, units_left]: [u32; 4]| {
+        let total = scored * n + units;
+        (total, total + left * n + units_left)
+    };
+    rows.sort_by(|(an, a), (bn, b)| {
+        let ((at, am), (bt, bm)) = (totals(*a), totals(*b));
+        bt.cmp(&at).then(bm.cmp(&am)).then(an.cmp(bn))
+    });
+    let ties: Vec<_> = rows.iter().map(|(_, r)| totals(*r)).collect();
+    let ranked: Vec<_> = rank_ties(&ties)
+        .into_iter()
+        .zip(&rows)
+        .map(|(rank, (name, r))| {
+            let (total, max) = totals(*r);
+            let of = |units: u32| f64::from(units) / f64::from(n);
+            StandingRow {
+                rank,
+                display_name: name,
+                bowls: f64::from(r[0]),
+                playoff: of(r[2]),
+                total: of(total),
+                remaining: of(max - total),
+                max_possible: of(max),
+            }
+        })
+        .collect();
+    Ok(Reply::json(
+        200,
+        &serde_json::json!({
+            "year": season.year,
+            "playoff_ranked": season.playoff_format == PlayoffFormat::Rank,
+            "standings": ranked,
+        }),
+    ))
+}
+
+/// A season that ranks its playoff teams takes no picks on the bracket's
+/// games: they are scored through the rankings alone. Returns the bracket's
+/// games and the games players pick winners for.
+fn split_games(season: &Season, games: Vec<Game>) -> (Vec<Game>, Vec<Game>) {
+    if season.playoff_format == PlayoffFormat::Rank {
+        games.into_iter().partition(|g| g.playoff)
+    } else {
+        (Vec::new(), games)
+    }
 }
 
 async fn me<S: Storage>(
@@ -284,6 +369,7 @@ async fn games<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error> {
     };
     let mut games = storage.games_for_season(season.id).await?;
     games.sort_by_key(|g| (g.kickoff_at, g.id));
+    let (bracket_games, games) = split_games(&season, games);
     let slots = storage.slots_for_season(season.id).await?;
     let teams = storage.team_seasons_for_season(season.id).await?;
     let events = storage.events().await?;
@@ -291,48 +377,85 @@ async fn games<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error> {
 
     let event_names: HashMap<_, _> = events.iter().map(|e| (e.id, e.name.as_str())).collect();
     let winners: HashMap<_, _> = results.iter().map(|r| (r.game_id, r.winner_slot_id)).collect();
-    let views: Vec<GameView> = games
-        .iter()
-        .map(|g| {
-            let mut game_slots: Vec<&GameSlot> = slots.iter().filter(|s| s.game_id == g.id).collect();
-            game_slots.sort_by_key(|s| s.slot_index);
-            GameView {
-                id: g.id,
-                name: g.display_name.as_deref().or(event_names.get(&g.event_id).copied()).unwrap_or(""),
-                kickoff_at: g.kickoff_at,
-                fixed_wager: g.fixed_wager,
-                slots: game_slots
-                    .into_iter()
-                    .map(|s| SlotView {
+    let view = |g: &Game| {
+        let mut game_slots: Vec<&GameSlot> = slots.iter().filter(|s| s.game_id == g.id).collect();
+        game_slots.sort_by_key(|s| s.slot_index);
+        GameView {
+            id: g.id,
+            name: g.display_name.as_deref().or(event_names.get(&g.event_id).copied()).unwrap_or("").into(),
+            kickoff_at: g.kickoff_at,
+            fixed_wager: g.fixed_wager,
+            slots: game_slots
+                .into_iter()
+                .map(|s| {
+                    let team_season_id = match s.source {
+                        SlotSource::Team { team_season_id } => Some(team_season_id),
+                        SlotSource::WinnerOf { .. } => None,
+                    };
+                    SlotView {
                         id: s.id,
-                        team: match &s.source {
-                            SlotSource::Team { team_season_id } => {
-                                teams.iter().find(|t| t.id == *team_season_id).map(|t| TeamView {
-                                    name: &t.name,
-                                    rank: t.rank,
-                                    record: t.record.as_deref(),
-                                })
-                            }
-                            SlotSource::WinnerOf { .. } => None,
-                        },
+                        team_season_id,
+                        team: team_season_id.and_then(|id| teams.iter().find(|t| t.id == id)).map(|t| TeamView {
+                            name: &t.name,
+                            rank: t.rank,
+                            record: t.record.as_deref(),
+                        }),
                         winner_of: match s.source {
                             SlotSource::WinnerOf { game_id } => Some(game_id),
                             SlotSource::Team { .. } => None,
                         },
                         seed: s.seed,
-                    })
-                    .collect(),
-                winner_slot_id: winners.get(&g.id).copied(),
-            }
-        })
-        .collect();
-    Ok(Reply::json(200, &serde_json::json!({ "year": season.year, "games": views })))
+                    }
+                })
+                .collect(),
+            winner_slot_id: winners.get(&g.id).copied(),
+            round: None,
+            winner: None,
+        }
+    };
+    let mut reply = serde_json::json!({
+        "year": season.year,
+        "games": games.iter().map(view).collect::<Vec<_>>(),
+    });
+    if season.playoff_format == PlayoffFormat::Rank {
+        let bracket = Bracket::new(&bracket_games.iter().map(|g| g.id).collect::<Vec<_>>(), &slots, &results);
+        let playoff_teams: Vec<BracketTeam> = bracket
+            .runs()
+            .into_iter()
+            .filter_map(|run| {
+                let t = teams.iter().find(|t| t.id == run.team)?;
+                Some(BracketTeam {
+                    team_season_id: t.id,
+                    name: &t.name,
+                    rank: t.rank,
+                    record: t.record.as_deref(),
+                    seed: run.seed,
+                    max_wins: run.max_wins,
+                    wins: run.wins,
+                    eliminated: run.eliminated,
+                })
+            })
+            .collect();
+        let playoff_games: Vec<GameView> = bracket_games
+            .iter()
+            .map(|g| GameView { round: Some(bracket.round(g.id)), winner: bracket.winner(g.id), ..view(g) })
+            .collect();
+        reply["playoff"] = serde_json::json!({ "teams": playoff_teams, "games": playoff_games });
+    }
+    Ok(Reply::json(200, &reply))
 }
 
 fn pick_views(all: &[Pick], user: UserId) -> Vec<PickView> {
     all.iter()
         .filter(|p| p.user_id == user)
         .map(|p| PickView { game_id: p.game_id, slot_id: p.slot_id, confidence: p.confidence })
+        .collect()
+}
+
+fn rank_views(all: &[PlayoffRank], user: UserId) -> Vec<RankView> {
+    all.iter()
+        .filter(|r| r.user_id == user)
+        .map(|r| RankView { team_season_id: r.team_season_id, rank: r.rank })
         .collect()
 }
 
@@ -349,6 +472,7 @@ async fn picks<S: Storage>(
     let me = caller(storage, identity, email_key).await?.map(|u| u.id);
     let locked = now >= season.locks_at;
     let all = storage.picks_for_season(season.id).await?;
+    let all_ranks = storage.playoff_ranks_for_season(season.id).await?;
     let users = storage.users().await?;
     let mut players: Vec<PlayerPicks> = Vec::new();
     for user in &users {
@@ -357,8 +481,9 @@ async fn picks<S: Storage>(
             continue;
         }
         let picks = pick_views(&all, user.id);
-        if !picks.is_empty() {
-            players.push(PlayerPicks { display_name: &user.display_name, is_me, picks });
+        let playoff = rank_views(&all_ranks, user.id);
+        if !picks.is_empty() || !playoff.is_empty() {
+            players.push(PlayerPicks { display_name: &user.display_name, is_me, picks, playoff });
         }
     }
     players.sort_by(|a, b| a.display_name.cmp(b.display_name));
@@ -372,14 +497,25 @@ async fn picks<S: Storage>(
     ))
 }
 
-/// How many winners each player has chosen. Reveals no picks, so it is public
-/// before the lock.
+/// How many winners each player has chosen and, in a ranked-playoff season,
+/// whether their ranking is complete for the current bracket. Reveals no picks
+/// or rankings, so it is public before the lock.
 async fn progress<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error> {
     let Some(season) = season_by_year(storage, year).await? else {
         return Ok(Reply::error(404, "no such season"));
     };
-    let total = storage.games_for_season(season.id).await?.len();
+    let (bracket_games, games) = split_games(&season, storage.games_for_season(season.id).await?);
+    let total = games.len();
     let picks = storage.picks_for_season(season.id).await?;
+    let ranked = season.playoff_format == PlayoffFormat::Rank;
+    let teams: Vec<TeamSeasonId> = if ranked {
+        let slots = storage.slots_for_season(season.id).await?;
+        let ids: Vec<GameId> = bracket_games.iter().map(|g| g.id).collect();
+        Bracket::new(&ids, &slots, &[]).runs().iter().map(|t| t.team).collect()
+    } else {
+        Vec::new()
+    };
+    let ranks = storage.playoff_ranks_for_season(season.id).await?;
     let mut players: Vec<_> = storage
         .users()
         .await?
@@ -389,7 +525,12 @@ async fn progress<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error
         .filter(|u| u.email_hash.is_some() || picks.iter().any(|p| p.user_id == u.id))
         .map(|u| {
             let picked = picks.iter().filter(|p| p.user_id == u.id && p.slot_id.is_some()).count();
-            serde_json::json!({ "display_name": u.display_name, "picked": picked, "total": total })
+            let mut row = serde_json::json!({ "display_name": u.display_name, "picked": picked, "total": total });
+            if ranked {
+                let mine: Vec<PlayoffRank> = ranks.iter().filter(|r| r.user_id == u.id).copied().collect();
+                row["playoff_ranked"] = validate_ranking(&teams, &mine).is_ok().into();
+            }
+            row
         })
         .collect();
     players.sort_by(|a, b| a["display_name"].as_str().cmp(&b["display_name"].as_str()));
@@ -417,7 +558,7 @@ async fn put_picks<S: Storage>(
         return Ok(Reply::error(400, "body must be {\"picks\": [{game_id, slot_id, confidence}]}"));
     };
 
-    let games = storage.games_for_season(season.id).await?;
+    let (bracket_games, games) = split_games(&season, storage.games_for_season(season.id).await?);
     let slots = storage.slots_for_season(season.id).await?;
     let known: HashSet<GameId> = games.iter().map(|g| g.id).collect();
     let mut seen = HashSet::new();
@@ -446,20 +587,35 @@ async fn put_picks<S: Storage>(
     if let Err(errors) = validate_confidence_permutation(&games, &picks) {
         problems.extend(errors.into_iter().map(problem));
     }
+    let ranks: Vec<PlayoffRank> = body
+        .playoff
+        .iter()
+        .map(|r| PlayoffRank { user_id: user.id, team_season_id: r.team_season_id, rank: r.rank })
+        .collect();
+    let bracket_ids: Vec<GameId> = bracket_games.iter().map(|g| g.id).collect();
+    let teams: Vec<TeamSeasonId> = Bracket::new(&bracket_ids, &slots, &[]).runs().iter().map(|r| r.team).collect();
+    if let Err(errors) = validate_ranking(&teams, &ranks) {
+        problems.extend(errors.into_iter().map(problem));
+    }
     if !problems.is_empty() {
         return Ok(Reply::json(422, &serde_json::json!({ "error": "invalid picks", "problems": problems })));
     }
     let version = now.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
     let base = body.base_version.as_ref().map(|v| v.as_deref().unwrap_or(""));
-    match storage.replace_picks(user.id, season.id, &picks, &version, base).await? {
+    match storage.replace_picks(user.id, season.id, &picks, &ranks, &version, base).await? {
         Some(generation) => Ok(Reply::json(200, &serde_json::json!({ "generation": generation, "version": version }))),
         None => {
             let all = storage.picks_for_season(season.id).await?;
-            let current = pick_views(&all, user.id);
+            let all_ranks = storage.playoff_ranks_for_season(season.id).await?;
             let version = storage.picks_version(user.id, season.id).await?;
             Ok(Reply::json(
                 412,
-                &serde_json::json!({ "error": "picks changed since your copy", "version": version, "picks": current }),
+                &serde_json::json!({
+                    "error": "picks changed since your copy",
+                    "version": version,
+                    "picks": pick_views(&all, user.id),
+                    "playoff": rank_views(&all_ranks, user.id),
+                }),
             ))
         }
     }
@@ -514,7 +670,11 @@ mod tests {
     struct Fake {
         users: Vec<User>,
         picks: RefCell<Vec<Pick>>,
+        ranks: RefCell<Vec<PlayoffRank>>,
         results: RefCell<Vec<GameResult>>,
+        format: PlayoffFormat,
+        /// Bracket games, their slots and teams, on top of the two bowls.
+        bracket: (Vec<Game>, Vec<GameSlot>, Vec<TeamSeason>),
         generation: Cell<u64>,
         versions: RefCell<std::collections::HashMap<i64, String>>,
     }
@@ -536,7 +696,64 @@ mod tests {
             display_name: (id == 2).then(|| "Renamed Bowl".into()),
             kickoff_at: format!("2023-12-2{}T00:00:00Z", 3 - id).parse().unwrap(),
             fixed_wager: None,
+            playoff: false,
         }
+    }
+
+    enum Side {
+        Team(i64),
+        Win(i64),
+    }
+
+    /// A bracket of `size` teams (team id = 100 + seed) where seeds 1..=byes
+    /// skip the first round; games are 100, 101, ... in round order and a game's slots
+    /// are `game * 10` and `game * 10 + 1`.
+    fn field(size: usize, byes: usize) -> (Vec<Game>, Vec<GameSlot>, Vec<TeamSeason>) {
+        let mut specs: Vec<(i64, [Side; 2])> = Vec::new();
+        let mut add = |a: Side, b: Side| {
+            let id = 100 + specs.len() as i64;
+            specs.push((id, [a, b]));
+            id
+        };
+        let first = (size - byes) / 2;
+        let mut pairs: Vec<[Side; 2]> = if first > 0 {
+            let winners: Vec<i64> =
+                (0..first).map(|k| add(Side::Team((byes + 1 + k) as i64), Side::Team((size - k) as i64))).collect();
+            (0..byes).map(|k| [Side::Team(k as i64 + 1), Side::Win(winners[byes - 1 - k])]).collect()
+        } else {
+            (0..size / 2).map(|k| [Side::Team(k as i64 + 1), Side::Team((size - k) as i64)]).collect()
+        };
+        loop {
+            let ids: Vec<i64> = pairs.into_iter().map(|[a, b]| add(a, b)).collect();
+            if ids.len() == 1 {
+                break;
+            }
+            pairs = (0..ids.len() / 2).map(|k| [Side::Win(ids[k]), Side::Win(ids[ids.len() - 1 - k])]).collect();
+        }
+        let mut games = Vec::new();
+        let mut slots = Vec::new();
+        for (id, sides) in specs {
+            games.push(Game {
+                id: GameId(id),
+                season_id: SeasonId(1),
+                event_id: EventId(id),
+                display_name: Some(format!("Playoff {id}")),
+                kickoff_at: "2023-12-30T00:00:00Z".parse().unwrap(),
+                fixed_wager: None,
+                playoff: true,
+            });
+            for (k, side) in sides.into_iter().enumerate() {
+                let (source, seed) = match side {
+                    Side::Team(t) => (SlotSource::Team { team_season_id: TeamSeasonId(100 + t) }, Some(t as u16)),
+                    Side::Win(g) => (SlotSource::WinnerOf { game_id: GameId(g) }, None),
+                };
+                slots.push(GameSlot { id: SlotId(id * 10 + k as i64), game_id: GameId(id), slot_index: k as u8, source, seed });
+            }
+        }
+        let teams = (1..=size as i64)
+            .map(|seed| TeamSeason { id: TeamSeasonId(100 + seed), name: format!("Team {seed}"), rank: None, record: None })
+            .collect();
+        (games, slots, teams)
     }
 
     fn pick(user: i64, game: i64, slot: i64, confidence: u32) -> Pick {
@@ -553,7 +770,10 @@ mod tests {
         Fake {
             users,
             picks: RefCell::new(picks),
+            ranks: RefCell::new(vec![]),
             results: RefCell::new(results),
+            format: PlayoffFormat::Fixed,
+            bracket: Default::default(),
             generation: Cell::new(1),
             versions: RefCell::new([(2, "v0".to_string())].into()),
         }
@@ -567,6 +787,7 @@ mod tests {
                 year: y,
                 locks_at: locks.parse().unwrap(),
                 generation: self.generation.get(),
+                playoff_format: self.format,
             };
             Ok(vec![at(2022, "2022-12-01T00:00:00Z"), at(2023, "2024-01-01T00:00:00Z")])
         }
@@ -577,7 +798,7 @@ mod tests {
             }))
         }
         async fn games_for_season(&self, _: SeasonId) -> Result<Vec<Game>, ()> {
-            Ok(vec![game(1), game(2)])
+            Ok([vec![game(1), game(2)], self.bracket.0.clone()].concat())
         }
         async fn slots_for_season(&self, _: SeasonId) -> Result<Vec<GameSlot>, ()> {
             let slot = |id: i64, game_id: i64, slot_index: u8, source: SlotSource| GameSlot {
@@ -588,12 +809,13 @@ mod tests {
                 seed: None,
             };
             let team = |t: i64| SlotSource::Team { team_season_id: TeamSeasonId(t) };
-            Ok(vec![
+            let bowls = vec![
                 slot(21, 2, 1, SlotSource::WinnerOf { game_id: GameId(1) }),
                 slot(10, 1, 0, team(1)),
                 slot(11, 1, 1, team(2)),
                 slot(20, 2, 0, team(1)),
-            ])
+            ];
+            Ok([bowls, self.bracket.1.clone()].concat())
         }
         async fn team_seasons_for_season(&self, _: SeasonId) -> Result<Vec<TeamSeason>, ()> {
             let ts = |id: i64, name: &str| TeamSeason {
@@ -602,7 +824,10 @@ mod tests {
                 rank: (id == 1).then_some(3),
                 record: Some("10-2".into()),
             };
-            Ok(vec![ts(1, "Alpha"), ts(2, "Beta")])
+            Ok([vec![ts(1, "Alpha"), ts(2, "Beta")], self.bracket.2.clone()].concat())
+        }
+        async fn playoff_ranks_for_season(&self, _: SeasonId) -> Result<Vec<PlayoffRank>, ()> {
+            Ok(self.ranks.borrow().clone())
         }
         async fn events(&self) -> Result<Vec<Event>, ()> {
             Ok(vec![Event { id: EventId(1), name: "First Bowl".into() }])
@@ -627,6 +852,7 @@ mod tests {
             user: UserId,
             _: SeasonId,
             picks: &[Pick],
+            ranks: &[PlayoffRank],
             version: &str,
             base: Option<&str>,
         ) -> Result<Option<u64>, ()> {
@@ -638,6 +864,9 @@ mod tests {
             let mut all = self.picks.borrow_mut();
             all.retain(|p| p.user_id != user);
             all.extend_from_slice(picks);
+            let mut all_ranks = self.ranks.borrow_mut();
+            all_ranks.retain(|r| r.user_id != user);
+            all_ranks.extend_from_slice(ranks);
             self.generation.set(self.generation.get() + 1);
             Ok(Some(self.generation.get()))
         }
@@ -651,6 +880,17 @@ mod tests {
     }
 
     fn send(fake: &Fake, method: &str, path: &str, identity: Option<&str>, body: &str) -> (u16, serde_json::Value) {
+        send_at(fake, NOW, method, path, identity, body)
+    }
+
+    fn send_at(
+        fake: &Fake,
+        now: &str,
+        method: &str,
+        path: &str,
+        identity: Option<&str>,
+        body: &str,
+    ) -> (u16, serde_json::Value) {
         let req = Request {
             method,
             path,
@@ -660,7 +900,7 @@ mod tests {
             host: Some("pool.test"),
             body: body.as_bytes(),
         };
-        let r = block_on(route(fake, &req, KEY, NOW.parse().unwrap())).unwrap();
+        let r = block_on(route(fake, &req, KEY, now.parse().unwrap())).unwrap();
         (r.status, serde_json::from_str(&r.body).unwrap())
     }
 
@@ -709,8 +949,8 @@ mod tests {
             .unwrap()
             .iter()
             .map(|r| {
-                let n = |k: &str| r[k].as_u64().unwrap();
-                (n("rank"), r["display_name"].as_str().unwrap().into(), n("scored"), n("remaining"), n("max_possible"))
+                let n = |k: &str| r[k].as_f64().unwrap() as u64;
+                (n("rank"), r["display_name"].as_str().unwrap().into(), n("total"), n("remaining"), n("max_possible"))
             })
             .collect();
         assert_eq!(
@@ -801,7 +1041,7 @@ mod tests {
         assert_eq!(fake.results.borrow()[0].source, ResultSource::Manual);
         // The result shows in the games list and moves the standings.
         assert_eq!(get(&fake, "/api/seasons/2023/games", None).1["games"][1]["winner_slot_id"], 11);
-        assert_eq!(get(&fake, "/api/seasons/2023/standings", None).1["standings"][0]["scored"], 2);
+        assert_eq!(get(&fake, "/api/seasons/2023/standings", None).1["standings"][0]["total"], 2.0);
     }
 
     #[test]
@@ -876,7 +1116,7 @@ mod tests {
         // The unset game scores 0 even once decided, and was never in play.
         send(&fake, "POST", "/api/seasons/2023/games/1/result", Some(ANN), r#"{"winner_slot_id":10}"#);
         let after = get(&fake, "/api/seasons/2023/standings", None).1["standings"][0].clone();
-        assert_eq!((after["scored"].clone(), after["max_possible"].clone()), (0.into(), 1.into()));
+        assert_eq!((after["total"].clone(), after["max_possible"].clone()), (0.0.into(), 1.0.into()));
         assert_eq!(get(&fake, "/api/seasons/1999/progress", None).0, 404);
     }
 
@@ -902,5 +1142,188 @@ mod tests {
         assert_eq!(attempt(json, Some("null")), 403);
         assert_eq!(attempt(json, Some("https://pool.test")), 200);
         assert_eq!(attempt(json, None), 200);
+    }
+
+    /// Both seasons rank a playoff of `size` teams over the two bowls.
+    fn rank_pool(size: usize, byes: usize) -> Fake {
+        Fake { format: PlayoffFormat::Rank, bracket: field(size, byes), ..pool() }
+    }
+
+    const PUT_PICKS: &str = "/api/seasons/2023/picks";
+
+    fn entry(playoff: &str) -> String {
+        format!(
+            r#"{{"picks":[{{"game_id":1,"slot_id":10,"confidence":1}},{{"game_id":2,"slot_id":20,"confidence":2}}],"playoff":[{playoff}]}}"#
+        )
+    }
+
+    /// Team `100 + seed` ranked `size + 1 - seed`: the best seed is the most confident.
+    fn by_seed(size: usize) -> Vec<String> {
+        (1..=size).map(|s| format!(r#"{{"team_season_id":{},"rank":{}}}"#, 100 + s, size + 1 - s)).collect()
+    }
+
+    fn win(fake: &Fake, game: i64, slot: i64) {
+        let path = format!("/api/seasons/2023/games/{game}/result");
+        assert_eq!(send(fake, "POST", &path, Some(ANN), &format!(r#"{{"winner_slot_id":{slot}}}"#)).0, 200);
+    }
+
+    /// After the 2023 season's lock, when rankings count.
+    const LOCKED: &str = "2024-01-02T00:00:00Z";
+
+    fn bo_standing(fake: &Fake) -> Vec<f64> {
+        let (_, body) = send_at(fake, LOCKED, "GET", "/api/seasons/2023/standings", None, "");
+        let row = &body["standings"][0];
+        assert_eq!(row["display_name"], "Bo");
+        ["bowls", "playoff", "total", "remaining", "max_possible"].map(|k| row[k].as_f64().unwrap()).into()
+    }
+
+    #[test]
+    fn playoff_teams_score_rank_times_wins_and_the_bracket_says_what_is_left() {
+        let fake = rank_pool(12, 4);
+        assert_eq!(send(&fake, "PUT", PUT_PICKS, Some(BO), &entry(&by_seed(12).join(","))).0, 200);
+        // Ranks 12..1 by seed: seeds 1-4 can win 3 games, the rest 4, besides the bowls' 1 + 2.
+        assert_eq!(bo_standing(&fake), [0.0, 0.0, 0.0, 273.0, 273.0]);
+
+        // Seed 5 beats 12, 9 beats 8, 1 beats 9, 5 beats 4, then 1 beats 5.
+        for (game, slot) in [(100, 1000), (103, 1031), (104, 1040), (107, 1071), (108, 1080)] {
+            win(&fake, game, slot);
+        }
+        // Seed 1 won twice at rank 12, seed 5 twice at rank 8, seed 9 once at rank 4. Seeds
+        // 1, 2, 3, 6, 7, 10 and 11 are alive; the bowls' 3 points are still open.
+        assert_eq!(bo_standing(&fake), [0.0, 44.0, 44.0, 150.0, 194.0]);
+
+        let (_, body) = get(&fake, "/api/seasons/2023/games", None);
+        assert_eq!(body["games"].as_array().unwrap().len(), 2, "bracket games are not pick games");
+        let playoff = &body["playoff"];
+        let run = |seed: usize| {
+            let t = &playoff["teams"][seed - 1];
+            (t["seed"].as_u64().unwrap(), t["max_wins"].as_u64().unwrap(), t["wins"].as_u64().unwrap(), t["eliminated"].as_bool().unwrap())
+        };
+        assert_eq!([run(1), run(5), run(9), run(12)], [(1, 3, 2, false), (5, 4, 2, true), (9, 4, 1, true), (12, 4, 0, true)]);
+        let rounds: Vec<u64> = playoff["games"].as_array().unwrap().iter().map(|g| g["round"].as_u64().unwrap()).collect();
+        assert_eq!(rounds, [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3]);
+        let semi = &playoff["games"][8];
+        assert_eq!((semi["winner"].clone(), semi["slots"][0]["winner_of"].clone()), (101.into(), 104.into()));
+    }
+
+    #[test]
+    fn playoff_points_weigh_the_same_at_any_field_size() {
+        // (size, byes, wins for the best seed, wins for the first seed to play)
+        for (size, byes, top, first) in [(12, 4, 3, 4), (24, 8, 4, 5)] {
+            let fake = rank_pool(size, byes);
+            assert_eq!(send(&fake, "PUT", PUT_PICKS, Some(BO), &entry(&by_seed(size).join(","))).0, 200);
+            let (_, body) = get(&fake, "/api/seasons/2023/games", None);
+            let teams = &body["playoff"]["teams"];
+            assert_eq!(teams.as_array().unwrap().len(), size);
+            assert_eq!((teams[0]["max_wins"].clone(), teams[byes]["max_wins"].clone()), (top.into(), first.into()));
+
+            // The first seed to play wins its opener, at rank size - byes, scaled by 12/size.
+            win(&fake, 100, 1000);
+            let [bowls, playoff, total, ..] = bo_standing(&fake)[..] else { unreachable!() };
+            assert_eq!((bowls, playoff, total), (0.0, 8.0, 8.0), "{size} teams");
+        }
+    }
+
+    #[test]
+    fn a_ranking_must_be_a_complete_permutation_of_the_playoff_teams() {
+        let fake = rank_pool(12, 4);
+        let with_last = |last: &str| {
+            let mut all = by_seed(12);
+            *all.last_mut().unwrap() = last.to_string();
+            all.join(",")
+        };
+        let mut missing = by_seed(12);
+        missing.pop();
+        for (case, playoff, expected) in [
+            ("one team missing", missing.join(","), vec!["missing_team"]),
+            ("no ranking", String::new(), vec!["missing_team"; 12]),
+            ("a team twice", with_last(r#"{"team_season_id":101,"rank":1}"#), vec!["duplicate_team", "missing_team"]),
+            ("a team outside the bracket", with_last(r#"{"team_season_id":1,"rank":1}"#), vec!["unknown_team", "missing_team"]),
+            ("rank above N", with_last(r#"{"team_season_id":112,"rank":13}"#), vec!["bad_rank"]),
+            ("rank zero", with_last(r#"{"team_season_id":112,"rank":0}"#), vec!["bad_rank"]),
+            ("a rank used twice", with_last(r#"{"team_season_id":112,"rank":2}"#), vec!["bad_rank"]),
+        ] {
+            let (status, reply) = send(&fake, "PUT", PUT_PICKS, Some(BO), &entry(&playoff));
+            assert_eq!(status, 422, "{case}: {reply}");
+            let problems: Vec<_> = reply["problems"].as_array().unwrap().iter().map(|p| p["problem"].as_str().unwrap()).collect();
+            assert_eq!(problems, expected, "{case}");
+        }
+        // A bracket game takes no pick of its own.
+        let body = r#"{"picks":[{"game_id":1,"slot_id":10,"confidence":1},{"game_id":2,"slot_id":20,"confidence":2},{"game_id":100,"slot_id":1000,"confidence":3}],"playoff":[]}"#;
+        let (status, reply) = send(&fake, "PUT", PUT_PICKS, Some(BO), body);
+        assert_eq!((status, reply["problems"][0]["problem"].clone()), (422, "unknown_game".into()));
+        assert!(fake.ranks.borrow().is_empty(), "rejected entries change nothing");
+
+        // A season that does not rank its playoff has no teams to rank.
+        let (status, reply) = send(&pool(), "PUT", PUT_PICKS, Some(BO), &entry(r#"{"team_season_id":1,"rank":1}"#));
+        assert_eq!((status, reply["problems"][0]["problem"].clone()), (422, "unknown_team".into()));
+    }
+
+    #[test]
+    fn rankings_are_hidden_until_the_lock_and_save_under_the_version_check() {
+        let fake = rank_pool(12, 4);
+        let ranks = by_seed(12).join(",");
+        let ranking = |who, path| get(&fake, path, who).1["players"][0]["playoff"].as_array().map(Vec::len);
+        let (status, saved) = send(&fake, "PUT", PUT_PICKS, Some(BO), &entry(&ranks));
+        assert_eq!(status, 200, "{saved}");
+        assert_eq!(fake.ranks.borrow().len(), 12);
+        // Open season: only Bo sees them. Locked: everyone does, signed in or not.
+        assert_eq!((ranking(Some(BO), PUT_PICKS), ranking(Some(ANN), PUT_PICKS), ranking(None, PUT_PICKS)), (Some(12), None, None));
+        assert_eq!(ranking(None, "/api/seasons/2022/picks"), Some(12));
+
+        // A save from a stale copy is refused and answered with the current ranking.
+        let stale = entry(&ranks).replace(r#""playoff""#, r#""base_version":"old","playoff""#);
+        let (status, reply) = send(&fake, "PUT", PUT_PICKS, Some(BO), &stale);
+        assert_eq!((status, reply["playoff"].as_array().map(Vec::len)), (412, Some(12)));
+
+        // Once locked, a ranking is refused and the saved one stands.
+        let swapped = by_seed(12).into_iter().rev().collect::<Vec<_>>().join(",");
+        assert_eq!(send(&fake, "PUT", "/api/seasons/2022/picks", Some(BO), &entry(&swapped)).0, 409);
+        assert_eq!(fake.ranks.borrow().iter().find(|r| r.team_season_id == TeamSeasonId(101)).unwrap().rank, 12);
+    }
+
+    #[test]
+    fn standings_before_the_lock_do_not_depend_on_rankings() {
+        let fake = rank_pool(12, 4);
+        let ann = Some(ANN);
+        let before = |fake: &Fake| get(fake, "/api/seasons/2023/standings", None).1["standings"].clone();
+        assert_eq!(send(&fake, "PUT", PUT_PICKS, Some(BO), &entry(&by_seed(12).join(","))).0, 200);
+        let reversed = (1..=12).map(|s| format!(r#"{{"team_season_id":{},"rank":{s}}}"#, 100 + s)).collect::<Vec<_>>().join(",");
+        assert_eq!(send(&fake, "PUT", PUT_PICKS, ann, &entry(&reversed)).0, 200);
+        let rows = before(&fake);
+        let field = |row: usize, k: &str| rows[row][k].as_f64().unwrap();
+        assert_eq!(rows.as_array().unwrap().len(), 2);
+        for k in ["playoff", "total", "remaining", "max_possible"] {
+            assert_eq!(field(0, k), field(1, k), "{k}");
+        }
+        // The same entries count once the season locks.
+        let locked = send_at(&fake, LOCKED, "GET", "/api/seasons/2023/standings", None, "").1["standings"].clone();
+        assert_ne!(locked[0]["max_possible"], locked[1]["max_possible"]);
+    }
+
+    #[test]
+    fn progress_says_whether_each_ranking_is_complete_for_the_bracket() {
+        let fake = rank_pool(12, 4);
+        let flags = |fake: &Fake| {
+            let (_, body) = get(fake, "/api/seasons/2023/progress", None);
+            body["players"].as_array().unwrap().iter().map(|p| p["playoff_ranked"].clone()).collect::<Vec<_>>()
+        };
+        assert_eq!(flags(&fake), [false, false]);
+        assert_eq!(send(&fake, "PUT", PUT_PICKS, Some(BO), &entry(&by_seed(12).join(","))).0, 200);
+        assert_eq!(flags(&fake), [false, true]);
+        // A saved ranking naming a team the bracket no longer has is not complete.
+        fake.ranks.borrow_mut()[0].team_season_id = TeamSeasonId(1);
+        assert_eq!(flags(&fake), [false, false]);
+        let (_, plain) = get(&pool(), "/api/seasons/2023/progress", None);
+        assert!(plain["players"][0].get("playoff_ranked").is_none());
+    }
+
+    #[test]
+    fn a_playoff_flag_means_nothing_in_a_season_that_does_not_rank() {
+        let fake = Fake { bracket: field(12, 4), ..pool() };
+        let (_, body) = get(&fake, "/api/seasons/2023/games", None);
+        assert_eq!(body["games"].as_array().unwrap().len(), 13);
+        assert!(body.get("playoff").is_none());
+        assert_eq!(get(&fake, "/api/seasons/2023/standings", None).1["playoff_ranked"], false);
     }
 }

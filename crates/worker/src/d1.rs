@@ -6,7 +6,7 @@
 use chrono::{DateTime, Utc};
 use pickem_core::sql;
 use pickem_core::{
-    EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, ResultSource, Season, SeasonId, SlotId,
+    EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, ResultSource, Season, SeasonId, SlotId,
     SlotSource, Storage, TeamSeason, TeamSeasonId, User, UserId,
 };
 use serde::de::DeserializeOwned;
@@ -42,6 +42,7 @@ struct SeasonRow {
     year: u16,
     locks_at: String,
     generation: u64,
+    playoff_format: String,
 }
 
 impl SeasonRow {
@@ -51,6 +52,7 @@ impl SeasonRow {
             year: self.year,
             locks_at: time(&self.locks_at)?,
             generation: self.generation,
+            playoff_format: PlayoffFormat::from_stored(&self.playoff_format),
         })
     }
 }
@@ -63,6 +65,7 @@ struct GameRow {
     display_name: Option<String>,
     kickoff_at: String,
     fixed_wager: Option<u32>,
+    playoff: i64,
 }
 
 #[derive(Deserialize)]
@@ -103,6 +106,13 @@ struct PickRow {
     season_id: i64,
     slot_id: Option<i64>,
     confidence: Option<u32>,
+}
+
+#[derive(Deserialize)]
+struct RankRow {
+    user_id: i64,
+    team_season_id: i64,
+    rank: u32,
 }
 
 #[derive(Deserialize)]
@@ -165,6 +175,7 @@ impl Storage for D1Storage {
                     display_name: r.display_name,
                     kickoff_at: time(&r.kickoff_at)?,
                     fixed_wager: r.fixed_wager,
+                    playoff: r.playoff != 0,
                 })
             })
             .collect()
@@ -235,6 +246,14 @@ impl Storage for D1Storage {
             .collect())
     }
 
+    async fn playoff_ranks_for_season(&self, season: SeasonId) -> Result<Vec<PlayoffRank>> {
+        let rows: Vec<RankRow> = self.query(sql::PLAYOFF_RANKS_FOR_SEASON, &[num(season.0)]).await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| PlayoffRank { user_id: UserId(r.user_id), team_season_id: TeamSeasonId(r.team_season_id), rank: r.rank })
+            .collect())
+    }
+
     async fn user_by_email_hash(&self, hash: &EmailHash) -> Result<Option<User>> {
         let rows: Vec<UserRow> = self.query(sql::USER_BY_EMAIL_HASH, &[hash.as_str().into()]).await?;
         Ok(rows.into_iter().next().map(Into::into))
@@ -256,16 +275,25 @@ impl Storage for D1Storage {
         user: UserId,
         season: SeasonId,
         picks: &[Pick],
+        ranks: &[PlayoffRank],
         version: &str,
         base: Option<&str>,
     ) -> Result<Option<u64>> {
         let base = base.map_or(JsValue::NULL, JsValue::from_str);
-        let mut statements = vec![self.0.prepare(sql::DELETE_PICKS).bind(&[num(user.0), num(season.0), base])?];
+        let guard = [num(user.0), num(season.0), base];
+        let mut statements = vec![
+            self.0.prepare(sql::DELETE_PICKS).bind(&guard)?,
+            self.0.prepare(sql::DELETE_RANKS).bind(&guard)?,
+        ];
         for p in picks {
             let confidence = p.confidence.map_or(JsValue::NULL, |c| num(c.into()));
             let slot = p.slot_id.map_or(JsValue::NULL, |s| num(s.0));
             let args = [num(user.0), num(p.game_id.0), num(season.0), slot, confidence, version.into()];
             statements.push(self.0.prepare(sql::INSERT_PICK).bind(&args)?);
+        }
+        for r in ranks {
+            let args = [num(user.0), num(season.0), num(r.team_season_id.0), num(r.rank.into()), version.into()];
+            statements.push(self.0.prepare(sql::INSERT_RANK).bind(&args)?);
         }
         let bump = [num(season.0), num(user.0), version.into()];
         statements.push(self.0.prepare(sql::BUMP_GENERATION_FOR_PICKS).bind(&bump)?);

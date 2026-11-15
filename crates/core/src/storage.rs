@@ -5,7 +5,7 @@
 //! Because both sit behind this one trait, the two build paths differ only in
 //! their adapter — there is no second copy of the rules to drift.
 
-use crate::model::{EmailHash, Event, Game, GameResult, GameSlot, Pick, Season, SeasonId, TeamSeason, User, UserId};
+use crate::model::{EmailHash, Event, Game, GameResult, GameSlot, Pick, PlayoffRank, Season, SeasonId, TeamSeason, User, UserId};
 
 /// Reads and writes the app needs.
 ///
@@ -34,13 +34,17 @@ pub trait Storage {
     async fn user_by_email_hash(&self, hash: &EmailHash) -> Result<Option<User>, Self::Error>;
     async fn users(&self) -> Result<Vec<User>, Self::Error>;
 
-    /// The version of a player's picks for a season; `None` when they have none.
+    /// Every player's playoff ranking for the season.
+    async fn playoff_ranks_for_season(&self, season: SeasonId) -> Result<Vec<PlayoffRank>, Self::Error>;
+
+    /// The version of a player's picks and ranking for a season; `None` when
+    /// they have neither.
     async fn picks_version(&self, user: UserId, season: SeasonId) -> Result<Option<String>, Self::Error>;
 
-    /// Replace a player's picks for a season with a set stamped `version`,
-    /// atomically. With `base` given, nothing changes unless it is the
-    /// player's current version (the empty string when they have no picks);
-    /// that is `Ok(None)`.
+    /// Replace a player's picks and playoff ranking for a season with a set
+    /// stamped `version`, atomically. With `base` given, nothing changes
+    /// unless it is the player's current version (the empty string when they
+    /// have none); that is `Ok(None)`.
     ///
     /// Returns the season's new generation, so the caller can use it
     /// directly for read-your-own-writes instead of re-reading the pointer,
@@ -50,6 +54,7 @@ pub trait Storage {
         user: UserId,
         season: SeasonId,
         picks: &[Pick],
+        ranks: &[PlayoffRank],
         version: &str,
         base: Option<&str>,
     ) -> Result<Option<u64>, Self::Error>;

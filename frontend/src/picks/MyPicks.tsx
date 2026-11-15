@@ -1,20 +1,28 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchGames, fetchMe, fetchPicks, type PickRow } from "../api";
+import { fetchGames, fetchMe, fetchPicks, type PicksDoc } from "../api";
 import { PanelError, SeasonPage, Skeleton } from "../ui";
 import { PickEntry } from "./PickEntry";
 import { PickList } from "./PickList";
-import { fromRows, toGames, type Game } from "./model";
+import { PlayoffRanking } from "./PlayoffRanking";
+import { toField, type Field } from "./bracket";
+import { fromDoc, toGames, type Game } from "./model";
 import "./picks.css";
 
 /** The player's own picks, read-only once the season has locked. */
-function LockedPicks({ games, rows }: { games: Game[]; rows: PickRow[] }) {
+function LockedPicks({ games, field, teams, doc }: { games: Game[]; field?: Field; teams: number[]; doc: PicksDoc }) {
   const byId = useMemo(() => new Map(games.map((g) => [g.id, g])), [games]);
-  if (!rows.length) return <p>You made no picks this season.</p>;
+  if (!doc.picks.length && !doc.playoff.length) return <p>You made no picks this season.</p>;
+  const entry = fromDoc(games, teams, doc);
   return (
     <div className="picks">
       <p className="how">Picks are locked.</p>
-      <PickList games={games} byId={byId} entry={fromRows(games, rows)} />
+      <PickList
+        games={games}
+        byId={byId}
+        entry={entry}
+        playoff={field && <PlayoffRanking field={field} ranking={entry.ranking} hold={false} />}
+      />
     </div>
   );
 }
@@ -26,14 +34,17 @@ function SeasonPicks({ year, name }: { year: number; name: string }) {
   const picks = useQuery({ queryKey: ["picks", year], queryFn: () => fetchPicks(year), gcTime: 0 });
   // A failed refetch must not replace what is already showing.
   const error = (!games.data && games.error) || (!picks.data && picks.error);
-  const list = useMemo(() => games.data && toGames(games.data), [games.data]);
+  const list = useMemo(() => games.data && toGames(games.data.games), [games.data]);
+  const field = useMemo(() => games.data?.playoff && toField(games.data.playoff), [games.data]);
+  const teams = useMemo(() => (field ? [...field.teams.keys()] : []), [field]);
   if (error) return <PanelError error={error} />;
   if (!list || !picks.data) return <Skeleton lines={8} />;
-  const rows = picks.data.players.find((p) => p.is_me)?.picks ?? [];
+  const mine = picks.data.players.find((p) => p.is_me);
+  const doc: PicksDoc = { picks: mine?.picks ?? [], playoff: mine?.playoff ?? [] };
   return picks.data.locked ? (
-    <LockedPicks games={list} rows={rows} />
+    <LockedPicks games={list} field={field} teams={teams} doc={doc} />
   ) : (
-    <PickEntry key={`${year}:${name}`} year={year} name={name} games={list} server={rows} version={picks.data.version} />
+    <PickEntry key={`${year}:${name}`} year={year} name={name} games={list} field={field} teams={teams} server={doc} version={picks.data.version} />
   );
 }
 

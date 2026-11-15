@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchProgress, fetchStandings } from "./api";
-import { PanelError, SeasonPage, Skeleton, useSeasons } from "./ui";
+import { fmt, PanelError, SeasonPage, Skeleton, useSeasons } from "./ui";
 
 function StandingsTable({ year }: { year: number }) {
   const { data, error } = useQuery({
@@ -9,8 +9,9 @@ function StandingsTable({ year }: { year: number }) {
   });
   if (error) return <PanelError error={error} />;
   if (!data) return <Skeleton lines={6} />;
-  if (data.length === 0) return <p>No standings for {year} yet.</p>;
-  const showMax = data.some((s) => s.remaining > 0);
+  const { standings, playoff_ranked: split } = data;
+  if (standings.length === 0) return <p>No standings for {year} yet.</p>;
+  const showMax = standings.some((s) => s.remaining > 0);
   return (
     <table>
       <caption className="sr-only">{year} standings</caption>
@@ -18,17 +19,21 @@ function StandingsTable({ year }: { year: number }) {
         <tr>
           <th scope="col">Rank</th>
           <th scope="col">Player</th>
-          <th scope="col" className="num">Points</th>
+          {split && <th scope="col" className="num">Bowls</th>}
+          {split && <th scope="col" className="num">Playoff</th>}
+          <th scope="col" className="num">{split ? "Total" : "Points"}</th>
           {showMax && <th scope="col" className="num">Max possible</th>}
         </tr>
       </thead>
       <tbody>
-        {data.map((s) => (
+        {standings.map((s) => (
           <tr key={s.display_name}>
             <td>{s.rank}</td>
             <th scope="row">{s.display_name}</th>
-            <td className="num">{s.scored}</td>
-            {showMax && <td className="num">{s.max_possible}</td>}
+            {split && <td className="num">{fmt(s.bowls)}</td>}
+            {split && <td className="num">{fmt(s.playoff)}</td>}
+            <td className="num">{fmt(s.total)}</td>
+            {showMax && <td className="num">{fmt(s.max_possible)}</td>}
           </tr>
         ))}
       </tbody>

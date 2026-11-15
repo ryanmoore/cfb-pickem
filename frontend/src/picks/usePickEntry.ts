@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { putPicks, type PickRow } from "../api";
-import { freshEntry, fromRows, moved, reconcile, sameRows, toRows, type Entry, type Game } from "./model";
+import { putPicks, type PicksDoc } from "../api";
+import { freshEntry, fromDoc, moved, reconcile, sameDoc, toDoc, type Entry, type Game } from "./model";
 import { createSaveQueue, type Status } from "./saveQueue";
 
 /** Picks the server has not acknowledged, and the server version they were made from. */
@@ -11,7 +11,8 @@ export const STALE_NOTICE = "Your picks were changed on another device — showi
 const parseLocal = (text: string | null): Local | undefined => {
   try {
     const local = JSON.parse(text ?? "");
-    return local?.entry ? local : undefined;
+    // An entry saved before playoff rankings existed has no ranking.
+    return local?.entry ? { ...local, entry: { ranking: [], ...local.entry } } : undefined;
   } catch {
     return undefined;
   }
@@ -31,12 +32,12 @@ const writeLocal = (key: string, entry: Entry, base: string | null) => {
  * server's copy (a different base means another device saved since), else a
  * fresh random order. `send` says the server needs the result.
  */
-function start(key: string, games: Game[], server: PickRow[], version: string | null) {
+function start(key: string, games: Game[], teams: number[], server: PicksDoc, version: string | null) {
   const local = parseLocal(localStorage.getItem(key));
   const stale = !!local && local.base !== version;
-  if (local && !stale) return { entry: reconcile(games, local.entry), send: true, stale };
-  const entry = server.length ? fromRows(games, server) : freshEntry(games);
-  return { entry, send: !sameRows(toRows(games, entry), server), stale };
+  if (local && !stale) return { entry: reconcile(games, teams, local.entry), send: true, stale };
+  const entry = server.picks.length || server.playoff.length ? fromDoc(games, teams, server) : freshEntry(games, teams);
+  return { entry, send: !sameDoc(toDoc(games, entry), server), stale };
 }
 
 /**
@@ -44,16 +45,16 @@ function start(key: string, games: Game[], server: PickRow[], version: string | 
  * server through a queue that retries until it gets through. The device's
  * copy exists only while the server lacks it.
  */
-export function usePickEntry(year: number, name: string, games: Game[], server: PickRow[], version: string | null) {
+export function usePickEntry(year: number, name: string, games: Game[], teams: number[], server: PicksDoc, version: string | null) {
   const key = `pickem:picks:${year}:${name}`;
-  const [init] = useState(() => start(key, games, server, version));
+  const [init] = useState(() => start(key, games, teams, server, version));
   const [entry, setEntry] = useState(init.entry);
   const [status, setStatus] = useState<Status>({ kind: init.send ? "saving" : "saved" });
   const [notice, setNotice] = useState(init.stale ? STALE_NOTICE : undefined);
   const current = useRef(entry);
   const base = useRef(version);
-  const gamesRef = useRef(games);
-  gamesRef.current = games;
+  const fieldRef = useRef({ games, teams });
+  fieldRef.current = { games, teams };
   const queue = useRef<ReturnType<typeof createSaveQueue>>(undefined);
 
   const adopt = (e: Entry) => {
@@ -63,7 +64,7 @@ export function usePickEntry(year: number, name: string, games: Game[], server: 
 
   useEffect(() => {
     const q = createSaveQueue({
-      send: (rows, keepalive) => putPicks(year, rows, base.current, keepalive),
+      send: (doc, keepalive) => putPicks(year, doc, base.current, keepalive),
       onStatus: setStatus,
       onAccepted: (v, isCurrent) => {
         base.current = v;
@@ -73,7 +74,7 @@ export function usePickEntry(year: number, name: string, games: Game[], server: 
       onConflict: (c) => {
         base.current = c.version;
         localStorage.removeItem(key);
-        adopt(fromRows(gamesRef.current, c.picks));
+        adopt(fromDoc(fieldRef.current.games, fieldRef.current.teams, c));
         setNotice(STALE_NOTICE);
       },
     });
@@ -86,7 +87,7 @@ export function usePickEntry(year: number, name: string, games: Game[], server: 
       if (!local) return;
       q.drop();
       base.current = local.base;
-      adopt(reconcile(gamesRef.current, local.entry));
+      adopt(reconcile(fieldRef.current.games, fieldRef.current.teams, local.entry));
     };
     addEventListener("online", online);
     addEventListener("pagehide", q.flush);
@@ -95,7 +96,7 @@ export function usePickEntry(year: number, name: string, games: Game[], server: 
     if (init.stale) localStorage.removeItem(key);
     if (init.send) {
       writeLocal(key, current.current, base.current);
-      q.change(toRows(games, current.current));
+      q.change(toDoc(games, current.current));
       void q.sendNow();
     }
     return () => {
@@ -112,14 +113,14 @@ export function usePickEntry(year: number, name: string, games: Game[], server: 
     adopt(next);
     setNotice(undefined);
     writeLocal(key, next, base.current);
-    queue.current?.change(toRows(games, next));
+    queue.current?.change(toDoc(games, next));
   };
 
-  // The season's games changed under an open page: fit the entry to them.
+  // The season's games or teams changed under an open page: fit the entry to them.
   useEffect(() => {
-    const next = reconcile(games, current.current);
+    const next = reconcile(games, teams, current.current);
     if (JSON.stringify(next) !== JSON.stringify(current.current)) update(() => next);
-  }, [games]);
+  }, [games, teams]);
 
   return {
     entry,
@@ -134,6 +135,7 @@ export function usePickEntry(year: number, name: string, games: Game[], server: 
         return { ...e, winners };
       }),
     move: (gameId: number, idx: number) => update((e) => ({ ...e, order: moved(e.order, gameId, idx) })),
-    reset: () => update(() => freshEntry(games)),
+    moveTeam: (teamId: number, idx: number) => update((e) => ({ ...e, ranking: moved(e.ranking, teamId, idx) })),
+    reset: () => update(() => freshEntry(games, teams)),
   };
 }

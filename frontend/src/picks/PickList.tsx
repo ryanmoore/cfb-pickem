@@ -1,19 +1,22 @@
+import type { ReactNode } from "react";
 import { Cells } from "./Cells";
 import type { Entry, Game } from "./model";
 
 export type Flash = { id: number; n: number; cancel: boolean };
 
 /**
- * The player's games: playoff games at their fixed points, then the ranked
- * games best-first. Without `onPick` and `onOpen` the list is read-only.
+ * The player's games: the playoff (games at their fixed points, or `playoff`
+ * when the season ranks its teams), then the ranked games best-first. Without
+ * `onPick` and `onOpen` the list is read-only.
  */
-export function PickList({ games, byId, entry, flash, onPick, onOpen }: {
+export function PickList({ games, byId, entry, flash, onPick, onOpen, playoff }: {
   games: Game[];
   byId: Map<number, Game>;
   entry: Entry;
   flash?: Flash;
   onPick?: (gameId: number, slotId: number) => void;
   onOpen?: (gameId: number) => void;
+  playoff?: ReactNode;
 }) {
   const fixed = games.filter((g) => g.fixedWager !== null);
   // The overlay is re-keyed per flash so a second one restarts its CSS animation.
@@ -21,6 +24,7 @@ export function PickList({ games, byId, entry, flash, onPick, onOpen }: {
   const pick = (id: number) => onPick && ((slotId: number) => onPick(id, slotId));
   return (
     <>
+      {playoff}
       {fixed.length > 0 && (
         <>
           <h2>Playoff</h2>

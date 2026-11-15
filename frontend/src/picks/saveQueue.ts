@@ -1,4 +1,4 @@
-import type { PickRow, SaveResult } from "../api";
+import type { PicksDoc, SaveResult } from "../api";
 
 export type Status =
   | { kind: "saved" | "saving" | "offline" | "locked" | "signedout" }
@@ -18,13 +18,13 @@ const BACKOFF_MS = [1000, 2000, 5000, 15000, 30000];
  * over the server's copy and goes quiet until the next change.
  */
 export function createSaveQueue(o: {
-  send: (rows: PickRow[], keepalive: boolean) => Promise<SaveResult>;
+  send: (doc: PicksDoc, keepalive: boolean) => Promise<SaveResult>;
   onStatus: (s: Status) => void;
   /** The server took a set and now has this version; `current` when it is the latest set. */
   onAccepted: (version: string, current: boolean) => void;
   onConflict: (c: Conflict) => void;
 }) {
-  let latest: PickRow[] = [];
+  let latest: PicksDoc = { picks: [], playoff: [] };
   let dirty = false;
   let version = 0;
   let inFlight = false;
@@ -70,9 +70,9 @@ export function createSaveQueue(o: {
   }
 
   return {
-    change(rows: PickRow[]) {
+    change(doc: PicksDoc) {
       if (stopped) return;
-      latest = rows;
+      latest = doc;
       dirty = true;
       version++;
       if (failures === 0) {

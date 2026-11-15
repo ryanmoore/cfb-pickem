@@ -78,3 +78,6 @@ export function SeasonPage({ children }: { children: (year: number) => ReactNode
     </>
   );
 }
+
+/** Points as shown: whole numbers plain, fractions to two places. */
+export const fmt = (n: number) => String(+n.toFixed(2));
