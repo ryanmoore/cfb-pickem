@@ -24,7 +24,8 @@ function SeasonPicks({ year, name }: { year: number; name: string }) {
   // Not cached after it unmounts: the entry starts from this response, so a
   // stale copy would hide picks saved since.
   const picks = useQuery({ queryKey: ["picks", year], queryFn: () => fetchPicks(year), gcTime: 0 });
-  const error = games.error ?? picks.error;
+  // A failed refetch must not replace what is already showing.
+  const error = (!games.data && games.error) || (!picks.data && picks.error);
   const list = useMemo(() => games.data && toGames(games.data), [games.data]);
   if (error) return <PanelError error={error} />;
   if (!list || !picks.data) return <Skeleton lines={8} />;
@@ -32,7 +33,7 @@ function SeasonPicks({ year, name }: { year: number; name: string }) {
   return picks.data.locked ? (
     <LockedPicks games={list} rows={rows} />
   ) : (
-    <PickEntry key={`${year}:${name}`} year={year} name={name} games={list} server={rows} />
+    <PickEntry key={`${year}:${name}`} year={year} name={name} games={list} server={rows} version={picks.data.version} />
   );
 }
 

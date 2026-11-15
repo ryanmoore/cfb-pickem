@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PickRow, SaveResult } from "../api";
-import { fromRows, moved, shuffle, toRows, type Game } from "./model";
+import { fromRows, moved, reconcile, shuffle, toRows, type Game } from "./model";
 import { createSaveQueue, type Status } from "./saveQueue";
 
 const game = (id: number, fixedWager: number | null = null): Game => ({
@@ -45,20 +45,34 @@ describe("entry model", () => {
   });
 });
 
+describe("reconcile", () => {
+  it.each([
+    ["nothing changed", { order: [1, 2], winners: { 1: 10 } }, [game(1), game(2)], { order: [1, 2], winners: { 1: 10 } }],
+    ["a ranked game is added at the bottom", { order: [2, 1], winners: {} }, [game(1), game(2), game(3)], { order: [2, 1, 3], winners: {} }],
+    ["a playoff game is not ranked", { order: [1], winners: {} }, [game(1), game(5, 4)], { order: [1], winners: {} }],
+    ["a game is removed, with its winner", { order: [3, 1, 2], winners: { 3: 30, 1: 10 } }, [game(1), game(2)], { order: [1, 2], winners: { 1: 10 } }],
+    ["a slot is removed", { order: [1], winners: { 1: 10 } }, [{ ...game(1), slots: [{ id: 11, label: "B" }] }], { order: [1], winners: {} }],
+  ])("%s", (_, entry, list, want) => {
+    expect(reconcile(list, entry)).toEqual(want);
+  });
+});
+
 describe("save queue", () => {
   const rows = (n: number): PickRow[] => [{ game_id: 1, slot_id: null, confidence: n }];
   let results: SaveResult[];
   let sent: PickRow[][];
   let statuses: Status["kind"][];
   let saved: number;
+  let conflicts: (string | null)[];
   const queue = () =>
     createSaveQueue({
       send: async (r) => {
         sent.push(r);
-        return results.shift() ?? { kind: "ok" };
+        return results.shift() ?? { kind: "ok", version: "v" };
       },
       onStatus: (s) => statuses.push(s.kind),
-      onSaved: () => saved++,
+      onAccepted: (_, current) => current && saved++,
+      onConflict: (c) => conflicts.push(c.version),
     });
 
   beforeEach(() => {
@@ -67,6 +81,7 @@ describe("save queue", () => {
     sent = [];
     statuses = [];
     saved = 0;
+    conflicts = [];
   });
   afterEach(() => vi.useRealTimers());
 
@@ -83,18 +98,19 @@ describe("save queue", () => {
     const q = createSaveQueue({
       send: (r) => new Promise((res) => (sent.push(r), (finish = res))),
       onStatus: (s) => statuses.push(s.kind),
-      onSaved: () => saved++,
+      onAccepted: (_, current) => current && saved++,
+      onConflict: () => {},
     });
     q.change(rows(1));
     await vi.advanceTimersByTimeAsync(1000);
     q.change(rows(2));
     await vi.advanceTimersByTimeAsync(5000);
     expect(sent).toEqual([rows(1)]);
-    finish({ kind: "ok" });
+    finish({ kind: "ok", version: "v" });
     await vi.advanceTimersByTimeAsync(0);
     expect(sent).toEqual([rows(1), rows(2)]);
     expect(saved).toBe(0);
-    finish({ kind: "ok" });
+    finish({ kind: "ok", version: "v" });
     await vi.advanceTimersByTimeAsync(0);
     expect(saved).toBe(1);
   });
@@ -128,6 +144,7 @@ describe("save queue", () => {
 
   it.each<[SaveResult, Status["kind"]]>([
     [{ kind: "locked" }, "locked"],
+    [{ kind: "signedout" }, "signedout"],
     [{ kind: "rejected", message: "no" }, "rejected"],
   ])("stops for good on %j", async (result, status) => {
     results = [result];
@@ -139,5 +156,26 @@ describe("save queue", () => {
     expect(sent.length).toBe(1);
     expect(statuses.at(-1)).toBe(status);
     expect(saved).toBe(0);
+  });
+
+  it("hands over the server's copy on a conflict and does not resend the stale set", async () => {
+    results = [{ kind: "conflict", picks: [], version: "v9" }];
+    const q = queue();
+    q.change(rows(1));
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(sent.length).toBe(1);
+    expect(conflicts).toEqual(["v9"]);
+    expect(statuses.at(-1)).toBe("saved");
+  });
+
+  it("flushes an unsent set at once and not a sent one", async () => {
+    const q = queue();
+    q.change(rows(1));
+    q.flush();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sent).toEqual([rows(1)]);
+    q.flush();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(sent.length).toBe(1);
   });
 });

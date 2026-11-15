@@ -49,6 +49,8 @@ export type PickRow = { game_id: number; slot_id: number | null; confidence: num
 export type PicksResponse = {
   year: number;
   locked: boolean;
+  /** Version of the caller's own set; null when they have none. */
+  version: string | null;
   players: { display_name: string; is_me: boolean; picks: PickRow[] }[];
 };
 
@@ -62,26 +64,33 @@ export const fetchProgress = (year: number) =>
 
 /** How a save attempt ended, as the save queue needs to decide what to do next. */
 export type SaveResult =
-  | { kind: "ok" }
+  | { kind: "ok"; version: string }
+  | { kind: "conflict"; picks: PickRow[]; version: string | null }
   | { kind: "retry" }
   | { kind: "locked" }
+  | { kind: "signedout" }
   | { kind: "rejected"; message: string };
 
-export async function putPicks(year: number, picks: PickRow[]): Promise<SaveResult> {
+/** `base` is the version of the server set the picks were made from. */
+export async function putPicks(year: number, picks: PickRow[], base: string | null, keepalive = false): Promise<SaveResult> {
   let res: Response;
   try {
     res = await fetch(`/api/seasons/${year}/picks`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ picks }),
+      body: JSON.stringify({ picks, base_version: base }),
+      redirect: "manual",
+      keepalive,
     });
   } catch {
     return { kind: "retry" };
   }
-  if (res.ok) return { kind: "ok" };
+  if (res.type === "opaqueredirect" || res.status === 401 || res.status === 403) return { kind: "signedout" };
+  const body = await res.json().catch(() => null);
+  if (res.ok) return { kind: "ok", version: body.version };
+  if (res.status === 412) return { kind: "conflict", picks: body.picks, version: body.version };
   if (res.status === 409) return { kind: "locked" };
   if (res.status >= 500) return { kind: "retry" };
-  const body = await res.json().catch(() => null);
   const detail = body?.problems ? `: ${JSON.stringify(body.problems)}` : "";
   return { kind: "rejected", message: `${body?.error ?? `Request failed (${res.status})`}${detail}` };
 }

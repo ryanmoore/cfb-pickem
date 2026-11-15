@@ -74,14 +74,20 @@ export function fromRows(games: Game[], rows: PickRow[]): Entry {
   return { order, winners };
 }
 
-/** Whether a stored entry still fits the season's games. */
-export function fits(games: Game[], e: Entry) {
+/**
+ * `e` fitted to the season's games: ids that no longer exist are dropped, new
+ * ranked games go last (the lowest confidence), and winners survive only for
+ * slots that still exist.
+ */
+export function reconcile(games: Game[], e: Entry): Entry {
   const ranked = rankedIds(games);
-  return (
-    e.order.length === ranked.length &&
-    ranked.every((id) => e.order.includes(id)) &&
-    Object.entries(e.winners).every(([id, slot]) => games.find((g) => g.id === Number(id))?.slots.some((s) => s.id === slot))
-  );
+  const order = [...e.order.filter((id) => ranked.includes(id)), ...ranked.filter((id) => !e.order.includes(id))];
+  const winners: Entry["winners"] = {};
+  for (const g of games) {
+    const slot = e.winners[g.id];
+    if (slot !== undefined && g.slots.some((s) => s.id === slot)) winners[g.id] = slot;
+  }
+  return { order, winners };
 }
 
 export const sameRows = (a: PickRow[], b: PickRow[]) => {
