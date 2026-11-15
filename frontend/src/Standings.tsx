@@ -17,6 +17,7 @@ function StandingsList({ year }: { year: number }) {
   if (error) return <PanelError error={error} />;
   if (!data) return <Skeleton lines={6} />;
   const { standings, playoff_ranked: split } = data;
+  const last = Math.max(0, ...standings.map((s) => s.rank));
   if (standings.length === 0) return <p>No standings for {year} yet.</p>;
   const scale = Math.max(1, ...standings.map((s) => s.max_possible));
   const rows = sort === "reach"
@@ -80,9 +81,10 @@ function StandingsList({ year }: { year: number }) {
         <tbody>
           {rows.map((s) => {
             const you = s.display_name === mine;
+            const coal = s.rank > 3 && s.rank === last;
             return (
-              <tr key={s.display_name} className={`r${s.rank}${you ? " me-row" : ""}`}>
-                <td><span className="rank">{s.rank}</span></td>
+              <tr key={s.display_name} className={`r${s.rank}${coal ? " coal-row" : ""}${you ? " me-row" : ""}`}>
+                <td><span className="rank" title={coal ? "Last place: a lump of coal" : undefined}>{s.rank}</span></td>
                 <td className="who">
                   {s.display_name}
                   {you && <small>You</small>}

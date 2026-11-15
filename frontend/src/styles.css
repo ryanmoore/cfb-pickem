@@ -136,6 +136,7 @@ section + section { margin-top: 1.5rem; }
 .r1 .rank { background: radial-gradient(circle at 35% 30%, #ffe8a3, var(--gold) 60%, var(--gold-dk)); color: #4a3300; }
 .r2 .rank { background: radial-gradient(circle at 35% 30%, #fff, #c9ced6 60%, #8d95a1); color: #333; }
 .r3 .rank { background: radial-gradient(circle at 35% 30%, #ffd9b8, #d08a52 60%, #9a5a2a); color: #3a1c05; }
+.coal-row .rank { background: radial-gradient(circle at 35% 30%, #6b6b6b, #2a2a2a 55%, #111); color: #f3efe6; border-radius: 46% 54% 40% 60% / 55% 45% 58% 42%; }
 .who { min-width: 0; font: 800 1.05rem var(--round); }
 .who small { display: block; font: 500 0.78rem system-ui; color: var(--muted); }
 
