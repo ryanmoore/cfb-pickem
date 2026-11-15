@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProgress, type Progress } from "./api";
+import { CalendarView } from "./picks/CalendarView";
 import { EveryonesPicks } from "./picks/EveryonesPicks";
 import { PanelError, SeasonPage, Skeleton, seasonHref, useSeason } from "./ui";
 
@@ -102,6 +103,22 @@ function PickProgress({ year }: { year: number }) {
   );
 }
 
+/** Everyone's picks in the standard or the calendar view, with a link at the bottom to the other; `?view=` keeps the choice. */
+function LockedPicks({ year }: { year: number }) {
+  const [calendar, setCalendar] = useState(() => new URLSearchParams(location.search).get("view") === "calendar");
+  const swap = () => {
+    history.replaceState(null, "", `?${new URLSearchParams({ season: String(year), view: calendar ? "standard" : "calendar" })}`);
+    setCalendar(!calendar);
+    scrollTo(0, 0);
+  };
+  return (
+    <>
+      {calendar ? <CalendarView year={year} /> : <EveryonesPicks year={year} />}
+      <button type="button" className="viewswitch" onClick={swap}>{calendar ? "Back to the standard view" : "Try the calendar view"}</button>
+    </>
+  );
+}
+
 function Season({ year }: { year: number }) {
   const { seasons } = useSeason();
   const season = seasons?.find((s) => s.year === year);
@@ -109,7 +126,7 @@ function Season({ year }: { year: number }) {
   return (
     <section>
       {season.locked ? (
-        <EveryonesPicks year={year} />
+        <LockedPicks year={year} />
       ) : (
         <div className="panel">
           <Deadline locksAt={season.locks_at} />

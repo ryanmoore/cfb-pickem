@@ -1,0 +1,54 @@
+.cal { --info: 19rem; --cell: 3rem; --strip: 60px; }
+.cal .strip { position: sticky; top: 0; z-index: 20; display: flex; gap: 6px; margin: 0 -1rem; padding: 6px 1rem; background: var(--cream); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.cal .strip a { flex: none; width: 3.6rem; height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); font: 800 1.05rem/1 var(--round); text-decoration: none; }
+.cal .strip small { margin-bottom: 2px; color: var(--muted); font: 700 0.62rem system-ui; letter-spacing: 0.06em; text-transform: uppercase; }
+.cal .strip i { margin-top: 2px; color: var(--muted); font: 700 0.62rem system-ui; font-style: normal; }
+.cal .strip .done { background: var(--mint); border-color: #b7d9bf; }
+.cal .strip .today { border-color: var(--cran); }
+.cal .strip .po { background: #fff6dc; border-color: var(--gold); }
+.cal .phead { display: none; }
+
+.cal .day { scroll-margin-top: 4.5rem; margin-top: 16px; }
+.cal .day > h3 { margin: 0 0 6px; font-size: 1rem; }
+.cal-game { margin-bottom: 8px; overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 2px 0 var(--line); }
+.cal-game.live { border: 2px solid var(--cran); }
+.cal-game > summary { display: grid; gap: 8px; padding: 8px 10px 10px; cursor: pointer; list-style: none; }
+.cal-game > summary::-webkit-details-marker { display: none; }
+.cal .info { display: grid; grid-template-columns: 4.2rem minmax(0, 1fr); gap: 10px; }
+.cal .time { color: var(--turf-dk); font: 800 0.9rem/1.2 var(--round); }
+.cal .lv, .cal .fn { display: inline-block; padding: 2px 6px; border-radius: 6px; color: #fff; font: 800 0.7rem var(--round); }
+.cal .lv { background: var(--cran); }
+.cal .fn { background: var(--turf-dk); }
+.cal .bowl { color: var(--cran-dk); font: 700 0.72rem system-ui; letter-spacing: 0.06em; text-transform: uppercase; }
+.cal .team { display: flex; align-items: center; gap: 6px; font: 800 0.95rem var(--round); }
+.cal .team span { flex: 1; min-width: 0; }
+.cal .team small { color: var(--muted); font: 600 0.72rem system-ui; }
+.cal .team.won span { color: var(--turf-dk); }
+.cal .team.lost { color: #8c958e; }
+.sw { width: 14px; height: 14px; flex: none; border-radius: 4px; }
+.sw.a { background: var(--turf); }
+.sw.b { background: var(--paper); border: 2px solid var(--leather); }
+
+.cal .cells { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.cal .cell { position: relative; padding: 3px 0 4px; border-radius: 9px; text-align: center; font: 900 1rem/1.1 var(--round); font-variant-numeric: tabular-nums; }
+.cal .cell small { display: block; font: 700 0.6rem system-ui; opacity: 0.85; }
+.cal .cell.a { background: var(--turf); color: #fff; }
+.cal .cell.b { background: var(--paper); color: var(--leather); box-shadow: inset 0 0 0 2px var(--leather); }
+.cal .cell.none { color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+.cal .cell.mine { outline: 3px solid var(--gold); outline-offset: 1px; }
+.cal .cell.lost { background: var(--hatch); color: #9a907c; box-shadow: none; }
+.cal .cell.lost b { text-decoration: line-through; }
+.cal .cell.won::after { content: "✓"; position: absolute; top: -5px; right: -3px; width: 15px; height: 15px; border-radius: 50%; background: var(--gold); color: var(--gold-ink); font: 900 0.6rem/15px system-ui; }
+.cal .lists { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 0; padding: 10px 10px 10px; border-top: 1px dashed var(--line); }
+.cal .lists h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 4px; font: 800 0.85rem var(--round); }
+
+@media (min-width: 1000px) {
+  .cal .phead { position: sticky; top: calc(var(--strip) + 1px); z-index: 15; display: grid; grid-template-columns: calc(var(--info) + 4px) repeat(var(--n), var(--cell)); gap: 4px; margin: 0 -1px; padding: 6px 11px 4px; background: var(--cream); border-bottom: 1px solid var(--line); }
+  .cal .phead span { align-self: end; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; font: 800 0.68rem/1.1 var(--round); }
+  .cal .phead span:first-child { text-align: left; color: var(--muted); font: 600 0.75rem system-ui; }
+  .cal .phead .mine { color: var(--cran-dk); }
+  .cal-game > summary { grid-template-columns: var(--info) 1fr; align-items: center; }
+  .cal .cells { grid-template-columns: repeat(var(--n), var(--cell)); }
+  .cal .cell small { display: none; }
+  .cal .lists { grid-template-columns: repeat(2, 20rem); justify-content: center; }
+}

@@ -237,4 +237,4 @@ table.medals { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
 .yc-stats dt { font: 700 0.68rem system-ui; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .yc-stats dd { margin: 2px 0 0; font: 800 0.95rem var(--round); }
 @media (min-width: 640px) { .yc-stats { grid-template-columns: repeat(4, 1fr); } }
-.viewswitch { display: block; margin-top: 2rem; text-align: center; color: var(--muted); font-size: 0.8rem; }
+.viewswitch { display: block; width: 100%; margin-top: 2rem; padding: 8px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 0.8rem; text-decoration: underline; cursor: pointer; }

@@ -36,7 +36,7 @@ function Tile({ game, state, players, max }: { game: ApiGame; state: GameState; 
         )}
       </div>
       {gameSides(game, players).map(({ slot, status, rows, total }, i) => {
-        const name = (slot.team ? `${slot.team.rank ? `#${slot.team.rank} ` : ""}${slot.team.name}` : "To be decided");
+        const name = slot.team ? `${slot.team.rank ? `#${slot.team.rank} ` : ""}${slot.team.name}` : "To be decided";
         return (
           <div key={slot.id} className={`ep-side ${i ? "b" : "a"} ${status}`}>
             <h4 className="ep-th" title={name}>{status === "won" && "✓ "}{name}</h4>
@@ -109,15 +109,12 @@ export function EveryonesPicks({ year }: { year: number }) {
   if (!players.length) return <p>Nobody made picks this season.</p>;
   const now = Date.now();
   const all = games.data.games;
+  const chrono = [...all].sort((a, b) => a.kickoff_at.localeCompare(b.kickoff_at));
   const sections = {
-    live: all.filter((g) => gameState(g, now) === "live"),
-    next: all.filter((g) => gameState(g, now) === "next"),
-    final: all.filter((g) => gameState(g, now) === "final"),
+    live: chrono.filter((g) => gameState(g, now) === "live"),
+    next: chrono.filter((g) => gameState(g, now) === "next"),
+    final: chrono.filter((g) => gameState(g, now) === "final").reverse(),
   };
-  const byKickoff = (a: ApiGame, b: ApiGame) => a.kickoff_at.localeCompare(b.kickoff_at);
-  sections.live.sort(byKickoff);
-  sections.next.sort(byKickoff);
-  sections.final.sort((a, b) => byKickoff(b, a));
   const teams = games.data.playoff?.teams ?? [];
   const max = maxPoints(players);
   const section = (state: GameState, title: string) =>

@@ -1,4 +1,4 @@
-import type { ApiGame, ApiSlot, ApiTeam, PicksResponse, Standing } from "../api";
+import type { ApiGame, ApiSlot, ApiTeam, PicksResponse } from "../api";
 import { dayKey } from "./kickoff";
 
 export type Players = PicksResponse["players"];
@@ -50,10 +50,4 @@ export function byDay(games: ApiGame[]): { key: string; games: ApiGame[] }[] {
     days.set(key, [...(days.get(key) ?? []), g]);
   }
   return [...days].map(([key, games]) => ({ key, games }));
-}
-
-/** Players in standings order (leader first); anyone not ranked follows by name. */
-export function inStandingsOrder(players: Players, standings: Standing[]): Players {
-  const rank = new Map(standings.map((s) => [s.display_name, s.rank]));
-  return [...players].sort((a, b) => (rank.get(a.display_name) ?? 1e9) - (rank.get(b.display_name) ?? 1e9) || a.display_name.localeCompare(b.display_name));
 }
