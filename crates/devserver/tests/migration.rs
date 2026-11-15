@@ -69,3 +69,18 @@ fn the_playoff_migration_leaves_existing_seasons_fixed_and_picks_untouched() {
     assert!(rank(1, 2).is_err());
     assert!(rank(2, 1).is_err());
 }
+
+#[test]
+fn the_practice_migration_leaves_existing_seasons_real() {
+    let conn = at_0001();
+    for file in ["0002_nullable_pick_slot.sql", "0003_playoff_ranking.sql"] {
+        conn.execute_batch(&migration(file)).unwrap();
+    }
+    let before = rows(&conn);
+
+    conn.execute_batch(&migration("0004_practice_season.sql")).unwrap();
+
+    assert_eq!(rows(&conn), before);
+    assert_eq!(conn.query_row("SELECT practice FROM season", [], |r| r.get::<_, i64>(0)).unwrap(), 0);
+    assert!(conn.execute("UPDATE season SET practice = 2", []).is_err());
+}

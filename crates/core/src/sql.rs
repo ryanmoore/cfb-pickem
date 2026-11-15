@@ -3,9 +3,22 @@
 //! Parameters are numbered (`?1`), which both bind by position. Timestamps
 //! are written as RFC 3339 UTC, the form [`crate::model`] parses.
 
-pub const SEASONS: &str = "SELECT id, year, locks_at, generation, playoff_format FROM season";
+pub const SEASONS: &str = "SELECT id, year, locks_at, generation, playoff_format, practice FROM season";
 
-pub const SEASON_BY_YEAR: &str = "SELECT id, year, locks_at, generation, playoff_format FROM season WHERE year = ?1";
+pub const SEASON_BY_YEAR: &str =
+    "SELECT id, year, locks_at, generation, playoff_format, practice FROM season WHERE year = ?1";
+
+/// The same rows as the `*_FOR_SEASON` statements, for every season at once,
+/// so reading the whole archive costs a fixed number of queries.
+pub const ALL_GAMES: &str = "SELECT id, season_id, event_id, display_name, kickoff_at, fixed_wager, playoff FROM game";
+
+pub const ALL_SLOTS: &str = "SELECT id, game_id, slot_index, team_season_id, feeder_game_id, seed FROM game_slot";
+
+pub const ALL_RESULTS: &str = "SELECT game_id, winner_slot_id, source FROM game_result";
+
+pub const ALL_PICKS: &str = "SELECT user_id, game_id, season_id, slot_id, confidence FROM pick";
+
+pub const ALL_PLAYOFF_RANKS: &str = "SELECT user_id, team_season_id, rank FROM playoff_rank";
 
 pub const GAMES_FOR_SEASON: &str = "SELECT id, season_id, event_id, display_name, kickoff_at, fixed_wager, playoff
      FROM game WHERE season_id = ?1 ORDER BY id";
@@ -91,6 +104,11 @@ pub const BUMP_GENERATION: &str =
 pub const ALL: &[&str] = &[
     SEASONS,
     SEASON_BY_YEAR,
+    ALL_GAMES,
+    ALL_SLOTS,
+    ALL_RESULTS,
+    ALL_PICKS,
+    ALL_PLAYOFF_RANKS,
     GAMES_FOR_SEASON,
     SLOTS_FOR_SEASON,
     TEAM_SEASONS_FOR_SEASON,

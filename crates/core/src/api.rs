@@ -12,12 +12,13 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::bracket::Bracket;
+use crate::history::{self, Finish, Place};
 use crate::model::{
-    email_hash, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, ResultSource, Season, SlotId,
-    SlotSource, TeamSeasonId, User, UserId,
+    email_hash, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, ResultSource, Season, SeasonId,
+    SlotId, SlotSource, TeamSeasonId, User, UserId,
 };
 use crate::scoring::{playoff_units, rank_ties, standings, validate_confidence_permutation, validate_ranking};
-use crate::storage::Storage;
+use crate::storage::{Archive, Storage};
 
 pub struct Reply {
     pub status: u16,
@@ -52,6 +53,7 @@ struct SeasonSummary {
     year: u16,
     locked: bool,
     locks_at: DateTime<Utc>,
+    practice: bool,
 }
 
 #[derive(Serialize)]
@@ -206,6 +208,7 @@ pub async fn route<S: Storage>(
     match (req.method, segments.as_slice()) {
         ("GET", ["api", "me"]) => me(storage, identity, key).await,
         ("GET", ["api", "seasons"]) => seasons(storage, now).await,
+        ("GET", ["api", "history"]) => history_reply(storage, now).await,
         ("GET", ["api", "seasons", year, "standings"]) => standings_reply(storage, year, now).await,
         ("GET", ["api", "seasons", year, "games"]) => games(storage, year).await,
         ("GET", ["api", "seasons", year, "picks"]) => picks(storage, year, identity, key, now).await,
@@ -214,7 +217,7 @@ pub async fn route<S: Storage>(
         ("POST", ["api", "seasons", year, "games", id, "result"]) => {
             record_result(storage, year, id, req, key).await
         }
-        (_, ["api", "me" | "seasons"] | ["api", "seasons", _, "standings" | "games" | "picks" | "progress"])
+        (_, ["api", "me" | "seasons" | "history"] | ["api", "seasons", _, "standings" | "games" | "picks" | "progress"])
         | (_, ["api", "seasons", _, "games", _, "result"]) => Ok(Reply::error(405, "method not allowed")),
         _ => Ok(Reply::error(404, "not found")),
     }
@@ -256,7 +259,7 @@ async fn seasons<S: Storage>(storage: &S, now: DateTime<Utc>) -> Result<Reply, S
     seasons.sort_by_key(|s| std::cmp::Reverse(s.year));
     let seasons: Vec<_> = seasons
         .iter()
-        .map(|s| SeasonSummary { year: s.year, locked: now >= s.locks_at, locks_at: s.locks_at })
+        .map(|s| SeasonSummary { year: s.year, locked: now >= s.locks_at, locks_at: s.locks_at, practice: s.practice })
         .collect();
     Ok(Reply::json(200, &serde_json::json!({ "seasons": seasons })))
 }
@@ -265,17 +268,33 @@ async fn standings_reply<S: Storage>(storage: &S, year: &str, now: DateTime<Utc>
     let Some(season) = season_by_year(storage, year).await? else {
         return Ok(Reply::error(404, "no such season"));
     };
-    let locked = now >= season.locks_at;
-    let (bracket_games, bowls) = split_games(&season, storage.games_for_season(season.id).await?);
-    let slots = storage.slots_for_season(season.id).await?;
-    let picks = storage.picks_for_season(season.id).await?;
-    let results = storage.results_for_season(season.id).await?;
-    let ranks = storage.playoff_ranks_for_season(season.id).await?;
+    let data = Archive {
+        games: storage.games_for_season(season.id).await?,
+        slots: storage.slots_for_season(season.id).await?,
+        results: storage.results_for_season(season.id).await?,
+        picks: storage.picks_for_season(season.id).await?,
+        ranks: storage.playoff_ranks_for_season(season.id).await?,
+    };
     let users = storage.users().await?;
-    let runs = Bracket::new(&bracket_games.iter().map(|g| g.id).collect::<Vec<_>>(), &slots, &results).runs();
+    let ranked = ranked_standings(&season, now >= season.locks_at, &data, &users);
+    Ok(Reply::json(
+        200,
+        &serde_json::json!({
+            "year": season.year,
+            "playoff_ranked": season.playoff_format == PlayoffFormat::Rank,
+            "standings": ranked,
+        }),
+    ))
+}
+
+/// A season's standings, leader first.
+fn ranked_standings<'a>(season: &Season, locked: bool, data: &Archive, users: &'a [User]) -> Vec<StandingRow<'a>> {
+    let (bracket_games, bowls) = split_games(season, data.games.clone());
+    let (picks, results) = (&data.picks, &data.results);
+    let runs = Bracket::new(&bracket_games.iter().map(|g| g.id).collect::<Vec<_>>(), &data.slots, results).runs();
     // Playoff points are counted in units of 1/n, so ties compare exactly.
     let n = runs.len().max(1) as u32;
-    let bowl_standings = standings(&bowls, &picks, &results);
+    let bowl_standings = standings(&bowls, picks, results);
     // Per player: bowl points, bowl points left, playoff units, playoff units left.
     let mut rows: Vec<(&str, [u32; 4])> = users
         .iter()
@@ -284,7 +303,7 @@ async fn standings_reply<S: Storage>(storage: &S, year: &str, now: DateTime<Utc>
             // Rankings count only once locked: any playoff figure before then would
             // show how the player weighed the bye teams.
             let mine: Vec<PlayoffRank> = if locked {
-                ranks.iter().filter(|r| r.user_id == u.id).copied().collect()
+                data.ranks.iter().filter(|r| r.user_id == u.id).copied().collect()
             } else {
                 Vec::new()
             };
@@ -305,7 +324,7 @@ async fn standings_reply<S: Storage>(storage: &S, year: &str, now: DateTime<Utc>
         bt.cmp(&at).then(bm.cmp(&am)).then(an.cmp(bn))
     });
     let ties: Vec<_> = rows.iter().map(|(_, r)| totals(*r)).collect();
-    let ranked: Vec<_> = rank_ties(&ties)
+    rank_ties(&ties)
         .into_iter()
         .zip(&rows)
         .map(|(rank, (name, r))| {
@@ -321,15 +340,59 @@ async fn standings_reply<S: Storage>(storage: &S, year: &str, now: DateTime<Utc>
                 max_possible: of(max),
             }
         })
+        .collect()
+}
+
+/// The archive cut into one [`Archive`] per season. A ranking names no season
+/// of its own, so it goes with the season whose bracket holds its team.
+fn by_season(all: Archive) -> HashMap<SeasonId, Archive> {
+    let empty = || Archive { games: vec![], slots: vec![], results: vec![], picks: vec![], ranks: vec![] };
+    let mut out: HashMap<SeasonId, Archive> = HashMap::new();
+    let game_season: HashMap<GameId, SeasonId> = all.games.iter().map(|g| (g.id, g.season_id)).collect();
+    let mut team_season: HashMap<TeamSeasonId, SeasonId> = HashMap::new();
+    for g in all.games {
+        out.entry(g.season_id).or_insert_with(empty).games.push(g);
+    }
+    for s in all.slots {
+        if let SlotSource::Team { team_season_id } = s.source {
+            team_season.insert(team_season_id, game_season[&s.game_id]);
+        }
+        out.entry(game_season[&s.game_id]).or_insert_with(empty).slots.push(s);
+    }
+    for r in all.results {
+        out.entry(game_season[&r.game_id]).or_insert_with(empty).results.push(r);
+    }
+    for p in all.picks {
+        out.entry(p.season_id).or_insert_with(empty).picks.push(p);
+    }
+    for r in all.ranks {
+        out.entry(team_season[&r.team_season_id]).or_insert_with(empty).ranks.push(r);
+    }
+    out
+}
+
+/// Final standings of every locked, non-practice season whose games all have
+/// results, as all-time stats. Computed per request: it reads a fixed number
+/// of rows and costs a few milliseconds.
+async fn history_reply<S: Storage>(storage: &S, now: DateTime<Utc>) -> Result<Reply, S::Error> {
+    let mut seasons = storage.seasons().await?;
+    seasons.retain(|s| !s.practice && now >= s.locks_at);
+    let users = storage.users().await?;
+    let mut data = by_season(storage.archive().await?);
+    let standings: Vec<_> = seasons
+        .iter()
+        .filter_map(|s| Some((s, data.remove(&s.id)?)))
+        .filter(|(_, d)| !d.games.is_empty() && d.games.iter().all(|g| d.results.iter().any(|r| r.game_id == g.id)))
+        .map(|(s, d)| (s.year, ranked_standings(s, true, &d, &users)))
         .collect();
-    Ok(Reply::json(
-        200,
-        &serde_json::json!({
-            "year": season.year,
-            "playoff_ranked": season.playoff_format == PlayoffFormat::Rank,
-            "standings": ranked,
-        }),
-    ))
+    let finishes: Vec<_> = standings
+        .iter()
+        .map(|(year, rows)| Finish {
+            year: *year,
+            places: rows.iter().map(|r| Place { name: r.display_name, rank: r.rank, total: r.total }).collect(),
+        })
+        .collect();
+    Ok(Reply::json(200, &history::history(&finishes)))
 }
 
 /// A season that ranks its playoff teams takes no picks on the bracket's
@@ -789,6 +852,7 @@ mod tests {
                 locks_at: locks.parse().unwrap(),
                 generation: self.generation.get(),
                 playoff_format: self.format,
+                practice: false,
             };
             Ok(vec![at(2022, "2022-12-01T00:00:00Z"), at(2023, "2024-01-01T00:00:00Z")])
         }
@@ -838,6 +902,16 @@ mod tests {
         }
         async fn picks_for_season(&self, _: SeasonId) -> Result<Vec<Pick>, ()> {
             Ok(self.picks.borrow().clone())
+        }
+        async fn archive(&self) -> Result<Archive, ()> {
+            let id = SeasonId(1);
+            Ok(Archive {
+                games: self.games_for_season(id).await?,
+                slots: self.slots_for_season(id).await?,
+                results: self.results_for_season(id).await?,
+                picks: self.picks_for_season(id).await?,
+                ranks: self.playoff_ranks_for_season(id).await?,
+            })
         }
         async fn user_by_email_hash(&self, hash: &EmailHash) -> Result<Option<User>, ()> {
             Ok(self.users.iter().find(|u| u.email_hash.as_ref() == Some(hash)).cloned())
@@ -970,7 +1044,7 @@ mod tests {
     #[test]
     fn seasons_newest_first_with_lock_state() {
         let (_, body) = get(&pool(), "/api/seasons", None);
-        assert_eq!(body, serde_json::json!({"seasons": [{"year": 2023, "locked": false, "locks_at": "2024-01-01T00:00:00Z"}, {"year": 2022, "locked": true, "locks_at": "2022-12-01T00:00:00Z"}]}));
+        assert_eq!(body, serde_json::json!({"seasons": [{"year": 2023, "locked": false, "locks_at": "2024-01-01T00:00:00Z", "practice": false}, {"year": 2022, "locked": true, "locks_at": "2022-12-01T00:00:00Z", "practice": false}]}));
     }
 
     #[test]

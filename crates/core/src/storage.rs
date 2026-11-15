@@ -7,6 +7,16 @@
 
 use crate::model::{EmailHash, Event, Game, GameResult, GameSlot, Pick, PlayoffRank, Season, SeasonId, TeamSeason, User, UserId};
 
+/// Every season's games, results, picks and rankings, as the per-season reads
+/// below would return them.
+pub struct Archive {
+    pub games: Vec<Game>,
+    pub slots: Vec<GameSlot>,
+    pub results: Vec<GameResult>,
+    pub picks: Vec<Pick>,
+    pub ranks: Vec<PlayoffRank>,
+}
+
 /// Reads and writes the app needs.
 ///
 /// `async fn` in a trait yields a non-`Send` future, which is correct here:
@@ -28,6 +38,10 @@ pub trait Storage {
     /// a pool's player count stays small enough that this beats per-user
     /// queries.
     async fn picks_for_season(&self, season: SeasonId) -> Result<Vec<Pick>, Self::Error>;
+
+    /// Everything scoring needs for every season, in a fixed number of
+    /// queries: Workers cap the queries one request may make.
+    async fn archive(&self) -> Result<Archive, Self::Error>;
 
     /// Takes a digest rather than an address: the adapter hashes the verified
     /// address from the request before it reaches storage.

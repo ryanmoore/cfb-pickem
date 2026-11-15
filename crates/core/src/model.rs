@@ -103,6 +103,8 @@ pub struct Season {
     /// addressed by it, so stale entries are superseded rather than purged.
     pub generation: u64,
     pub playoff_format: PlayoffFormat,
+    /// Plays like any season but stays out of history and all-time stats.
+    pub practice: bool,
 }
 
 /// How a season scores its playoff.

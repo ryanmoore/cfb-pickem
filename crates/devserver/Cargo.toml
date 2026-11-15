@@ -13,3 +13,6 @@ pollster = "0.4"
 rusqlite = { version = "0.37", features = ["bundled"] }
 thiserror.workspace = true
 tiny_http = "0.12"
+
+[dev-dependencies]
+serde_json.workspace = true

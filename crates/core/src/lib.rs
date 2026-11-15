@@ -7,6 +7,7 @@
 pub mod access;
 pub mod api;
 pub mod bracket;
+pub mod history;
 pub mod model;
 pub mod scoring;
 pub mod sigv4;
@@ -15,4 +16,4 @@ pub mod storage;
 
 pub use model::*;
 pub use scoring::{standings, validate_confidence_permutation, PermutationError, Standing};
-pub use storage::Storage;
+pub use storage::{Archive, Storage};
