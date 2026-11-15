@@ -52,6 +52,10 @@ h1 small { display: block; margin-top: 4px; font: 600 0.72rem/1.3 system-ui; let
 .season { position: relative; display: inline-flex; align-items: center; background: var(--gold); color: var(--gold-ink); border-radius: 999px; box-shadow: 0 3px 0 var(--gold-dk); }
 .season::after { content: ""; position: absolute; right: 14px; top: 50%; margin-top: -2px; border: 5px solid transparent; border-top-color: currentColor; pointer-events: none; }
 .season select { appearance: none; border: 0; border-radius: 999px; background: transparent; color: inherit; font: 800 0.95rem/1 var(--round); min-height: 44px; padding: 0 34px 0 16px; cursor: pointer; }
+.season.fit select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+.season.fit:has(select:focus-visible) { outline: 3px solid var(--cran); outline-offset: 2px; }
+.app-hd .season.fit:has(select:focus-visible) { outline-color: var(--gold-lt); }
+.season .val { display: inline-flex; align-items: center; min-height: 44px; padding: 0 34px 0 16px; font: 800 0.95rem/1 var(--round); white-space: nowrap; }
 .season select option { color: var(--ink); background: var(--paper); }
 .skeleton.skeleton-pill { margin: 0; width: 5.5rem; height: 2.75rem; border-radius: 999px; }
 .me { flex: none; display: grid; place-items: center; min-width: 38px; height: 38px; border-radius: 999px; background: var(--cran); color: #fff; border: 2px solid #fff; font: 800 0.9rem var(--round); text-decoration: none; }
@@ -122,9 +126,13 @@ section + section { margin-top: 1.5rem; }
 .groupt { display: flex; align-items: center; gap: 8px; margin: 14px 0 8px; font: 800 0.95rem var(--round); }
 .groupt .pill { padding: 3px 9px; background: var(--sand); border-radius: 999px; font: 700 0.75rem system-ui; color: var(--muted); }
 .drives { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.drive { display: grid; grid-template-columns: 7.2rem 1fr; align-items: center; gap: 10px; }
+.drive { display: grid; grid-template-columns: 10rem 1fr; align-items: center; gap: 10px; }
 .drive .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 0.98rem var(--round); }
 .drive .nm small { display: block; font: 600 0.75rem system-ui; color: var(--muted); }
+.drive .nm .pstate { width: fit-content; margin-top: 2px; padding: 1px 8px; border-radius: 999px; }
+.pstate.untouched { background: var(--cran-lt); color: var(--cran-dk); }
+.pstate.started { background: var(--gold-lt); color: var(--gold-ink); }
+.pstate.done { background: var(--mint); color: var(--turf-dk); }
 .field { position: relative; height: 34px; overflow: hidden; border-radius: 10px; background: repeating-linear-gradient(90deg, var(--turf) 0 10%, var(--turf-2) 10% 20%); box-shadow: inset 0 0 0 2px #0002; }
 .field::before { content: ""; position: absolute; inset: 0 14% 0 0; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), #ffffff55 calc(10% - 1px) 10%); }
 .field .ez { position: absolute; top: 0; bottom: 0; right: 0; width: 14%; background: repeating-linear-gradient(45deg, var(--cran-dk) 0 6px, var(--cran) 6px 12px); }
@@ -136,7 +144,6 @@ section + section { margin-top: 1.5rem; }
 .allin { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .allin li { padding: 7px 12px; background: var(--mint); color: var(--turf-dk); border: 1px solid #bfdcc6; border-radius: 999px; font: 800 0.9rem var(--round); }
 .allin li::before { content: "🏈 "; }
-@media (min-width: 800px) { .drive { grid-template-columns: 10rem 1fr; } }
 
 p.note { margin: 0 0 8px; font-size: 0.82rem; color: var(--muted); }
 
@@ -192,6 +199,7 @@ table.medals { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
 .gc header b { font: 800 0.98rem var(--round); }
 .gc header small { flex: none; color: var(--muted); font-size: 0.75rem; }
 .gc.out { opacity: 0.6; }
+.gc .when { margin: -2px 0 6px; font-size: 0.85rem; font-weight: 600; color: var(--turf-dk); }
 .sides { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .side { min-width: 0; padding: 6px; border: 1px solid transparent; border-radius: 4px; }
 .side .tm { margin-bottom: 5px; font: 700 0.88rem/1.2 var(--round); overflow-wrap: anywhere; }

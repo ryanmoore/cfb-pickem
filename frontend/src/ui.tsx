@@ -24,10 +24,12 @@ export const useSeasons = () => useQuery({ queryKey: ["seasons"], queryFn: fetch
 
 const SeasonContext = createContext<{
   year: number | null;
+  /** The season the player chose, which links carry to other tabs; null until they choose one. */
+  chosen: number | null;
   setYear: (year: number) => void;
   seasons?: Season[];
   error: Error | null;
-}>({ year: null, setYear: () => {}, error: null });
+}>({ year: null, chosen: null, setYear: () => {}, error: null });
 
 export const useSeason = () => useContext(SeasonContext);
 
@@ -41,21 +43,35 @@ export function SeasonProvider({ children }: { children: ReactNode }) {
     history.replaceState(null, "", `?season=${y}`);
     setParam(String(y));
   };
-  return <SeasonContext value={{ year, setYear, seasons, error }}>{children}</SeasonContext>;
+  const chosen = year === requested ? requested : null;
+  return <SeasonContext value={{ year, chosen, setYear, seasons, error }}>{children}</SeasonContext>;
 }
 
-/** The season switcher shown in the header. */
+/** A link to `path` for the chosen season; without a choice the page defaults to the newest. */
+export const seasonHref = (path: string, chosen: number | null) => (chosen === null ? path : `${path}?season=${chosen}`);
+
+const seasonLabel = (s: Season) => (s.practice ? `${s.year} · Practice` : String(s.year));
+
+/**
+ * The season switcher shown in the header. The pill shows the current label
+ * itself, so it is as wide as that and not the longest option; the native
+ * select lies transparent over it to keep the platform picker.
+ */
 export function SeasonPill() {
   const { year, setYear, seasons } = useSeason();
   if (!seasons) return <div className="skeleton skeleton-pill" aria-busy="true" />;
   if (!seasons.length) return null;
+  const current = seasons.find((s) => s.year === year);
   return (
-    <label className="season">
+    <label className="season fit">
       <span className="sr-only">Season</span>
+      <span className="val" aria-hidden>
+        {current && seasonLabel(current)}
+      </span>
       <select value={year ?? ""} onChange={(e) => setYear(Number(e.target.value))}>
         {seasons.map((s) => (
           <option key={s.year} value={s.year}>
-            {s.practice ? `${s.year} · Practice` : s.year}
+            {seasonLabel(s)}
           </option>
         ))}
       </select>

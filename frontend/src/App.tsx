@@ -5,7 +5,7 @@ import { History } from "./History";
 import { MyPicks } from "./picks/MyPicks";
 import { PicksPage } from "./Progress";
 import { Standings } from "./Standings";
-import { PanelError, SeasonPill, SeasonProvider } from "./ui";
+import { PanelError, SeasonPill, SeasonProvider, seasonHref, useSeason } from "./ui";
 
 const PAGES: { path: string; label: string; icon: string; seasonal: boolean; view: ReactNode }[] = [
   { path: "/", label: "Standings", icon: "🏆", seasonal: true, view: <Standings /> },
@@ -30,10 +30,11 @@ function MeBadge() {
 }
 
 function Tabs({ className, current }: { className: string; current: string }) {
+  const { chosen } = useSeason();
   return (
     <nav className={className} aria-label="Pages">
       {PAGES.map((p) => (
-        <a key={p.path} href={p.path + location.search} aria-current={p.path === current ? "page" : undefined}>
+        <a key={p.path} href={seasonHref(p.path, chosen)} aria-current={p.path === current ? "page" : undefined}>
           <span aria-hidden>{p.icon}</span>
           {p.label}
         </a>
