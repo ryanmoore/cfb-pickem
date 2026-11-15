@@ -71,6 +71,9 @@ fn history_counts_finished_real_seasons_only() {
     assert_eq!(h["seasons"][0]["last"], json!(["Cy"]));
     assert_eq!(h["seasons"][1]["podium"][1], json!({"rank": 2, "names": ["Bo", "Cy"]}));
     assert_eq!(h["seasons"][1]["margin"], json!(1.0));
+    // Each player's record covers finished real seasons only, oldest first.
+    let di = h["players"].as_array().unwrap().iter().find(|p| p["name"] == "Di").unwrap();
+    assert_eq!(di["results"], json!([{"year": 2019, "rank": 4, "field": 4, "points": 0.0, "winner": 3.0}]));
     // Di's practice win and unfinished 2023 do not show anywhere.
     assert_eq!(h["medals"].as_array().unwrap().len(), 3);
     assert_eq!(h["coal_club"].as_array().unwrap().iter().map(|c| c["name"].as_str().unwrap()).collect::<Vec<_>>(), ["Cy", "Di", "Bo"]);

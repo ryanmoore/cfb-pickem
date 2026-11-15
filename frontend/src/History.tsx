@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchHistory, type History as Data } from "./api";
 import { fmt, PanelError, Skeleton } from "./ui";
+import { YourSeasons } from "./YourSeasons";
 
 const pts = (n: number) => `${fmt(n)} ${n === 1 ? "pt" : "pts"}`;
 const join = (names: string[]) => names.join(" & ");
@@ -138,6 +139,7 @@ export function History() {
           <p className="note">Newest first. Tap a banner for that season's standings.</p>
           <Banners seasons={data.seasons} />
         </section>
+        <YourSeasons data={data} />
         <section className="panel">
           <h3>Medal table</h3>
           <p className="note">Top-three finishes, {Math.min(...years)}–{Math.max(...years)}. Golds first, then silvers, then bronzes; a tie shares its medal.</p>

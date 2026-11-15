@@ -55,9 +55,28 @@ struct Coal<'a> {
     avg_rank: f64,
 }
 
+/// One season of a player's record.
+#[derive(Serialize)]
+struct YearResult {
+    year: u16,
+    rank: u32,
+    field: usize,
+    points: f64,
+    /// The champion's points.
+    winner: f64,
+}
+
+#[derive(Serialize)]
+struct PlayerSeasons<'a> {
+    name: &'a str,
+    /// Oldest first.
+    results: Vec<YearResult>,
+}
+
 #[derive(Serialize)]
 pub struct History<'a> {
     seasons: Vec<SeasonLine<'a>>,
+    players: Vec<PlayerSeasons<'a>>,
     medals: Vec<Medals<'a>>,
     coal_club: Vec<Coal<'a>>,
 }
@@ -68,6 +87,7 @@ struct Tally {
     coal: u32,
     seasons: u32,
     rank_sum: u32,
+    results: Vec<YearResult>,
 }
 
 /// Newest season first in `seasons`; `finishes` may come in any order.
@@ -81,6 +101,7 @@ pub fn history<'a>(finishes: &[Finish<'a>]) -> History<'a> {
             let t = tallies.entry(p.name).or_default();
             t.seasons += 1;
             t.rank_sum += p.rank;
+            t.results.push(YearResult { year: f.year, rank: p.rank, field: f.places.len(), points: p.total, winner: f.places[0].total });
             if let Some(medal) = t.medals.get_mut(p.rank as usize - 1) {
                 *medal += 1;
             }
@@ -99,6 +120,15 @@ pub fn history<'a>(finishes: &[Finish<'a>]) -> History<'a> {
         });
     }
     seasons.sort_by_key(|s| std::cmp::Reverse(s.year));
+
+    let players = tallies
+        .iter_mut()
+        .map(|(&name, t)| {
+            let mut results = std::mem::take(&mut t.results);
+            results.sort_by_key(|r| r.year);
+            PlayerSeasons { name, results }
+        })
+        .collect();
 
     let mut medals: Vec<Medals> = tallies
         .iter()
@@ -121,7 +151,7 @@ pub fn history<'a>(finishes: &[Finish<'a>]) -> History<'a> {
     coal_club.sort_by(|a, b| {
         (b.coal, b.so_close).cmp(&(a.coal, a.so_close)).then(b.avg_rank.total_cmp(&a.avg_rank)).then(a.name.cmp(b.name))
     });
-    History { seasons, medals, coal_club }
+    History { seasons, players, medals, coal_club }
 }
 
 #[cfg(test)]
@@ -168,6 +198,11 @@ mod tests {
         // Di was last once, Cy last once; only the 2020 and 2021 fields had a last place.
         let coal: Vec<_> = h["coal_club"].as_array().unwrap().iter().map(|c| (c["name"].as_str().unwrap(), c["coal"].as_u64().unwrap(), c["so_close"].as_u64().unwrap())).collect();
         assert_eq!(coal, [("Cy", 1, 1), ("Di", 1, 0), ("Bo", 0, 1)]);
+        // Players come alphabetically, each season oldest first, with the champion's total alongside.
+        assert_eq!(h["players"][1], json!({"name": "Bo", "results": [
+            {"year": 2020, "rank": 2, "field": 4, "points": 8.0, "winner": 10.0},
+            {"year": 2021, "rank": 1, "field": 3, "points": 9.0, "winner": 9.0},
+        ]}));
         let di = &h["coal_club"][1];
         assert_eq!((di["seasons"].as_u64(), di["avg_rank"].as_f64()), (Some(2), Some((4.0 + 1.0) / 2.0)));
     }

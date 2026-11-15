@@ -91,6 +91,10 @@ export type History = {
     margin: number | null;
     last: string[];
   }[];
+  players: {
+    name: string;
+    results: { year: number; rank: number; field: number; points: number; winner: number }[];
+  }[];
   medals: { name: string; gold: number; silver: number; bronze: number }[];
   coal_club: { name: string; coal: number; so_close: number; seasons: number; avg_rank: number }[];
 };
