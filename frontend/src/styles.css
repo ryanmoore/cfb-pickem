@@ -91,9 +91,9 @@ section + section { margin-top: 1.5rem; }
 .legend .p, .split .p { background: var(--gold); }
 .legend .h { background: var(--hatch); border: 1px solid var(--line); }
 .st { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.st-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 4px 12px; padding: 10px 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
+.st-row { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 4px 12px; padding: 7px 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
 .st-row.me-row { border: 2px solid var(--turf); background: #f3faf4; }
-.rank { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font: 800 1rem var(--round); background: var(--sand); color: var(--muted); }
+.rank { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font: 800 1rem var(--round); background: var(--sand); color: var(--muted); }
 .r1 .rank { background: radial-gradient(circle at 35% 30%, #ffe8a3, var(--gold) 60%, var(--gold-dk)); color: #4a3300; }
 .r2 .rank { background: radial-gradient(circle at 35% 30%, #fff, #c9ced6 60%, #8d95a1); color: #333; }
 .r3 .rank { background: radial-gradient(circle at 35% 30%, #ffd9b8, #d08a52 60%, #9a5a2a); color: #3a1c05; }
@@ -103,7 +103,15 @@ section + section { margin-top: 1.5rem; }
 .pts small { margin-top: 3px; font-weight: 600; font-size: 0.7rem; }
 .split { grid-column: 2 / 4; height: 10px; display: flex; overflow: hidden; border-radius: 999px; background: var(--hatch); }
 .split i { display: block; height: 100%; }
-@media (min-width: 800px) { .st { grid-template-columns: 1fr 1fr; column-gap: 14px; } }
+@media (min-width: 800px) {
+  .st { gap: 5px; }
+  .st-row { grid-template-columns: 34px 22rem 1fr auto; padding: 4px 12px; }
+  .st-row .who { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; overflow: hidden; }
+  .st-row .pts { display: flex; align-items: baseline; justify-content: flex-end; gap: 8px; white-space: nowrap; }
+  .st-row .pts small { margin: 0; }
+  .st-row .pts { grid-column: 4; grid-row: 1; }
+  .st-row .split { grid-column: 3; grid-row: 1; }
+}
 
 .deadline { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 12px 14px; background: var(--cran); color: #fff; border-radius: 16px; }
 .deadline > span { font-size: 1.6rem; }
