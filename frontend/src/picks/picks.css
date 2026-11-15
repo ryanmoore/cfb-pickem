@@ -51,6 +51,7 @@
 .picks .tt { flex: 1; min-width: 0; display: grid; }
 .picks .bt { font-size: 0.95rem; font-weight: 600; line-height: 20px; color: #1d2433; }
 .picks .mt { display: flex; gap: 6px; }
+.picks .badge { align-self: center; font-size: 0.8rem; font-weight: 600; color: #1a56c4; background: #e6eefc; border-radius: 999px; padding: 3px 10px; }
 .picks .mt .chip { height: 40px; min-height: 0 !important; }
 .picks .ml { font-size: 0.8rem; line-height: 16px; color: #566074; font-variant-numeric: tabular-nums; }
 .picks .bt, .picks .ml { overflow-x: clip; overflow-y: visible; text-overflow: ellipsis; white-space: nowrap; }

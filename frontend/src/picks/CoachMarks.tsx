@@ -3,12 +3,22 @@ import { useLayoutEffect, useState } from "react";
 export const HINT_MAIN = "pickem:hint-main";
 export const HINT_SPOT = "pickem:hint-spot";
 
+const DEFAULT_TEXTS: [string, string] = [
+  "Tap a team to pick the winner.",
+  "Tap the game to move it up or down. The top game is worth the most points.",
+];
+
 type Pt = { x: number; y: number };
 
 // Coach marks over the first ranked row, one callout at a time: first at its
 // first team button, then at its title. Any tap outside "Next", and any scroll,
 // dismisses.
-export function CoachMarks({ onClose }: { onClose: () => void }) {
+export function CoachMarks({ onClose, texts = DEFAULT_TEXTS, anchor = ".chip" }: {
+  onClose: () => void;
+  /** The two callouts: the first points at `anchor` inside the row, the second at its title. */
+  texts?: [string, string];
+  anchor?: string;
+}) {
   const [step, setStep] = useState(1);
   const [m, setM] = useState<{ row: DOMRect; chip: Pt; title: Pt; w: number }>();
   useLayoutEffect(() => {
@@ -17,7 +27,7 @@ export function CoachMarks({ onClose }: { onClose: () => void }) {
     row.scrollIntoView({ block: "center" });
     const measure = () => {
       const r = row.getBoundingClientRect();
-      const c = row.querySelector(".chip")!.getBoundingClientRect();
+      const c = row.querySelector(anchor)!.getBoundingClientRect();
       const t = row.querySelector(".tt")!.getBoundingClientRect();
       setM({
         row: r,
@@ -37,7 +47,7 @@ export function CoachMarks({ onClose }: { onClose: () => void }) {
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", onClose);
     };
-  }, [onClose]);
+  }, [onClose, anchor]);
   if (!m) return null;
   const left = (p: Pt) => Math.max(8, Math.min(p.x - m.w / 2, innerWidth - 8 - m.w));
   const arrow = (p: Pt) => ({ left: p.x - left(p) - 9 });
@@ -47,7 +57,7 @@ export function CoachMarks({ onClose }: { onClose: () => void }) {
       {step === 1 ? (
         <div key={1} className="callout down" role="note" style={{ left: left(m.chip), width: m.w, top: m.chip.y + 12 }}>
           <i style={arrow(m.chip)} />
-          <b>Tap a team to pick the winner.</b>
+          <b>{texts[0]}</b>
           <footer>
             <small>1 of 2</small>
             <button
@@ -63,7 +73,7 @@ export function CoachMarks({ onClose }: { onClose: () => void }) {
         </div>
       ) : (
         <div key={2} className="callout up" role="note" style={{ left: left(m.title), width: m.w, bottom: innerHeight - m.row.top + 12 }}>
-          <b>Tap the game to move it up or down. The top game is worth the most points.</b>
+          <b>{texts[1]}</b>
           <footer>
             <small>2 of 2</small>
             <button className="primary" onClick={onClose}>

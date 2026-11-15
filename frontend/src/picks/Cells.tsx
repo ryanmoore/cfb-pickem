@@ -56,6 +56,7 @@ export function Cells({ game, pts, pick, onPick, open, end }: {
           )}
         </div>
         <div className="mt">
+          {game.badge && <span className="badge">{game.badge}</span>}
           {game.slots.map((s) => (
             <Chip key={s.id} slot={s} on={pick === s.id} onPick={onPick && (() => onPick(s.id))} />
           ))}
@@ -67,6 +68,7 @@ export function Cells({ game, pts, pick, onPick, open, end }: {
 
 /** What the card does not already show: kickoff and each side's rank and record. */
 export function Details({ game }: { game: Game }) {
+  if (game.details) return <>{game.details}</>;
   const kickoff = new Date(game.kickoffAt).toLocaleString(undefined, {
     weekday: "short",
     month: "short",

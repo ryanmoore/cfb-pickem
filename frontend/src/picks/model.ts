@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { ApiGame, PickRow } from "../api";
 
 export type Slot = { id: number; label: string; record?: string };
@@ -10,6 +11,10 @@ export type Game = {
   slots: Slot[];
   /** Betting line, shown when the data has one. */
   line?: string;
+  /** Shown beside the team chips, for a row that is not a game. */
+  badge?: string;
+  /** Replaces the kickoff and team info in the details sheet. */
+  details?: ReactNode;
 };
 
 /** A player's entry: the ranked games best-first (the top one is worth the most) and the chosen slot per game. */
