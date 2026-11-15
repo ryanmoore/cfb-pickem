@@ -496,6 +496,13 @@ function Spotlight({ s, id, from, closing, setS, move, active, onHelp, onDone, o
     const off = Math.abs(w.scrollTop - Math.round(w.scrollTop / ROW) * ROW);
     stopping.current = performance.now() - lastScroll.current < STOP_MS || off > 1;
   };
+  // The card passes pointer events through to the list, so a still tap on it
+  // arrives as a click on the list whose point lies inside the card's rect.
+  const onWheelClick = (e: React.MouseEvent) => {
+    const r = card.current!.getBoundingClientRect();
+    const inCard = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    if (inCard && !dragged.current && !stopping.current) onDone();
+  };
   const onScroll = () => {
     lastScroll.current = performance.now();
     layout();
@@ -510,7 +517,7 @@ function Spotlight({ s, id, from, closing, setS, move, active, onHelp, onDone, o
   const bottom = pos === N - 1;
   return (
     <div className={"spot" + (closing ? " closing" : "")} role="dialog" aria-label="Spotlight" ref={spot}>
-      <div className="wheel" ref={wheel} onScroll={onScroll} onPointerDownCapture={onWheelDown} data-testid="wheel">
+      <div className="wheel" ref={wheel} onScroll={onScroll} onPointerDownCapture={onWheelDown} onClick={onWheelClick} data-testid="wheel">
         <div className="sp" />
         {rest.map((o, k) => (
           <div key={k} className="slot">
@@ -796,7 +803,14 @@ export function Proto() {
           <button className="ghost" onClick={() => setTiers(true)}>
             Sort into tiers
           </button>
-          <button className="ghost helpbtn" aria-label="Help" onClick={() => setCoach(true)}>
+          <button
+            className="ghost helpbtn"
+            aria-label="Help"
+            onClick={() => {
+              localStorage.removeItem(HINT_KEY);
+              setCoach(true);
+            }}
+          >
             ?
           </button>
         </div>
