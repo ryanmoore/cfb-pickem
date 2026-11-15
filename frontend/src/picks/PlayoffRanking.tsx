@@ -64,7 +64,7 @@ function Instructions({ field }: { field: Field }) {
   );
 }
 
-function ScoringDetails({ size }: { size: number }) {
+function ScoringDetails({ size, open }: { size: number; open: boolean }) {
   return (
     <details className="scoring">
       <summary>How scoring works</summary>
@@ -72,7 +72,7 @@ function ScoringDetails({ size }: { size: number }) {
         <li>Each team scores its rank times the games it wins; your playoff points are the sum over all {size} teams.</li>
         <li>The team that goes furthest wins the most games, so the higher it is ranked, the more it earns.</li>
         {size !== 12 && <li>Points are scaled by 12/{size}, so the playoff weighs the same as it would with 12 teams.</li>}
-        <li>You can change your ranking until picks lock, even after you say you're done.</li>
+        {open && <li>You can change your ranking until picks lock, even after you say you're done.</li>}
       </ul>
     </details>
   );
@@ -111,7 +111,7 @@ export function PlayoffRanking({ field, ranking, move, done = false, onDone, onS
         </button>
       </div>
       {move && <Instructions field={field} />}
-      <ScoringDetails size={size} />
+      <ScoringDetails size={size} open={!!move} />
       {move && done && (
         <div className="confirmed" role="status">
           <b>✓ Ranking confirmed</b>
