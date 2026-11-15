@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProgress, type Progress } from "./api";
 import { EveryonesPicks } from "./picks/EveryonesPicks";
-import { PanelError, SeasonPage, Skeleton, useSeason } from "./ui";
+import { PanelError, SeasonPage, Skeleton, seasonHref, useSeason } from "./ui";
 
 /** Time left as the two largest units, or "Locked" once it has passed. */
 export function timeLeft(ms: number) {
@@ -15,6 +15,7 @@ export function timeLeft(ms: number) {
 
 /** The lock deadline and how long is left; `more` adds a link to the Picks tab. */
 export function Deadline({ locksAt, more }: { locksAt: string; more?: boolean }) {
+  const { chosen } = useSeason();
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000);
@@ -31,7 +32,7 @@ export function Deadline({ locksAt, more }: { locksAt: string; more?: boolean })
           {more && (
             <>
               {" · "}
-              <a href={"/picks" + location.search}>See who's done</a>
+              <a href={seasonHref("/picks", chosen)}>See who's done</a>
             </>
           )}
         </small>
@@ -48,8 +49,10 @@ export function Deadline({ locksAt, more }: { locksAt: string; more?: boolean })
 const FIELD = 86;
 const MIN_BALL = 4;
 
-/** A player is in the end zone with every bowl picked and, where the playoff is ranked, that ranking made. */
-const finished = (p: Progress) => p.picked >= p.total && p.playoff_ranked !== false;
+/** A player is in the end zone with every bowl picked and, where the playoff is ranked, that ranking confirmed. */
+const finished = (p: Progress) => p.picked >= p.total && (p.playoff_state ?? "done") === "done";
+
+const PLAYOFF_NOTE = { untouched: "not started", started: "not confirmed", done: "confirmed ✓" } as const;
 
 function Drive({ p }: { p: Progress }) {
   const x = p.total ? (p.picked / p.total) * FIELD : FIELD;
@@ -57,7 +60,8 @@ function Drive({ p }: { p: Progress }) {
     <li className="drive">
       <div className="nm">
         {p.display_name}
-        <small>{p.picked < p.total ? `${p.picked} of ${p.total} picked` : "Playoff still to rank"}</small>
+        <small>{p.picked < p.total ? `${p.picked} of ${p.total} picked` : "All bowls picked"}</small>
+        {p.playoff_state && <small className={"pstate " + p.playoff_state}>Playoff {PLAYOFF_NOTE[p.playoff_state]}</small>}
       </div>
       <div className={"field" + (p.picked ? "" : " zero")} aria-hidden>
         <span className="trail" style={{ width: `${x}%` }} />

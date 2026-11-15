@@ -113,3 +113,13 @@
   .picks .hints.right { left: calc(50% + 18rem + 16px); }
   .picks .hints kbd { font: inherit; font-size: 0.85rem; border: 1px solid #ffffff55; border-radius: 4px; padding: 0 5px; background: #ffffff1f; }
 }
+.picks .tabs { display: flex; gap: 6px; }
+.picks .tabs button { flex: 1; font-size: 0.9rem; }
+.picks .tabs button.on { background: var(--accent); border-color: var(--accent); color: var(--paper); box-shadow: 0 3px 0 var(--turf-dk); }
+.picks .how p { margin: 0 0 6px; }
+.picks .scoring { margin: 6px 4px 0; font-size: 0.9rem; }
+.picks .scoring summary { cursor: pointer; color: var(--accent); font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+.picks .scoring ul { margin: 0 0 6px; padding-left: 1.2rem; }
+.picks .confirmed { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 10px 0; padding: 10px 12px; border: 1px solid #bfdcc6; border-radius: 12px; background: var(--mint); color: var(--turf-dk); font-size: 0.9rem; }
+.picks .confirmed span { flex: 1 1 12rem; }
+.picks .imdone { display: block; margin: 16px auto 0; padding: 0 22px; }

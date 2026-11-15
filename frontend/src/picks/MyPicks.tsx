@@ -21,7 +21,7 @@ function LockedPicks({ games, field, teams, doc }: { games: Game[]; field?: Fiel
         games={games}
         byId={byId}
         entry={entry}
-        playoff={field && <PlayoffRanking field={field} ranking={entry.ranking} hold={false} />}
+        playoff={field && <PlayoffRanking field={field} ranking={entry.ranking} />}
       />
     </div>
   );
@@ -40,7 +40,7 @@ function SeasonPicks({ year, name }: { year: number; name: string }) {
   if (error) return <PanelError error={error} />;
   if (!list || !picks.data) return <Skeleton lines={8} />;
   const mine = picks.data.players.find((p) => p.is_me);
-  const doc: PicksDoc = { picks: mine?.picks ?? [], playoff: mine?.playoff ?? [] };
+  const doc: PicksDoc = { picks: mine?.picks ?? [], playoff: mine?.playoff ?? [], playoff_done: picks.data.playoff_done };
   return picks.data.locked ? (
     <LockedPicks games={list} field={field} teams={teams} doc={doc} />
   ) : (

@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { PicksDoc } from "../api";
-import { CoachMarks, HINT_MAIN, HINT_SPOT } from "./CoachMarks";
+import { CoachMarks, HINT_MAIN, HINT_PLAYOFF, HINT_SPOT } from "./CoachMarks";
 import { PickList } from "./PickList";
-import { PlayoffRanking } from "./PlayoffRanking";
+import { PLAYOFF_COACH, PlayoffRanking } from "./PlayoffRanking";
 import type { Field } from "./bracket";
 import { ROW, Spotlight } from "./Spotlight";
 import { Toast } from "./Toast";
@@ -21,16 +21,34 @@ const STATUS_TEXT: Record<Status["kind"], string> = {
   signedout: "Signed out — sign in to send your picks",
 };
 
+type Tab = "bowls" | "playoff";
+
+/** `?tab=playoff` names the playoff tab; anything else is the bowls. */
+const tabInUrl = (): Tab => (new URLSearchParams(location.search).get("tab") === "playoff" ? "playoff" : "bowls");
+
 type Props = { year: number; name: string; games: Game[]; field?: Field; teams: number[]; server: PicksDoc; version: string | null };
 
 export function PickEntry({ year, name, games, field, teams, server, version }: Props) {
-  const { entry, status, notice, clearNotice, setWinner, move, moveTeam, reset } = usePickEntry(year, name, games, teams, server, version);
+  const { entry, status, notice, clearNotice, setWinner, move, moveTeam, setDone, reset } = usePickEntry(year, name, games, teams, server, version);
   const byId = useMemo(() => new Map(games.map((g) => [g.id, g])), [games]);
-  const [coach, setCoach] = useState(() => !localStorage.getItem(HINT_MAIN));
+  const [tab, setTab] = useState<Tab>(() => (field ? tabInUrl() : "bowls"));
+  const [playoffSpot, setPlayoffSpot] = useState(false);
+  // Each tab has its own first-visit coach marks; the help button brings the current tab's back.
+  const hintOf = (t: Tab) => (t === "playoff" ? HINT_PLAYOFF : HINT_MAIN);
+  const [coach, setCoach] = useState(() => !localStorage.getItem(hintOf(tab)));
   const closeCoach = useCallback(() => {
-    localStorage.setItem(HINT_MAIN, "1");
+    localStorage.setItem(hintOf(tab), "1");
     setCoach(false);
-  }, []);
+  }, [tab]);
+  const chooseTab = (t: Tab) => {
+    setCoach(!localStorage.getItem(hintOf(t)));
+    const q = new URLSearchParams(location.search);
+    if (t === "bowls") q.delete("tab");
+    else q.set("tab", t);
+    history.replaceState(null, "", `?${q}`);
+    setTab(t);
+    scrollTo(0, 0);
+  };
   const jumped = useRef(-1);
   const { spot, closing, flash, from, open, close, closed, show } = useSpotlightFlow(entry.order, move);
 
@@ -54,10 +72,21 @@ export function PickEntry({ year, name, games, field, teams, server, version }: 
   return (
     <div className="picks" style={{ "--row": ROW + "px" } as React.CSSProperties}>
       <div className="head">
+        {field && (
+          <div className="tabs" role="tablist" aria-label="Picks">
+            {(["bowls", "playoff"] as const).map((t) => (
+              <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => chooseTab(t)}>
+                {t === "bowls" ? `Bowls ${total - unpicked.length}/${total}` : entry.done ? "Playoff ✓" : "Playoff · to confirm"}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="status">
-          <button className="ghost jump" disabled={!unpicked.length || frozen} onClick={nextUnpicked}>
-            {unpicked.length ? `picked ${total - unpicked.length}/${total} · next ›` : `picked ${total}/${total} ✓`}
-          </button>
+          {tab === "bowls" && (
+            <button className="ghost jump" disabled={!unpicked.length || frozen} onClick={nextUnpicked}>
+              {unpicked.length ? `picked ${total - unpicked.length}/${total} · next ›` : `picked ${total}/${total} ✓`}
+            </button>
+          )}
           <span className={"saved " + status.kind} role="status">
             {STATUS_TEXT[status.kind]}
           </span>
@@ -83,27 +112,31 @@ export function PickEntry({ year, name, games, field, teams, server, version }: 
         </p>
       )}
       {frozen && !locked && <p role="alert" className="error">New changes are not being sent. Reload the page to continue.</p>}
-      {notice && <Toast text={notice} raised={spot !== undefined} onDone={clearNotice} />}
-      {!frozen && <p className="how">Pick every game, then rank them: the top game is worth {entry.order.length} pts.</p>}
-
-      <PickList
-        games={games}
-        byId={byId}
-        entry={entry}
-        flash={flash}
-        onPick={frozen ? undefined : setWinner}
-        onOpen={frozen ? undefined : open}
-        playoff={field && <PlayoffRanking field={field} ranking={entry.ranking} move={frozen ? undefined : moveTeam} hold={coach} />}
-      />
-      {!frozen && (
-        <button
-          className="danger"
-          onClick={() => {
-            if (confirm("Reshuffle and clear all picks?")) reset();
-          }}
-        >
-          Reset all picks
-        </button>
+      {notice && <Toast text={notice} raised={spot !== undefined || playoffSpot} onDone={clearNotice} />}
+      {field && tab === "playoff" ? (
+        <PlayoffRanking
+          field={field}
+          ranking={entry.ranking}
+          move={frozen ? undefined : moveTeam}
+          done={entry.done}
+          onDone={frozen ? undefined : setDone}
+          onSpot={setPlayoffSpot}
+        />
+      ) : (
+        <>
+          {!frozen && <p className="how">Pick every game, then rank them: the top game is worth {entry.order.length} pts.</p>}
+          <PickList games={games} byId={byId} entry={entry} flash={flash} onPick={frozen ? undefined : setWinner} onOpen={frozen ? undefined : open} />
+          {!frozen && (
+            <button
+              className="danger"
+              onClick={() => {
+                if (confirm("Reshuffle and clear all picks?")) reset();
+              }}
+            >
+              Reset all picks
+            </button>
+          )}
+        </>
       )}
 
       {spot !== undefined && !frozen && (
@@ -122,7 +155,12 @@ export function PickEntry({ year, name, games, field, teams, server, version }: 
           onCancel={() => close(false)}
         />
       )}
-      {coach && spot === undefined && !frozen && <CoachMarks onClose={closeCoach} />}
+      {coach && spot === undefined && !playoffSpot && !frozen &&
+        (tab === "playoff" ? (
+          <CoachMarks key="playoff" onClose={closeCoach} texts={PLAYOFF_COACH} anchor=".badge" row=".picks .row.team.tap" />
+        ) : (
+          <CoachMarks key="bowls" onClose={closeCoach} />
+        ))}
     </div>
   );
 }

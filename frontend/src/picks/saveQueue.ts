@@ -24,7 +24,7 @@ export function createSaveQueue(o: {
   onAccepted: (version: string, current: boolean) => void;
   onConflict: (c: Conflict) => void;
 }) {
-  let latest: PicksDoc = { picks: [], playoff: [] };
+  let latest: PicksDoc = { picks: [], playoff: [], playoff_done: false };
   let dirty = false;
   let version = 0;
   let inFlight = false;

@@ -66,19 +66,20 @@ export type ApiPlayoff = { teams: ApiTeam[]; games: ApiGame[] };
 export type PickRow = { game_id: number; slot_id: number | null; confidence: number | null };
 /** One team of a playoff ranking, `rank` N for the most confident down to 1. */
 export type RankRow = { team_season_id: number; rank: number };
-/** What a player saves: every game's pick and the playoff ranking, as one set. */
-export type PicksDoc = { picks: PickRow[]; playoff: RankRow[] };
+/** What a player saves: every game's pick and the playoff ranking (and whether they confirmed it), as one set. */
+export type PicksDoc = { picks: PickRow[]; playoff: RankRow[]; playoff_done: boolean };
 
 export type PicksResponse = {
   year: number;
   locked: boolean;
   /** Version of the caller's own set; null when they have none. */
   version: string | null;
+  playoff_done: boolean;
   players: ({ display_name: string; is_me: boolean } & PicksDoc)[];
 };
 
-/** `playoff_ranked` is present only in a season that ranks its playoff teams. */
-export type Progress = { display_name: string; picked: number; total: number; playoff_ranked?: boolean };
+/** `playoff_state` is present only in a season that ranks its playoff teams: left as shuffled, changed a few times, or confirmed. */
+export type Progress = { display_name: string; picked: number; total: number; playoff_state?: "untouched" | "started" | "done" };
 
 export type History = {
   /** Newest first. */
@@ -132,7 +133,7 @@ export async function putPicks(year: number, doc: PicksDoc, base: string | null,
   if (res.type === "opaqueredirect" || res.status === 401 || res.status === 403) return { kind: "signedout" };
   const body = await res.json().catch(() => null);
   if (res.ok) return { kind: "ok", version: body.version };
-  if (res.status === 412) return { kind: "conflict", picks: body.picks, playoff: body.playoff, version: body.version };
+  if (res.status === 412) return { kind: "conflict", picks: body.picks, playoff: body.playoff, playoff_done: body.playoff_done, version: body.version };
   if (res.status === 409) return { kind: "locked" };
   if (res.status >= 500) return { kind: "retry" };
   const detail = body?.problems ? `: ${JSON.stringify(body.problems)}` : "";

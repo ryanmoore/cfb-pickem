@@ -1,16 +1,17 @@
-import { useCallback, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bracket } from "./Bracket";
 import { Cells } from "./Cells";
-import { CoachMarks, HINT_PLAYOFF } from "./CoachMarks";
-import { gameLabel, road, whoIn, type Field } from "./bracket";
+import { earned, gameLabel, road, whoIn, type Field } from "./bracket";
 import type { Game } from "./model";
+import { fmt } from "../ui";
 import { Spotlight } from "./Spotlight";
 import { useSpotlightFlow } from "./useSpotlightFlow";
 import "./playoff.css";
 
-const COACH: [string, string] = [
+/** The callouts for the first team's row: its badge, then its title. */
+export const PLAYOFF_COACH: [string, string] = [
   "The badge is the most wins this team can earn; the line under the name is its path.",
-  "Tap a team to move it up or down. The top team is worth the most points.",
+  "Tap a team to move it up or down. The higher you rank it, the more each of its wins is worth.",
 ];
 
 /** A playoff team as a row of the shared list: seed and path as the line, its most wins as the badge, its road in the details. */
@@ -40,26 +41,64 @@ function teamGame(f: Field, id: number): Game {
   };
 }
 
+const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
+/** What ranking is for, with a worked example sized to this field. */
+function Instructions({ field }: { field: Field }) {
+  const size = field.teams.size;
+  const maxWins = Math.max(...[...field.teams.values()].map((t) => t.max_wins));
+  const byeWins = [...field.teams.keys()].flatMap((id) => (road(field, id)[0].game.round > 0 ? [field.teams.get(id)!.max_wins] : []));
+  const wins = Math.min(3, maxWins);
+  return (
+    <div className="how">
+      <p>
+        <b>Rank {size} is your surest team.</b> A team scores its rank for every game it wins. Rank a team {size}th and it wins {plural(wins, "game")}:{" "}
+        {fmt(earned(size, size, wins))} points{size === 12 && ` (${size} × ${wins})`}.
+      </p>
+      {byeWins.length > 0 && (
+        <p>
+          Teams with a bye can win at most {Math.max(...byeWins)} games; the rest can win up to {maxWins}.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ScoringDetails({ size }: { size: number }) {
+  return (
+    <details className="scoring">
+      <summary>How scoring works</summary>
+      <ul>
+        <li>Each team scores its rank times the games it wins; your playoff points are the sum over all {size} teams.</li>
+        <li>The team that goes furthest wins the most games, so the higher it is ranked, the more it earns.</li>
+        {size !== 12 && <li>Points are scaled by 12/{size}, so the playoff weighs the same as it would with 12 teams.</li>}
+        <li>You can change your ranking until picks lock, even after you say you're done.</li>
+      </ul>
+    </details>
+  );
+}
+
 /**
- * The Playoff section of a season that ranks its teams: the team list on the
- * shared rows and spotlight, or the bracket. Without `move` the ranking is
- * read-only. `hold` keeps the first-visit coach marks back while another set
- * is showing.
+ * The Playoff tab of a season that ranks its teams: the team list on the
+ * shared rows and spotlight, or the bracket. Without `onDone` the ranking is
+ * read-only. Once `done`, the list stays read-only until the player asks to
+ * keep editing; editing does not undo the confirmation. `onSpot` reports
+ * whether the spotlight is open.
  */
-export function PlayoffRanking({ field, ranking, move, hold }: {
+export function PlayoffRanking({ field, ranking, move, done = false, onDone, onSpot }: {
   field: Field;
   ranking: number[];
   move?: (team: number, idx: number) => void;
-  hold: boolean;
+  done?: boolean;
+  onDone?: (done: boolean) => void;
+  onSpot?: (open: boolean) => void;
 }) {
   const games = useMemo(() => new Map(ranking.map((id) => [id, teamGame(field, id)])), [field, ranking]);
   const [bracket, setBracket] = useState(false);
-  const [coach, setCoach] = useState(() => !localStorage.getItem(HINT_PLAYOFF));
-  const closeCoach = useCallback(() => {
-    localStorage.setItem(HINT_PLAYOFF, "1");
-    setCoach(false);
-  }, []);
-  const { spot, closing, flash, from, open, close, closed } = useSpotlightFlow(ranking, move ?? (() => {}), "t-");
+  const [editing, setEditing] = useState(false);
+  const edit = !done || editing ? move : undefined;
+  const { spot, closing, flash, from, open, close, closed } = useSpotlightFlow(ranking, edit ?? (() => {}), "t-");
+  useEffect(() => onSpot?.(spot !== undefined), [spot]);
   const hl = (id: number) => flash?.id === id && <span key={flash.n} className={"hl" + (flash.cancel ? " cancel" : "")} aria-hidden />;
   const size = field.teams.size;
 
@@ -70,27 +109,34 @@ export function PlayoffRanking({ field, ranking, move, hold }: {
         <button className="ghost" onClick={() => setBracket(!bracket)}>
           {bracket ? "Back to list" : "Bracket"}
         </button>
-        {move && !bracket && (
-          <button className="ghost helpbtn" aria-label="Help on playoff teams" onClick={() => setCoach(true)}>
-            ?
-          </button>
-        )}
       </div>
-      {move && <p className="how">Rank the playoff teams. Each win scores your rank for that team.</p>}
+      {move && <Instructions field={field} />}
+      <ScoringDetails size={size} />
+      {move && done && (
+        <div className="confirmed" role="status">
+          <b>✓ Ranking confirmed</b>
+          <span>You can still change it until picks lock.</span>
+          {!editing && <button onClick={() => setEditing(true)}>Keep editing</button>}
+        </div>
+      )}
       {bracket ? (
         <Bracket field={field} ranking={ranking} />
       ) : (
         <div className="list">
           {ranking.map((id, k) => (
-            <div key={id} id={"t-" + id} className={"row team" + (move ? " tap" : "")} onClick={move && (() => open(id))}>
+            <div key={id} id={"t-" + id} className={"row team" + (edit ? " tap" : "")} onClick={edit && (() => open(id))}>
               {hl(id)}
-              <Cells game={games.get(id)!} pts={ranking.length - k} open={!!move} />
+              <Cells game={games.get(id)!} pts={ranking.length - k} open={!!edit} />
             </div>
           ))}
         </div>
       )}
-      <p className="how">Points are scaled by 12/{size}, so the playoff weighs the same at any field size.</p>
-      {move && spot !== undefined && (
+      {onDone && !done && (
+        <button className="primary imdone" onClick={() => onDone(true)}>
+          I'm done ranking
+        </button>
+      )}
+      {edit && spot !== undefined && (
         <Spotlight
           key={spot}
           entry={{ order: ranking, winners: {} }}
@@ -100,16 +146,13 @@ export function PlayoffRanking({ field, ranking, move, hold }: {
           closing={closing}
           onClosed={closed}
           setWinner={() => {}}
-          move={(idx) => move(spot, idx)}
+          move={(idx) => move!(spot, idx)}
           active={!closing}
           onDone={() => close(true)}
           onCancel={() => close(false)}
           noun="team"
           rowPrefix="t-"
         />
-      )}
-      {move && coach && !hold && spot === undefined && !bracket && (
-        <CoachMarks onClose={closeCoach} texts={COACH} anchor=".badge" row=".picks .row.team.tap" />
       )}
     </>
   );

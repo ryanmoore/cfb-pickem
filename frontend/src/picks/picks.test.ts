@@ -12,8 +12,8 @@ const game = (id: number, fixedWager: number | null = null): Game => ({
 });
 const games = [game(1), game(2), game(3), game(4), game(5, 4)];
 
-const doc = (picks: PickRow[], playoff: PicksDoc["playoff"] = []): PicksDoc => ({ picks, playoff });
-const entry = (order: number[], winners: Entry["winners"] = {}, ranking: number[] = []): Entry => ({ order, winners, ranking });
+const doc = (picks: PickRow[], playoff: PicksDoc["playoff"] = []): PicksDoc => ({ picks, playoff, playoff_done: false });
+const entry = (order: number[], winners: Entry["winners"] = {}, ranking: number[] = []): Entry => ({ order, winners, ranking, done: false });
 
 const confidences = (rows: PickRow[]) =>
   rows.map((r) => r.confidence).filter((c) => c !== null).sort();
@@ -84,7 +84,8 @@ describe("playoff ranking", () => {
 
   it("compares sets by value, rankings included", () => {
     const a = doc([{ game_id: 1, slot_id: 10, confidence: 2 }], [{ team_season_id: 101, rank: 1 }]);
-    expect(sameDoc(a, { playoff: [{ rank: 1, team_season_id: 101 }], picks: [{ confidence: 2, game_id: 1, slot_id: 10 }] })).toBe(true);
+    expect(sameDoc(a, { playoff: [{ rank: 1, team_season_id: 101 }], picks: [{ confidence: 2, game_id: 1, slot_id: 10 }], playoff_done: false })).toBe(true);
+    expect(sameDoc(a, { ...a, playoff_done: true })).toBe(false);
     expect(sameDoc(a, doc(a.picks, [{ team_season_id: 101, rank: 2 }]))).toBe(false);
     expect(sameDoc(a, doc(a.picks))).toBe(false);
   });
@@ -211,7 +212,7 @@ describe("save queue", () => {
   });
 
   it("hands over the server's copy on a conflict and does not resend the stale set", async () => {
-    results = [{ kind: "conflict", picks: [], playoff: [], version: "v9" }];
+    results = [{ kind: "conflict", picks: [], playoff: [], playoff_done: false, version: "v9" }];
     const q = queue();
     q.change(rows(1));
     await vi.advanceTimersByTimeAsync(60000);

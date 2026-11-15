@@ -19,10 +19,10 @@ export type Game = {
 
 /**
  * A player's entry: the ranked games best-first (the top one is worth the most),
- * the chosen slot per game, and the playoff teams best-first when the season
- * ranks them (empty otherwise).
+ * the chosen slot per game, the playoff teams best-first when the season
+ * ranks them (empty otherwise), and whether the player confirmed that ranking.
  */
-export type Entry = { order: number[]; winners: Record<number, number>; ranking: number[] };
+export type Entry = { order: number[]; winners: Record<number, number>; ranking: number[]; done: boolean };
 
 export function toGames(api: ApiGame[]): Game[] {
   const names = new Map(api.map((g) => [g.id, g.name]));
@@ -57,6 +57,7 @@ export const freshEntry = (games: Game[], teams: number[], rand?: () => number):
   order: shuffle(rankedIds(games), rand),
   winners: {},
   ranking: shuffle(teams, rand),
+  done: false,
 });
 
 /** `order` with `id` placed at index `idx` (clamped). */
@@ -72,6 +73,7 @@ export function toDoc(games: Game[], e: Entry): PicksDoc {
   return {
     picks: games.map((g) => ({ game_id: g.id, slot_id: e.winners[g.id] ?? null, confidence: rank.get(g.id) ?? null })),
     playoff: e.ranking.map((team_season_id, k) => ({ team_season_id, rank: e.ranking.length - k })),
+    playoff_done: e.done,
   };
 }
 
@@ -92,7 +94,7 @@ export function fromDoc(games: Game[], teams: number[], doc: PicksDoc): Entry {
     const slot = byGame.get(g.id)?.slot_id;
     if (slot != null && g.slots.some((s) => s.id === slot)) winners[g.id] = slot;
   }
-  return { order, winners, ranking };
+  return { order, winners, ranking, done: doc.playoff_done };
 }
 
 /**
@@ -112,7 +114,7 @@ export function reconcile(games: Game[], teams: number[], e: Entry): Entry {
     const slot = e.winners[g.id];
     if (slot !== undefined && g.slots.some((s) => s.id === slot)) winners[g.id] = slot;
   }
-  return { order, winners, ranking };
+  return { order, winners, ranking, done: e.done };
 }
 
 export const sameDoc = (a: PicksDoc, b: PicksDoc) => {
@@ -120,6 +122,7 @@ export const sameDoc = (a: PicksDoc, b: PicksDoc) => {
     JSON.stringify([
       [...d.picks].sort((x, y) => x.game_id - y.game_id).map((p) => [p.game_id, p.slot_id, p.confidence]),
       [...d.playoff].sort((x, y) => x.team_season_id - y.team_season_id).map((r) => [r.team_season_id, r.rank]),
+      d.playoff_done,
     ]);
   return key(a) === key(b);
 };

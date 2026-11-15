@@ -11,8 +11,8 @@ export const STALE_NOTICE = "Your picks were changed on another device — showi
 const parseLocal = (text: string | null): Local | undefined => {
   try {
     const local = JSON.parse(text ?? "");
-    // An entry saved before playoff rankings existed has no ranking.
-    return local?.entry ? { ...local, entry: { ranking: [], ...local.entry } } : undefined;
+    // An entry saved before rankings and confirmations existed has neither.
+    return local?.entry ? { ...local, entry: { ranking: [], done: false, ...local.entry } } : undefined;
   } catch {
     return undefined;
   }
@@ -136,6 +136,7 @@ export function usePickEntry(year: number, name: string, games: Game[], teams: n
       }),
     move: (gameId: number, idx: number) => update((e) => ({ ...e, order: moved(e.order, gameId, idx) })),
     moveTeam: (teamId: number, idx: number) => update((e) => ({ ...e, ranking: moved(e.ranking, teamId, idx) })),
+    setDone: (done: boolean) => update((e) => ({ ...e, done })),
     reset: () => update(() => freshEntry(games, teams)),
   };
 }
