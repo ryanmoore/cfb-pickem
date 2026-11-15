@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 
-use pickem_core::{GameId, GameResult, Pick, PlayoffRank, ResultSource, SeasonId, SlotId, Storage, TeamSeasonId, UserId};
+use pickem_core::{GameId, GameResult, Pick, PlayoffRank, PlayoffSave, PlayoffStatus, ResultSource, SeasonId, SlotId, Storage, TeamSeasonId, UserId};
 use pickem_devserver::create;
 
 fn pick(game: i64, slot: i64, confidence: u32) -> Pick {
@@ -37,7 +37,7 @@ fn writes_bump_the_generation_and_failed_writes_change_nothing() {
         .unwrap();
 
     let replace_with = |picks: &[Pick], ranks: &[PlayoffRank], version: &str, base: Option<&str>| {
-        pollster::block_on(storage.replace_picks(UserId(1), SeasonId(1), picks, ranks, version, base))
+        pollster::block_on(storage.replace_picks(UserId(1), SeasonId(1), picks, ranks, PlayoffSave { done: false, changed: false }, version, base))
     };
     let replace = |picks: &[Pick], version: &str, base: Option<&str>| replace_with(picks, &[], version, base);
     assert_eq!(replace(&[pick(1, 1, 1), pick(2, 2, 2)], "v1", Some("")).unwrap(), Some(2));
@@ -81,8 +81,24 @@ fn writes_bump_the_generation_and_failed_writes_change_nothing() {
     assert_eq!(pollster::block_on(storage.picks_for_season(SeasonId(1))).unwrap(), good);
     assert_eq!((version().as_deref(), ranks()), (Some("v9"), vec![rank(2, 2), rank(1, 1)]));
 
+    // The status is written with the set and refused with it: a confirmation, and a count of changed rankings.
+    let status = || pollster::block_on(storage.playoff_status_for_season(SeasonId(1))).unwrap();
+    let save = |done: bool, changed: bool, version: &str, base: &str| {
+        let playoff = PlayoffSave { done, changed };
+        pollster::block_on(storage.replace_picks(UserId(1), SeasonId(1), &good, &[rank(1, 2), rank(2, 1)], playoff, version, Some(base))).unwrap()
+    };
+    let user = |done, moves| vec![PlayoffStatus { user_id: UserId(1), done, moves }];
+    assert_eq!(save(true, false, "v11", "v9"), Some(7));
+    assert_eq!(status(), user(true, 0));
+    assert_eq!(save(false, true, "v12", "old"), None);
+    assert_eq!(status(), user(true, 0));
+    assert_eq!(save(true, true, "v12", "v11"), Some(8));
+    assert_eq!(save(true, true, "v13", "v12"), Some(9));
+    assert_eq!(save(false, false, "v14", "v13"), Some(10));
+    assert_eq!(status(), user(false, 2));
+
     let result = GameResult { game_id: GameId(1), winner_slot_id: SlotId(1), source: ResultSource::Manual };
-    assert_eq!(pollster::block_on(storage.record_result(SeasonId(1), result)).unwrap(), 7);
+    assert_eq!(pollster::block_on(storage.record_result(SeasonId(1), result)).unwrap(), 11);
     assert_eq!(pollster::block_on(storage.results_for_season(SeasonId(1))).unwrap(), vec![result]);
     fs::remove_file(path).unwrap();
 }

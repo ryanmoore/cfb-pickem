@@ -6,7 +6,7 @@
 //! Adapters resolve who the caller is (a verified email, or nobody), supply the
 //! clock, and write the [`Reply`] out; everything between is here.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::bracket::Bracket;
 use crate::history::{self, Finish, Place};
 use crate::model::{
-    email_hash, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, ResultSource, Season, SeasonId,
+    email_hash, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, PlayoffSave, ResultSource, Season, SeasonId,
     SlotId, SlotSource, TeamSeasonId, User, UserId,
 };
 use crate::scoring::{playoff_units, rank_ties, standings, validate_confidence_permutation, validate_ranking};
@@ -148,6 +148,9 @@ struct PicksBody {
     /// A complete ranking of the playoff teams, for a season that ranks them.
     #[serde(default)]
     playoff: Vec<RankView>,
+    /// Whether the player has confirmed that ranking ("I'm done").
+    #[serde(default)]
+    playoff_done: bool,
     /// The version the entry was based on: absent for an unconditional save,
     /// null for "I had no picks yet".
     #[serde(default, deserialize_with = "Option::deserialize")]
@@ -551,19 +554,30 @@ async fn picks<S: Storage>(
         }
     }
     players.sort_by(|a, b| a.display_name.cmp(b.display_name));
-    let version = match me {
-        Some(user) => storage.picks_version(user, season.id).await?,
-        None => None,
+    let (version, playoff_done) = match me {
+        Some(user) => (storage.picks_version(user, season.id).await?, playoff_done(storage, season.id, user).await?),
+        None => (None, false),
     };
     Ok(Reply::json(
         200,
-        &serde_json::json!({ "year": season.year, "locked": locked, "version": version, "players": players }),
+        &serde_json::json!({
+            "year": season.year, "locked": locked, "version": version, "playoff_done": playoff_done, "players": players,
+        }),
     ))
 }
 
+async fn playoff_done<S: Storage>(storage: &S, season: SeasonId, user: UserId) -> Result<bool, S::Error> {
+    Ok(storage.playoff_status_for_season(season).await?.iter().any(|s| s.user_id == user && s.done))
+}
+
+/// Changes to a ranking after its first save that make a player "started" in
+/// the progress view; fewer means they left the auto-shuffled order alone.
+const STARTED_MOVES: u32 = 3;
+
 /// How many winners each player has chosen and, in a ranked-playoff season,
-/// whether their ranking is complete for the current bracket. Reveals no picks
-/// or rankings, so it is public before the lock.
+/// how far they got with the playoff ranking: `done` once they confirmed a
+/// ranking that is complete for the current bracket, `started` after a few
+/// changes to it, else `untouched`. Reveals no picks or rankings, so it is public before the lock.
 async fn progress<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error> {
     let Some(season) = season_by_year(storage, year).await? else {
         return Ok(Reply::error(404, "no such season"));
@@ -580,6 +594,7 @@ async fn progress<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error
         Vec::new()
     };
     let ranks = storage.playoff_ranks_for_season(season.id).await?;
+    let statuses = if ranked { storage.playoff_status_for_season(season.id).await? } else { Vec::new() };
     let mut players: Vec<_> = storage
         .users()
         .await?
@@ -592,7 +607,15 @@ async fn progress<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error
             let mut row = serde_json::json!({ "display_name": u.display_name, "picked": picked, "total": total });
             if ranked {
                 let mine: Vec<PlayoffRank> = ranks.iter().filter(|r| r.user_id == u.id).copied().collect();
-                row["playoff_ranked"] = validate_ranking(&teams, &mine).is_ok().into();
+                let status = statuses.iter().find(|s| s.user_id == u.id);
+                row["playoff_state"] = if status.is_some_and(|s| s.done) && validate_ranking(&teams, &mine).is_ok() {
+                    "done"
+                } else if status.is_some_and(|s| s.moves >= STARTED_MOVES) {
+                    "started"
+                } else {
+                    "untouched"
+                }
+                .into();
             }
             row
         })
@@ -666,17 +689,27 @@ async fn put_picks<S: Storage>(
     }
     let version = now.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
     let base = body.base_version.as_ref().map(|v| v.as_deref().unwrap_or(""));
-    match storage.replace_picks(user.id, season.id, &picks, &ranks, &version, base).await? {
+    // Saves are debounced, so several quick moves arrive as one save: this
+    // counts saves that changed the ranking, not individual moves.
+    let mine = |all: &[PlayoffRank]| -> BTreeSet<_> {
+        all.iter().filter(|r| r.user_id == user.id).map(|r| (r.team_season_id.0, r.rank)).collect()
+    };
+    let stored = mine(&storage.playoff_ranks_for_season(season.id).await?);
+    let changed = !stored.is_empty() && stored != mine(&ranks);
+    let playoff = PlayoffSave { done: body.playoff_done && !teams.is_empty(), changed };
+    match storage.replace_picks(user.id, season.id, &picks, &ranks, playoff, &version, base).await? {
         Some(generation) => Ok(Reply::json(200, &serde_json::json!({ "generation": generation, "version": version }))),
         None => {
             let all = storage.picks_for_season(season.id).await?;
             let all_ranks = storage.playoff_ranks_for_season(season.id).await?;
             let version = storage.picks_version(user.id, season.id).await?;
+            let playoff_done = playoff_done(storage, season.id, user.id).await?;
             Ok(Reply::json(
                 412,
                 &serde_json::json!({
                     "error": "picks changed since your copy",
                     "version": version,
+                    "playoff_done": playoff_done,
                     "picks": pick_views(&all, user.id),
                     "playoff": rank_views(&all_ranks, user.id),
                 }),
@@ -735,6 +768,7 @@ mod tests {
         users: Vec<User>,
         picks: RefCell<Vec<Pick>>,
         ranks: RefCell<Vec<PlayoffRank>>,
+        status: RefCell<Vec<PlayoffStatus>>,
         results: RefCell<Vec<GameResult>>,
         format: PlayoffFormat,
         /// Bracket games, their slots and teams, on top of the two bowls.
@@ -839,6 +873,7 @@ mod tests {
             format: PlayoffFormat::Fixed,
             bracket: Default::default(),
             generation: Cell::new(1),
+            status: RefCell::new(vec![]),
             versions: RefCell::new([(2, "v0".to_string())].into()),
         }
     }
@@ -919,6 +954,9 @@ mod tests {
         async fn users(&self) -> Result<Vec<User>, ()> {
             Ok(self.users.clone())
         }
+        async fn playoff_status_for_season(&self, _: SeasonId) -> Result<Vec<PlayoffStatus>, ()> {
+            Ok(self.status.borrow().clone())
+        }
         async fn picks_version(&self, user: UserId, _: SeasonId) -> Result<Option<String>, ()> {
             Ok(self.versions.borrow().get(&user.0).cloned())
         }
@@ -928,6 +966,7 @@ mod tests {
             _: SeasonId,
             picks: &[Pick],
             ranks: &[PlayoffRank],
+            playoff: PlayoffSave,
             version: &str,
             base: Option<&str>,
         ) -> Result<Option<u64>, ()> {
@@ -935,6 +974,13 @@ mod tests {
             if base.is_some_and(|b| b != versions.get(&user.0).map_or("", String::as_str)) {
                 return Ok(None);
             }
+            let mut status = self.status.borrow_mut();
+            if !status.iter().any(|s| s.user_id == user) {
+                status.push(PlayoffStatus { user_id: user, done: false, moves: 0 });
+            }
+            let mine = status.iter_mut().find(|s| s.user_id == user).unwrap();
+            mine.done = playoff.done;
+            mine.moves += u32::from(playoff.changed);
             versions.insert(user.0, version.into());
             let mut all = self.picks.borrow_mut();
             all.retain(|p| p.user_id != user);
@@ -1377,20 +1423,48 @@ mod tests {
     }
 
     #[test]
-    fn progress_says_whether_each_ranking_is_complete_for_the_bracket() {
+    fn progress_tells_untouched_started_and_done_playoff_rankings() {
         let fake = rank_pool(12, 4);
-        let flags = |fake: &Fake| {
+        let states = |fake: &Fake| {
             let (_, body) = get(fake, "/api/seasons/2023/progress", None);
-            body["players"].as_array().unwrap().iter().map(|p| p["playoff_ranked"].clone()).collect::<Vec<_>>()
+            body["players"].as_array().unwrap().iter().map(|p| p["playoff_state"].clone()).collect::<Vec<_>>()
         };
-        assert_eq!(flags(&fake), [false, false]);
-        assert_eq!(send(&fake, "PUT", PUT_PICKS, Some(BO), &entry(&by_seed(12).join(","))).0, 200);
-        assert_eq!(flags(&fake), [false, true]);
-        // A saved ranking naming a team the bracket no longer has is not complete.
+        let mine = |fake: &Fake| get(fake, PUT_PICKS, Some(BO)).1["playoff_done"].clone();
+        let forward = entry(&by_seed(12).join(","));
+        let backward = entry(&(1..=12).map(|s| format!(r#"{{"team_season_id":{},"rank":{s}}}"#, 100 + s)).collect::<Vec<_>>().join(","));
+        let done = |entry: &str| entry.replace(r#""playoff""#, r#""playoff_done":true,"playoff""#);
+        let save = |body: &str| assert_eq!(send(&fake, "PUT", PUT_PICKS, Some(BO), body).0, 200);
+        assert_eq!(states(&fake), ["untouched", "untouched"]);
+
+        // The first save is the auto-shuffle, and saving the same ranking again changes nothing.
+        save(&forward);
+        save(&forward);
+        // Two changes are not yet enough, the third is.
+        save(&backward);
+        save(&forward);
+        assert_eq!(states(&fake), ["untouched", "untouched"]);
+        save(&backward);
+        assert_eq!(states(&fake), ["untouched", "started"]);
+
+        // Confirming makes it done; editing afterwards keeps it, saving without the flag withdraws it.
+        save(&done(&backward));
+        assert_eq!((states(&fake), mine(&fake)), (vec!["untouched".into(), "done".into()], true.into()));
+        save(&done(&forward));
+        assert_eq!(states(&fake), ["untouched", "done"]);
+        save(&forward);
+        assert_eq!((states(&fake), mine(&fake)), (vec!["untouched".into(), "started".into()], false.into()));
+
+        // A refused (stale) save changes nothing and the answer carries the confirmation.
+        save(&done(&forward));
+        let stale = forward.replace(r#""playoff""#, r#""base_version":"old","playoff""#);
+        assert_eq!(send(&fake, "PUT", PUT_PICKS, Some(BO), &stale).1["playoff_done"], true);
+        assert_eq!(states(&fake), ["untouched", "done"]);
+
+        // A confirmed ranking naming a team the bracket no longer has is not complete.
         fake.ranks.borrow_mut()[0].team_season_id = TeamSeasonId(1);
-        assert_eq!(flags(&fake), [false, false]);
+        assert_eq!(states(&fake), ["untouched", "started"]);
         let (_, plain) = get(&pool(), "/api/seasons/2023/progress", None);
-        assert!(plain["players"][0].get("playoff_ranked").is_none());
+        assert!(plain["players"][0].get("playoff_state").is_none());
     }
 
     #[test]

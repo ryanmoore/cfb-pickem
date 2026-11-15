@@ -5,7 +5,7 @@
 //! Because both sit behind this one trait, the two build paths differ only in
 //! their adapter — there is no second copy of the rules to drift.
 
-use crate::model::{EmailHash, Event, Game, GameResult, GameSlot, Pick, PlayoffRank, Season, SeasonId, TeamSeason, User, UserId};
+use crate::model::{EmailHash, Event, Game, GameResult, GameSlot, Pick, PlayoffRank, PlayoffSave, PlayoffStatus, Season, SeasonId, TeamSeason, User, UserId};
 
 /// Every season's games, results, picks and rankings, as the per-season reads
 /// below would return them.
@@ -51,12 +51,17 @@ pub trait Storage {
     /// Every player's playoff ranking for the season.
     async fn playoff_ranks_for_season(&self, season: SeasonId) -> Result<Vec<PlayoffRank>, Self::Error>;
 
+    /// Each player's confirmation and change count for the season; players who
+    /// never saved have no entry.
+    async fn playoff_status_for_season(&self, season: SeasonId) -> Result<Vec<PlayoffStatus>, Self::Error>;
+
     /// The version of a player's picks and ranking for a season; `None` when
     /// they have neither.
     async fn picks_version(&self, user: UserId, season: SeasonId) -> Result<Option<String>, Self::Error>;
 
     /// Replace a player's picks and playoff ranking for a season with a set
-    /// stamped `version`, atomically. With `base` given, nothing changes
+    /// stamped `version`, atomically, and record what the save says about the
+    /// ranking (`playoff`). With `base` given, nothing changes
     /// unless it is the player's current version (the empty string when they
     /// have none); that is `Ok(None)`.
     ///
@@ -69,6 +74,7 @@ pub trait Storage {
         season: SeasonId,
         picks: &[Pick],
         ranks: &[PlayoffRank],
+        playoff: PlayoffSave,
         version: &str,
         base: Option<&str>,
     ) -> Result<Option<u64>, Self::Error>;

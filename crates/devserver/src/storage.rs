@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use chrono::{DateTime, Utc};
 use pickem_core::sql;
 use pickem_core::{
-    email_hash, Archive, EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, ResultSource, SeasonId, Season, SlotId, TeamSeason,
+    email_hash, Archive, EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, PlayoffSave, PlayoffStatus, ResultSource, SeasonId, Season, SlotId, TeamSeason,
     SlotSource, Storage, TeamSeasonId, User, UserId,
 };
 use rusqlite::types::Type;
@@ -134,6 +134,12 @@ impl Storage for SqliteStorage {
         ranks.collect()
     }
 
+    async fn playoff_status_for_season(&self, season: SeasonId) -> Result<Vec<PlayoffStatus>, Self::Error> {
+        let mut stmt = self.conn.prepare(sql::PLAYOFF_STATUS_FOR_SEASON)?;
+        let rows = stmt.query_map([season.0], |r| Ok(PlayoffStatus { user_id: UserId(r.get(0)?), done: r.get(1)?, moves: r.get(2)? }))?;
+        rows.collect()
+    }
+
     async fn archive(&self) -> Result<Archive, Self::Error> {
         Ok(Archive {
             games: self.all(sql::ALL_GAMES, game_row)?,
@@ -166,6 +172,7 @@ impl Storage for SqliteStorage {
         season: SeasonId,
         picks: &[Pick],
         ranks: &[PlayoffRank],
+        playoff: PlayoffSave,
         version: &str,
         base: Option<&str>,
     ) -> Result<Option<u64>, Self::Error> {
@@ -181,6 +188,7 @@ impl Storage for SqliteStorage {
         for r in ranks {
             tx.execute(sql::INSERT_RANK, params![user.0, season.0, r.team_season_id.0, r.rank, version])?;
         }
+        tx.execute(sql::SAVE_PLAYOFF_STATUS, params![user.0, season.0, version, playoff.changed, playoff.done])?;
         let generation = tx
             .query_row(sql::BUMP_GENERATION_FOR_PICKS, params![season.0, user.0, version], |r| r.get(0))
             .optional()?;

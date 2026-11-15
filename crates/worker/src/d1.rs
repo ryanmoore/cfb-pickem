@@ -6,7 +6,7 @@
 use chrono::{DateTime, Utc};
 use pickem_core::sql;
 use pickem_core::{
-    Archive, EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, ResultSource, Season, SeasonId, SlotId,
+    Archive, EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, PlayoffSave, PlayoffStatus, ResultSource, Season, SeasonId, SlotId,
     SlotSource, Storage, TeamSeason, TeamSeasonId, User, UserId,
 };
 use serde::de::DeserializeOwned;
@@ -23,6 +23,13 @@ fn num(n: i64) -> JsValue {
 #[derive(Deserialize)]
 struct GenerationRow {
     generation: u64,
+}
+
+#[derive(Deserialize)]
+struct StatusRow {
+    user_id: i64,
+    done: i64,
+    moves: u32,
 }
 
 #[derive(Deserialize)]
@@ -282,6 +289,11 @@ impl Storage for D1Storage {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
+    async fn playoff_status_for_season(&self, season: SeasonId) -> Result<Vec<PlayoffStatus>> {
+        let rows: Vec<StatusRow> = self.query(sql::PLAYOFF_STATUS_FOR_SEASON, &[num(season.0)]).await?;
+        Ok(rows.into_iter().map(|r| PlayoffStatus { user_id: UserId(r.user_id), done: r.done != 0, moves: r.moves }).collect())
+    }
+
     async fn picks_version(&self, user: UserId, season: SeasonId) -> Result<Option<String>> {
         let rows: Vec<VersionRow> = self.query(sql::PICKS_VERSION, &[num(user.0), num(season.0)]).await?;
         Ok(rows.into_iter().next().and_then(|r| r.version))
@@ -293,6 +305,7 @@ impl Storage for D1Storage {
         season: SeasonId,
         picks: &[Pick],
         ranks: &[PlayoffRank],
+        playoff: PlayoffSave,
         version: &str,
         base: Option<&str>,
     ) -> Result<Option<u64>> {
@@ -312,6 +325,8 @@ impl Storage for D1Storage {
             let args = [num(user.0), num(season.0), num(r.team_season_id.0), num(r.rank.into()), version.into()];
             statements.push(self.0.prepare(sql::INSERT_RANK).bind(&args)?);
         }
+        let status = [num(user.0), num(season.0), version.into(), num(playoff.changed.into()), num(playoff.done.into())];
+        statements.push(self.0.prepare(sql::SAVE_PLAYOFF_STATUS).bind(&status)?);
         let bump = [num(season.0), num(user.0), version.into()];
         statements.push(self.0.prepare(sql::BUMP_GENERATION_FOR_PICKS).bind(&bump)?);
         self.batch_generation(statements).await

@@ -227,6 +227,24 @@ pub struct Pick {
     pub confidence: Option<u32>,
 }
 
+/// What a player has done with their playoff ranking in a season.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PlayoffStatus {
+    pub user_id: UserId,
+    /// They confirmed the ranking ("I'm done").
+    pub done: bool,
+    /// Accepted saves that changed an existing ranking.
+    pub moves: u32,
+}
+
+/// What a save says about the playoff ranking besides the ranks themselves.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PlayoffSave {
+    pub done: bool,
+    /// It differs from the stored ranking. The first save of a ranking is not a change.
+    pub changed: bool,
+}
+
 /// One team's place in a player's playoff ranking.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlayoffRank {

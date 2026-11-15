@@ -86,6 +86,20 @@ pub const INSERT_RANK: &str = "INSERT INTO playoff_rank (user_id, season_id, tea
      WHERE NOT EXISTS (SELECT 1 FROM pick WHERE user_id = ?1 AND season_id = ?2 AND updated_at <> ?5)
        AND NOT EXISTS (SELECT 1 FROM playoff_rank WHERE user_id = ?1 AND season_id = ?2 AND updated_at <> ?5)";
 
+pub const PLAYOFF_STATUS_FOR_SEASON: &str =
+    "SELECT user_id, playoff_done_at IS NOT NULL AS done, playoff_moves AS moves FROM player_season WHERE season_id = ?1 ORDER BY user_id";
+
+/// Parameters: user, season, new version, ranking changed (0 or 1), done (0 or 1).
+/// Writes only when the new set was; an earlier confirmation keeps its time.
+pub const SAVE_PLAYOFF_STATUS: &str = "INSERT INTO player_season (user_id, season_id, playoff_done_at, playoff_moves)
+     SELECT ?1, ?2, CASE WHEN ?5 THEN ?3 END, ?4
+     WHERE EXISTS (SELECT 1 FROM pick WHERE user_id = ?1 AND season_id = ?2 AND updated_at = ?3
+                   UNION ALL
+                   SELECT 1 FROM playoff_rank WHERE user_id = ?1 AND season_id = ?2 AND updated_at = ?3)
+     ON CONFLICT (user_id, season_id) DO UPDATE SET
+         playoff_done_at = CASE WHEN ?5 THEN COALESCE(playoff_done_at, ?3) END,
+         playoff_moves = playoff_moves + ?4";
+
 /// Parameters: season, user, new version. Bumps only when the new set was written.
 pub const BUMP_GENERATION_FOR_PICKS: &str = "UPDATE season SET generation = generation + 1
      WHERE id = ?1 AND EXISTS (
@@ -123,6 +137,8 @@ pub const ALL: &[&str] = &[
     DELETE_RANKS,
     INSERT_PICK,
     INSERT_RANK,
+    PLAYOFF_STATUS_FOR_SEASON,
+    SAVE_PLAYOFF_STATUS,
     BUMP_GENERATION_FOR_PICKS,
     UPSERT_RESULT,
     BUMP_GENERATION,
