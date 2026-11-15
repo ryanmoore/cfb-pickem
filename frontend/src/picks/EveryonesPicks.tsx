@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { CSSProperties } from "react";
-import { fetchGames, fetchPicks, type ApiGame, type ApiSlot, type PicksResponse } from "../api";
-import { PanelError, Skeleton } from "../ui";
+import { fetchGames, fetchPicks, type ApiGame, type ApiSlot, type ApiTeam, type PicksResponse } from "../api";
+import { fmt, PanelError, Skeleton } from "../ui";
 import { formatKickoff } from "./kickoff";
 
 type Players = PicksResponse["players"];
@@ -16,10 +16,9 @@ function PickRows({ rows, max }: { rows: Row[]; max: number }) {
   if (!rows.length) return <p className="nobody">Nobody</p>;
   return (
     <ul className="pr">
-      {rows.sort(byPoints).map((r) => (
+      {[...rows].sort(byPoints).map((r) => (
         <li key={r.name} className={r.me ? "mine" : undefined}>
           <span className="nm">{r.name}</span>
-          {r.team !== undefined && <span className="tn">{r.team}</span>}
           {r.points !== null && (
             <b className={`pt ${r.status}`} style={{ "--t": r.points / max } as CSSProperties}>{r.points}</b>
           )}
@@ -31,14 +30,8 @@ function PickRows({ rows, max }: { rows: Row[]; max: number }) {
 
 const teamName = (s: ApiSlot) => (s.team ? s.team.name : "To be decided");
 
+/** A game as two columns, one per team, each listing the players who picked it. */
 function GameCard({ game, players, max }: { game: ApiGame; players: Players; max: number }) {
-  const rows = game.slots.flatMap((s) =>
-    players.flatMap((p) => {
-      const pick = p.picks.find((k) => k.game_id === game.id && k.slot_id === s.id);
-      const status: Status = game.winner_slot_id === null ? "open" : game.winner_slot_id === s.id ? "won" : "lost";
-      return pick ? [{ name: p.display_name, me: p.is_me, points: pick.confidence, team: teamName(s), status }] : [];
-    }),
-  );
   return (
     <article className="gc">
       <header>
@@ -46,15 +39,57 @@ function GameCard({ game, players, max }: { game: ApiGame; players: Players; max
         {game.fixed_wager !== null && <small>worth {game.fixed_wager}</small>}
       </header>
       <p className="when">{formatKickoff(game.kickoff_at)}</p>
-      <p className="vs">
-        {game.slots.map((s) => (
-          <span key={s.id} className={game.winner_slot_id === s.id ? "won" : undefined}>
-            {s.team?.rank ? `#${s.team.rank} ` : ""}{teamName(s)}
-          </span>
-        ))}
-      </p>
-      <PickRows rows={rows} max={max} />
+      <div className="sides">
+        {game.slots.map((s) => {
+          const status: Status = game.winner_slot_id === null ? "open" : game.winner_slot_id === s.id ? "won" : "lost";
+          const rows = players.flatMap((p) => {
+            const pick = p.picks.find((k) => k.game_id === game.id && k.slot_id === s.id);
+            return pick ? [{ name: p.display_name, me: p.is_me, points: pick.confidence, status }] : [];
+          });
+          return (
+            <section key={s.id}>
+              <h4 className={status === "won" ? "won" : undefined}>
+                {s.team?.rank ? `#${s.team.rank} ` : ""}{teamName(s)}
+              </h4>
+              <PickRows rows={rows} max={max} />
+            </section>
+          );
+        })}
+      </div>
     </article>
+  );
+}
+
+/**
+ * One playoff team: where it stands, the average rank players gave it and the
+ * range of ranks as a bar (dot at the average). Opens to the per-player list.
+ */
+function TeamSummary({ team: t, rows, size }: { team: ApiTeam; rows: Row[]; size: number }) {
+  const ranks = rows.map((r) => r.points ?? 0);
+  const at = (rank: number) => `${((rank - 1) / Math.max(1, size - 1)) * 100}%`;
+  const avg = ranks.length ? ranks.reduce((a, b) => a + b, 0) / ranks.length : 0;
+  const lo = Math.min(...ranks);
+  const hi = Math.max(...ranks);
+  return (
+    <details className={"tm" + (t.eliminated ? " out" : "")}>
+      <summary>
+        <span className="who">
+          <b>{t.seed ? `#${t.seed} ` : ""}{t.name}</b>
+          <small>{t.eliminated ? "Eliminated" : "Alive"} · {t.wins} {t.wins === 1 ? "win" : "wins"}</small>
+        </span>
+        {ranks.length > 0 && (
+          <span className="avg" title={`Ranked ${lo} to ${hi}`}>
+            <b>{fmt(Math.round(avg * 10) / 10)}</b>
+            <i className="rng" aria-hidden>
+              <i style={{ left: at(lo), right: `calc(100% - ${at(hi)})` }} />
+              <em style={{ left: at(avg) }} />
+            </i>
+            <small>{lo}–{hi}</small>
+          </span>
+        )}
+      </summary>
+      <PickRows rows={rows} max={size} />
+    </details>
   );
 }
 
@@ -84,37 +119,29 @@ export function EveryonesPicks({ year }: { year: number }) {
     );
   return (
     <>
-      <p className="note">
-        {players.length} players, one row per pick with the points riding on it.
-        {done.length > 0 && <> <a href="#completed">Jump to {done.length} completed {done.length === 1 ? "game" : "games"}</a></>}
-      </p>
+      <nav className="onpage" aria-label="On this page">
+        {open.length > 0 && <a href="#open">Open games</a>}
+        {teams.length > 0 && <a href="#playoff">Playoff rankings</a>}
+        {done.length > 0 && <a href="#completed">Completed ({done.length})</a>}
+      </nav>
       <ul className="legend" aria-hidden>
         <li><i className="pt won" />Won</li>
         <li><i className="pt lost" />Lost</li>
         <li><i className="pt open" />Still open</li>
         <li>Darker means more points</li>
       </ul>
-      {cards("Bowl games", ranked)}
-      {cards("Fixed-value games", fixed)}
+      {cards("Bowl games", ranked, "open")}
+      {cards("Fixed-value games", fixed, ranked.length ? undefined : "open")}
       {teams.length > 0 && (
         <>
-          <h3 className="groupt">Playoff rankings <span className="pill">{teams.length} teams</span></h3>
-          <div className="gcs teams">
+          <h3 className="groupt" id="playoff">Playoff rankings <span className="pill">{teams.length} teams</span></h3>
+          <div className="tsum">
             {teams.map((t) => {
               const rows = players.flatMap((p) => {
                 const r = p.playoff.find((k) => k.team_season_id === t.team_season_id);
-                const status: Status = t.eliminated ? "lost" : "open";
-                return r ? [{ name: p.display_name, me: p.is_me, points: r.rank, status }] : [];
+                return r ? [{ name: p.display_name, me: p.is_me, points: r.rank, status: (t.eliminated ? "lost" : "open") as Status }] : [];
               });
-              return (
-                <article key={t.team_season_id} className={"gc" + (t.eliminated ? " out" : "")}>
-                  <header>
-                    <b>{t.seed ? `#${t.seed} ` : ""}{t.name}</b>
-                    <small>{t.wins} {t.wins === 1 ? "win" : "wins"}{t.eliminated && " · out"}</small>
-                  </header>
-                  <PickRows rows={rows} max={teams.length} />
-                </article>
-              );
+              return <TeamSummary key={t.team_season_id} team={t} rows={rows} size={teams.length} />;
             })}
           </div>
         </>
