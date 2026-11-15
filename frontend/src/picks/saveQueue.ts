@@ -18,7 +18,6 @@ export function createSaveQueue(o: {
   onStatus: (s: Status) => void;
   /** Called when the server holds exactly the latest set. */
   onSaved: () => void;
-  debounceMs?: number;
 }) {
   let latest: PickRow[] | undefined;
   let version = 0;
@@ -64,7 +63,7 @@ export function createSaveQueue(o: {
         o.onStatus({ kind: "saving" });
         if (!inFlight) {
           clearTimeout(timer);
-          timer = setTimeout(sendNow, o.debounceMs ?? 800);
+          timer = setTimeout(sendNow, 800);
         }
       }
     },
