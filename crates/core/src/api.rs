@@ -51,6 +51,7 @@ pub struct Request<'a> {
 struct SeasonSummary {
     year: u16,
     locked: bool,
+    locks_at: DateTime<Utc>,
 }
 
 #[derive(Serialize)]
@@ -255,7 +256,7 @@ async fn seasons<S: Storage>(storage: &S, now: DateTime<Utc>) -> Result<Reply, S
     seasons.sort_by_key(|s| std::cmp::Reverse(s.year));
     let seasons: Vec<_> = seasons
         .iter()
-        .map(|s| SeasonSummary { year: s.year, locked: now >= s.locks_at })
+        .map(|s| SeasonSummary { year: s.year, locked: now >= s.locks_at, locks_at: s.locks_at })
         .collect();
     Ok(Reply::json(200, &serde_json::json!({ "seasons": seasons })))
 }
@@ -969,7 +970,7 @@ mod tests {
     #[test]
     fn seasons_newest_first_with_lock_state() {
         let (_, body) = get(&pool(), "/api/seasons", None);
-        assert_eq!(body, serde_json::json!({"seasons": [{"year": 2023, "locked": false}, {"year": 2022, "locked": true}]}));
+        assert_eq!(body, serde_json::json!({"seasons": [{"year": 2023, "locked": false, "locks_at": "2024-01-01T00:00:00Z"}, {"year": 2022, "locked": true, "locks_at": "2022-12-01T00:00:00Z"}]}));
     }
 
     #[test]

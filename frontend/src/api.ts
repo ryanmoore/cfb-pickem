@@ -1,4 +1,4 @@
-export type Season = { year: number; locked: boolean };
+export type Season = { year: number; locked: boolean; locks_at: string };
 
 export type Standing = {
   rank: number;
@@ -77,7 +77,8 @@ export type PicksResponse = {
   players: ({ display_name: string; is_me: boolean } & PicksDoc)[];
 };
 
-export type Progress = { display_name: string; picked: number; total: number };
+/** `playoff_ranked` is present only in a season that ranks its playoff teams. */
+export type Progress = { display_name: string; picked: number; total: number; playoff_ranked?: boolean };
 
 export const fetchGames = (year: number) =>
   get<{ games: ApiGame[]; playoff?: ApiPlayoff }>(`/api/seasons/${year}/games`);

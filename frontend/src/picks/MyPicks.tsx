@@ -48,7 +48,7 @@ function SeasonPicks({ year, name }: { year: number; name: string }) {
   );
 }
 
-function MyPicks({ year }: { year: number }) {
+function SignedInPicks({ year }: { year: number }) {
   const { data: me, error } = useQuery({ queryKey: ["me"], queryFn: fetchMe });
   if (error) return <PanelError error={error} />;
   if (!me) return <Skeleton lines={8} />;
@@ -62,11 +62,11 @@ function MyPicks({ year }: { year: number }) {
   return <SeasonPicks year={year} name={me.display_name} />;
 }
 
-export function Picks() {
+export function MyPicks() {
   return (
-    <>
-      <h2>My picks</h2>
-      <SeasonPage>{(year) => <MyPicks year={year} />}</SeasonPage>
-    </>
+    <div className="narrow">
+      <h2 className="label">My picks</h2>
+      <SeasonPage>{(year) => <SignedInPicks year={year} />}</SeasonPage>
+    </div>
   );
 }

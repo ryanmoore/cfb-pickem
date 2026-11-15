@@ -4,14 +4,14 @@
 .picks .bracket { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; margin: 0 -1rem; padding-inline: 1rem; scroll-padding-inline: 1rem; }
 .picks .bcol { flex: 0 0 84%; scroll-snap-align: start; display: flex; flex-direction: column; gap: 8px; }
 .picks .bgames { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 8px; }
-.picks .bcol h3 { margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; color: #566074; }
-.picks .bgame { border: 1px solid var(--line); border-radius: 10px; background: #fff; overflow: hidden; }
-.picks .bowl { display: block; padding: 2px 8px; background: #eef1f7; color: #566074; }
+.picks .bcol h3 { margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+.picks .bgame { border: 1px solid var(--line); border-radius: 10px; background: var(--paper); overflow: hidden; }
+.picks .bowl { display: block; padding: 2px 8px; background: var(--sand); color: var(--muted); }
 .picks .bslot { padding: 5px 8px; display: grid; font-size: 0.9rem; }
 .picks .bslot + .bslot { border-top: 1px solid var(--line); }
-.picks .bslot small { color: #566074; }
-.picks .bslot.tbd { color: #8a93a6; font-style: italic; min-height: 2.4rem; align-content: center; }
-.picks .bslot.won { background: #e3f4e8; }
+.picks .bslot small { color: var(--muted); }
+.picks .bslot.tbd { color: var(--muted); font-style: italic; min-height: 2.4rem; align-content: center; }
+.picks .bslot.won { background: var(--mint); }
 .picks .bslot.lost { opacity: 0.55; }
 .picks .scored { margin-top: 12px; font-size: 0.9rem; }
 .picks .scored p { margin: 2px 0; }

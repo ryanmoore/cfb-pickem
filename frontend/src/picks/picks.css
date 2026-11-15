@@ -1,43 +1,43 @@
 .picks { padding-bottom: 4rem; }
-.picks button { font: inherit; min-height: 44px; min-width: 44px; border: 1px solid #b8c0cf; border-radius: 8px; background: #fff; color: #1d2433; padding: 0 10px; cursor: pointer; }
-.picks button.primary { background: #1a56c4; border-color: #1a56c4; color: #fff; font-weight: 600; }
-.picks button.ghost { border-color: transparent; background: transparent; color: #1a56c4; font-size: 0.9rem; }
+.picks button { font: 700 1rem var(--round); min-height: 44px; min-width: 44px; border: 1px solid var(--edge); border-radius: 12px; background: var(--paper); color: var(--ink); padding: 0 10px; cursor: pointer; }
+.picks button.primary { background: var(--accent); border-color: var(--accent); color: var(--paper); box-shadow: 0 3px 0 var(--turf-dk); }
+.picks button.ghost { border-color: transparent; background: transparent; color: var(--accent); font-size: 0.9rem; }
 .picks button:disabled { opacity: 0.4; }
-.picks h2 { font-size: 0.95rem; margin: 14px 4px 6px; color: #566074; text-transform: uppercase; letter-spacing: 0.03em; }
+.picks h2 { font-size: 0.8rem; margin: 18px 4px 8px; color: var(--cran-dk); text-transform: uppercase; letter-spacing: 0.12em; }
 .picks h3 { margin: 0 0 4px; font-size: 1.05rem; }
-.picks small, .picks .meta { color: #566074; }
-.picks .head { position: sticky; top: 0; z-index: 20; background: #f6f7fa; margin: 0 -1rem; padding: 8px 1rem 6px; border-bottom: 1px solid var(--line); }
+.picks small, .picks .meta { color: var(--muted); }
+.picks .head { position: sticky; top: 0; z-index: 20; background: var(--cream); margin: 0 -1rem; padding: 8px 1rem 6px; border-bottom: 1px solid var(--line); }
 .picks .status { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; margin-top: 4px; font-size: 0.9rem; }
-.picks .status .saved { color: #1c7a3e; flex: 1; }
+.picks .status .saved { color: var(--turf); flex: 1; }
 .picks .status .saved.saving { color: var(--muted); }
-.picks .status .saved.offline, .picks .status .saved.rejected { color: #9a5b00; }
+.picks .status .saved.offline, .picks .status .saved.rejected { color: var(--gold-ink); }
 .picks .status .saved.locked { color: var(--danger); }
 .picks .list { display: flex; flex-direction: column; gap: 4px; }
-.picks .row, .picks .dim { box-sizing: border-box; height: calc(var(--row) - 4px); width: 100%; max-width: 30rem; margin: 0 auto; border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 6px; display: flex; align-items: stretch; gap: 8px; overflow: hidden; }
+.picks .row, .picks .dim { box-sizing: border-box; height: calc(var(--row) - 4px); width: 100%; max-width: 30rem; margin: 0 auto; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); padding: 6px; display: flex; align-items: stretch; gap: 8px; overflow: hidden; }
 .picks .row { position: relative; }
-.picks .hl { position: absolute; inset: -1px; border-radius: 10px; pointer-events: none; background: #2bb3a3; mix-blend-mode: multiply; opacity: 0; animation: hl-fade 1.8s ease-out; }
+.picks .hl { position: absolute; inset: -1px; border-radius: 14px; pointer-events: none; background: var(--turf-2); mix-blend-mode: multiply; opacity: 0; animation: hl-fade 1.8s ease-out; }
 @keyframes hl-fade { 0% { opacity: 0; } 6% { opacity: 0.9; } 14% { opacity: 0.25; } 22% { opacity: 0.7; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .picks .hl { animation-name: hl-fade-still; }
   @keyframes hl-fade-still { 0% { opacity: 0.55; } 100% { opacity: 0; } }
 }
-.picks .rk { position: relative; flex: none; width: 44px; min-height: 0 !important; border-radius: 8px; background: #eef1f7; display: grid; place-content: center; font-weight: 700; font-size: 1.05rem; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; color: #1d2433; }
-.picks .rk.un { background: #ffe9a6; color: #7a4a00; }
-.picks .rk.un i { color: #8a5a00; }
+.picks .rk { position: relative; flex: none; width: 44px; min-height: 0 !important; border-radius: 10px; background: var(--sand); display: grid; place-content: center; font: 800 1.1rem var(--round); line-height: 1; text-align: center; font-variant-numeric: tabular-nums; color: var(--ink); }
+.picks .rk.un { background: var(--gold-lt); color: var(--gold-ink); }
+.picks .rk.un i { color: var(--gold-ink); }
 .picks .pickbtns { display: flex; gap: 6px; margin-top: 2px; }
-.picks .chip { flex: 1; min-width: 0; box-sizing: border-box; border: 1px solid #b8c0cf; border-radius: 8px; background: #fff; color: #1d2433; padding: 0 10px; display: flex !important; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; line-height: 1.15; }
+.picks .chip { flex: 1; min-width: 0; box-sizing: border-box; border: 2px solid var(--edge); border-radius: 10px; background: var(--paper); color: var(--ink); padding: 0 10px; display: flex !important; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; line-height: 1.15; }
 /* Ellipsis text clips sideways only: fonts such as Segoe UI draw descenders
    below the line box, and a vertical clip cuts them off. */
 .picks .chip .nm { max-width: 100%; overflow-x: clip; overflow-y: visible; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 0.92rem; line-height: 1.3; }
 .picks .chip .rec { font-size: 0.75rem; opacity: 0.7; }
-.picks .chip.on { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
+.picks .chip.on { background: var(--accent) !important; color: var(--paper) !important; border-color: var(--accent) !important; }
 .picks .modal, .picks .spot { position: fixed; inset: 0; z-index: 50; }
 .picks .modal { background: #000a; display: grid; place-items: center; z-index: 60; padding: 12px; overflow: auto; }
-.picks .mbox { background: #fff; border-radius: 14px; padding: 14px; width: 100%; max-width: 26rem; display: grid; gap: 8px; max-height: 100%; overflow: auto; }
+.picks .mbox { background: var(--paper); border-radius: 14px; padding: 14px; width: 100%; max-width: 26rem; display: grid; gap: 8px; max-height: 100%; overflow: auto; }
 .picks .teams { display: flex; align-items: stretch; gap: 6px; }
 .picks .tinfo { flex: 1; min-width: 0; padding: 2px 8px; font-size: 0.9rem; }
 .picks .meta { margin: 0; font-size: 0.9rem; }
-.picks .spot { z-index: 50; background: #141828; }
+.picks .spot { z-index: 50; background: repeating-linear-gradient(90deg, transparent 0 46px, #ffffff0a 46px 92px), var(--turf-dk); }
 .picks .wheel { position: absolute; inset: 0; overflow-y: auto; scroll-snap-type: y mandatory; scroll-padding-top: 50%; overscroll-behavior: contain; scrollbar-width: none; padding: 0 8px; }
 .picks .wheel::-webkit-scrollbar { display: none; }
 .picks .sp { height: 50%; }
@@ -45,29 +45,29 @@
 .picks .snapend { scroll-snap-align: start; }
 .picks .row.tap, .picks .dim { cursor: pointer; }
 .picks .dim { opacity: 0.88; }
-.picks .rk i { display: block; font-style: normal; font-weight: 400; font-size: 0.6rem; color: #566074; }
+.picks .rk i { display: block; font-style: normal; font-weight: 400; font-size: 0.6rem; color: var(--muted); }
 .picks .mu { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
 .picks .hd { display: flex; align-items: center; gap: 4px; }
 .picks .tt { flex: 1; min-width: 0; display: grid; }
-.picks .bt { font-size: 0.95rem; font-weight: 600; line-height: 20px; color: #1d2433; }
+.picks .bt { font: 800 0.98rem/20px var(--round); color: var(--ink); }
 .picks .mt { display: flex; gap: 6px; }
-.picks .badge { align-self: center; font-size: 0.8rem; font-weight: 600; color: #1a56c4; background: #e6eefc; border-radius: 999px; padding: 3px 10px; }
+.picks .badge { align-self: center; font-size: 0.8rem; font-weight: 600; color: var(--accent); background: var(--mint); border-radius: 999px; padding: 3px 10px; }
 .picks .mt .chip { height: 40px; min-height: 0 !important; }
-.picks .ml { font-size: 0.8rem; line-height: 16px; color: #566074; font-variant-numeric: tabular-nums; }
+.picks .ml { font-size: 0.8rem; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .picks .bt, .picks .ml { overflow-x: clip; overflow-y: visible; text-overflow: ellipsis; white-space: nowrap; }
-.picks .chev { flex: none; width: 14px; text-align: center; color: #8a93a6; font-size: 1.3rem; line-height: 1; }
-.picks .how { margin: 10px 4px 0; font-size: 0.9rem; color: #333; }
+.picks .chev { flex: none; width: 14px; text-align: center; color: var(--muted); font-size: 1.3rem; line-height: 1; }
+.picks .how { margin: 10px 4px 0; font-size: 0.9rem; color: var(--ink); }
 .picks .jump { padding: 0 !important; font-weight: 600; }
-.picks .danger { display: block; margin: 28px auto 0; color: #b3261e; border-color: #b3261e !important; }
+.picks .danger { display: block; margin: 28px auto 0; color: var(--cran-dk); border-color: var(--cran-dk) !important; }
 .picks .cw { position: absolute; left: 8px; right: 8px; top: 50%; transform: translateY(-50%); max-width: 30rem; margin: 0 auto; pointer-events: none; }
-.picks .card { transform-origin: 0 0; pointer-events: none; background: #fff; border-radius: 14px; padding: 6px; display: flex; align-items: stretch; gap: 8px; box-shadow: 0 8px 30px #0007; border: 3px solid #1a56c4; }
+.picks .card { transform-origin: 0 0; pointer-events: none; background: var(--paper); border-radius: 14px; padding: 6px; display: flex; align-items: stretch; gap: 8px; box-shadow: 0 8px 30px #0007; border: 3px solid var(--gold); }
 .picks .card .mu { gap: 6px; }
 .picks .card .mt .chip { height: 44px; }
 .picks .card button, .picks .card .chip, .picks .bar button { pointer-events: auto; }
-.picks .cancel { color: #b3261e !important; font-weight: 600; flex: none; }
-.picks .menu { position: absolute; right: 8px; bottom: calc(100% - 2px); pointer-events: auto; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 30px #0007; padding: 4px; display: grid; min-width: 10rem; z-index: 3; }
+.picks .cancel { color: var(--cran-dk) !important; font-weight: 600; flex: none; }
+.picks .menu { position: absolute; right: 8px; bottom: calc(100% - 2px); pointer-events: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 30px #0007; padding: 4px; display: grid; min-width: 10rem; z-index: 3; }
 .picks .menu button { border: 0; text-align: left; }
-.picks .bar { position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--line); pointer-events: none; padding-bottom: env(safe-area-inset-bottom); }
+.picks .bar { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); border-top: 1px solid var(--line); pointer-events: none; padding-bottom: env(safe-area-inset-bottom); }
 .picks .barin { max-width: 30rem; margin: 0 auto; padding: 8px; display: grid; gap: 6px; }
 .picks .barrow { display: flex; gap: 6px; }
 .picks .barrow button { flex: 1 1 auto; padding: 0 6px; font-size: 0.8rem; white-space: nowrap; }
@@ -75,29 +75,29 @@
 .picks .cbtns { display: flex; gap: 6px; flex: none; }
 .picks .spot { cursor: grab; user-select: none; }
 .picks .spot.closing { pointer-events: none; }
-.picks .hint { position: absolute; left: 50%; bottom: calc(50% + var(--half, 80px) + 14px); transform: translateX(-50%); width: min(22rem, calc(100% - 32px)); box-sizing: border-box; background: #fff; color: #111; font-weight: 600; text-align: center; border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 24px #000a; pointer-events: none; z-index: 2; }
-.picks .hint::after { content: ""; position: absolute; left: 50%; top: 100%; margin-left: -9px; border: 9px solid transparent; border-top-color: #fff; }
+.picks .hint { position: absolute; left: 50%; bottom: calc(50% + var(--half, 80px) + 14px); transform: translateX(-50%); width: min(22rem, calc(100% - 32px)); box-sizing: border-box; background: var(--paper); color: var(--ink); font-weight: 600; text-align: center; border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 24px #000a; pointer-events: none; z-index: 2; }
+.picks .hint::after { content: ""; position: absolute; left: 50%; top: 100%; margin-left: -9px; border: 9px solid transparent; border-top-color: var(--paper); }
 .picks .status button.ghost:not(.jump) { padding: 0 4px; min-width: 0; }
-.picks .helpbtn { border: 1px solid #1a56c4 !important; border-radius: 50% !important; font-weight: 700; padding: 0 !important; min-width: 44px !important; }
+.picks .helpbtn { border: 1px solid var(--accent) !important; border-radius: 50% !important; font-weight: 700; padding: 0 !important; min-width: 44px !important; }
 .picks .coach { position: fixed; inset: 0; z-index: 70; cursor: pointer; }
-.picks .cut { position: fixed; border-radius: 10px; box-shadow: 0 0 0 100vmax #000c; outline: 3px solid #fff; pointer-events: none; }
-.picks .callout { position: fixed; box-sizing: border-box; background: #fff; color: #111; border-radius: 12px; padding: 10px 14px; display: grid; gap: 6px; cursor: default; box-shadow: 0 6px 24px #000a; animation: callout-in 0.25s ease-out; }
+.picks .cut { position: fixed; border-radius: 10px; box-shadow: 0 0 0 100vmax #000c; outline: 3px solid var(--paper); pointer-events: none; }
+.picks .callout { position: fixed; box-sizing: border-box; background: var(--paper); color: var(--ink); border-radius: 12px; padding: 10px 14px; display: grid; gap: 6px; cursor: default; box-shadow: 0 6px 24px #000a; animation: callout-in 0.25s ease-out; }
 .picks .callout footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .picks .callout small { font-size: 0.8rem; }
 .picks .callout i { position: absolute; border: 9px solid transparent; }
-.picks .callout.up i { top: 100%; border-top-color: #fff; }
-.picks .callout.down i { bottom: 100%; border-bottom-color: #fff; }
+.picks .callout.up i { top: 100%; border-top-color: var(--paper); }
+.picks .callout.down i { bottom: 100%; border-bottom-color: var(--paper); }
 .picks .callout button { justify-self: end; }
 @keyframes callout-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .picks .callout { animation: none; } }
-.picks .toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 80; box-sizing: border-box; width: max-content; max-width: min(26rem, calc(100% - 32px)); padding: 10px 16px; border-radius: 12px; background: #fdecec; color: #8c1d18; border: 1px solid #f3b8ba; box-shadow: 0 6px 20px #0003; font-size: 0.9rem; text-align: center; cursor: pointer; animation: toast-in 0.25s ease-out; }
+.picks .toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 80; box-sizing: border-box; width: max-content; max-width: min(26rem, calc(100% - 32px)); padding: 10px 16px; border-radius: 12px; background: var(--cran-lt); color: var(--cran-dk); border: 1px solid var(--cran); box-shadow: 0 6px 20px #0003; font-size: 0.9rem; text-align: center; cursor: pointer; animation: toast-in 0.25s ease-out; }
 .picks .toast.raised { bottom: calc(9.5rem + env(safe-area-inset-bottom)); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px); } }
 @media (prefers-reduced-motion: reduce) { .picks .toast { animation: none; } }
 @media (min-width: 700px) { .picks .toast.raised { bottom: calc(16px + env(safe-area-inset-bottom)); } }
 .picks .stack { display: contents; }
 .picks .hints { display: none; }
-.picks .hl.cancel { background: #e5484d; }
+.picks .hl.cancel { background: var(--cran); }
 @media (min-width: 700px) {
   .picks .stack { display: block; position: absolute; left: 50%; top: 50%; width: min(36rem, calc(100% - 16px)); transform: translate(-50%, -50%); pointer-events: none; }
   .picks .cw { position: static; transform: none; max-width: none; margin: 0; }
@@ -107,9 +107,9 @@
   .picks .barin { max-width: none; }
 }
 @media (min-width: 1100px) {
-  .picks .hints { display: block; position: absolute; top: 50%; transform: translateY(-50%); width: 12rem; color: #c3cadb; font-size: 0.95rem; pointer-events: none; }
+  .picks .hints { display: block; position: absolute; top: 50%; transform: translateY(-50%); width: 12rem; color: var(--mint); font-size: 0.95rem; pointer-events: none; }
   .picks .hints p { margin: 10px 0; }
   .picks .hints.left { right: calc(50% + 18rem + 16px); text-align: right; }
   .picks .hints.right { left: calc(50% + 18rem + 16px); }
-  .picks .hints kbd { font: inherit; font-size: 0.85rem; border: 1px solid #5d6784; border-radius: 4px; padding: 0 5px; background: #1f2540; }
+  .picks .hints kbd { font: inherit; font-size: 0.85rem; border: 1px solid #ffffff55; border-radius: 4px; padding: 0 5px; background: #ffffff1f; }
 }
