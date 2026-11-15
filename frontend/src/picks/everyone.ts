@@ -1,4 +1,4 @@
-import type { ApiGame, ApiSlot, ApiTeam, PicksResponse } from "../api";
+import type { ApiGame, ApiSlot, ApiTeam, PicksResponse, Standing } from "../api";
 import { dayKey } from "./kickoff";
 
 export type Players = PicksResponse["players"];
@@ -50,4 +50,12 @@ export function byDay(games: ApiGame[]): { key: string; games: ApiGame[] }[] {
     days.set(key, [...(days.get(key) ?? []), g]);
   }
   return [...days].map(([key, games]) => ({ key, games }));
+}
+
+/** Players by playoff points, highest first; players on equal points share a place. */
+export function playoffBoard(standings: Standing[]): { name: string; points: number; place: number }[] {
+  return standings
+    .map((s) => ({ name: s.display_name, points: s.playoff }))
+    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
+    .map((r, _, all) => ({ ...r, place: 1 + all.filter((o) => o.points > r.points).length }));
 }

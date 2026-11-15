@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ApiGame } from "../api";
-import { byDay, gameSides, gameState, type Players } from "./everyone";
+import type { ApiGame, Standing } from "../api";
+import { byDay, gameSides, gameState, playoffBoard, type Players } from "./everyone";
 
 const game = (id: number, kickoff_at: string, winner_slot_id: number | null = null): ApiGame => ({
   id, name: `G${id}`, kickoff_at, fixed_wager: null, winner_slot_id,
@@ -29,4 +29,9 @@ it("sides list each team's pickers by points and shade by the game's result", ()
 it("byDay orders games by kickoff and groups them by calendar day", () => {
   const days = byDay([game(3, "2030-12-22T12:00:00Z"), game(1, "2030-12-20T12:00:00Z"), game(2, "2030-12-20T13:00:00Z")]);
   expect(days.map((d) => d.games.map((g) => g.id))).toEqual([[1, 2], [3]]);
+});
+
+it("playoff places tie on equal points and order the rest by points then name", () => {
+  const s = (display_name: string, playoff: number) => ({ display_name, playoff }) as Standing;
+  expect(playoffBoard([s("Cy", 5), s("Bo", 9), s("Al", 5), s("Di", 1)]).map((r) => [r.name, r.place])).toEqual([["Bo", 1], ["Al", 2], ["Cy", 2], ["Di", 4]]);
 });

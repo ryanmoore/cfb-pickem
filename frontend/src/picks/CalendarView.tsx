@@ -111,7 +111,7 @@ export function CalendarView({ year }: { year: number }) {
       {teams.length > 0 && (
         <section className="day" id="cal-playoff">
           <h3>Playoff rankings</h3>
-          <PlayoffSummary teams={teams} games={games.data.playoff?.games ?? []} players={players} />
+          <PlayoffSummary year={year} teams={teams} games={games.data.playoff?.games ?? []} players={players} />
         </section>
       )}
     </div>

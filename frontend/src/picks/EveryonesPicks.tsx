@@ -1,13 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type CSSProperties } from "react";
-import { fetchGames, fetchPicks, type ApiGame, type ApiTeam } from "../api";
+import { fetchGames, fetchPicks, fetchStandings, type ApiGame, type ApiTeam } from "../api";
 import { fmt, PanelError, Skeleton } from "../ui";
-import { byDay, gameSides, gameState, maxPoints, teamRows, type GameState, type Players, type Row } from "./everyone";
+import { ordinal } from "../YourSeasons";
+import { byDay, byPoints, gameSides, gameState, maxPoints, playoffBoard, teamRows, type GameState, type Players, type Row } from "./everyone";
 import { formatDay, formatWhen } from "./kickoff";
 import "./everyones.css";
 
-/** One player per row, points shaded by how much of the most anyone staked; `flip` puts the points on the left. */
-export function PickRows({ rows, max, flip }: { rows: Row[]; max: number; flip?: boolean }) {
+/**
+ * One player per row, points shaded by how much of the most anyone staked; `flip` puts the points on the left.
+ * With `earn`, each row also shows its points times that many wins.
+ */
+export function PickRows({ rows, max, flip, earn }: { rows: Row[]; max: number; flip?: boolean; earn?: number }) {
   if (!rows.length) return <p className="nobody">Nobody</p>;
   return (
     <ul className={"pr" + (flip ? " flip" : "")}>
@@ -17,6 +21,7 @@ export function PickRows({ rows, max, flip }: { rows: Row[]; max: number; flip?:
           {r.points !== null && (
             <b className={`pt ${r.status}`} style={{ "--t": r.points / max } as CSSProperties}>{r.points}</b>
           )}
+          {earn !== undefined && r.points !== null && <small className="ep">{r.points * earn} pts</small>}
         </li>
       ))}
     </ul>
@@ -51,48 +56,74 @@ function Tile({ game, state, players, max }: { game: ApiGame; state: GameState; 
   );
 }
 
-/**
- * One playoff team: where it stands, the average rank players gave it and the
- * range of ranks as a bar (dot at the average). Opens to the per-player list.
- */
-function TeamSummary({ team: t, rows, size, playing }: { team: ApiTeam; rows: Row[]; size: number; playing: boolean }) {
-  const ranks = rows.map((r) => r.points ?? 0);
-  const at = (rank: number) => `${((rank - 1) / Math.max(1, size - 1)) * 100}%`;
-  const avg = ranks.length ? ranks.reduce((a, b) => a + b, 0) / ranks.length : 0;
-  const lo = Math.min(...ranks);
-  const hi = Math.max(...ranks);
+/** One playoff team: seed, win dots, the viewer's rank and what it has earned them, and the players' average rank. Opens to everyone's. */
+function TeamSummary({ team: t, rows, playing }: { team: ApiTeam; rows: Row[]; playing: boolean }) {
+  const avg = rows.length ? rows.reduce((n, r) => n + (r.points ?? 0), 0) / rows.length : null;
+  const mine = rows.find((r) => r.me);
+  const note = [t.eliminated ? "Out" : playing ? "Underway" : null, avg !== null && `avg ${fmt(Math.round(avg * 10) / 10)}`].filter(Boolean).join(" · ");
   return (
     <details className={"tm" + (t.eliminated ? " out" : "")}>
       <summary>
+        <span className="sd">{t.seed}</span>
         <span className="who">
-          <b>{t.seed ? `#${t.seed} ` : ""}{t.name}</b>
-          <small>{t.eliminated ? "Eliminated" : playing ? "Underway" : "Alive"} · {t.wins} {t.wins === 1 ? "win" : "wins"}</small>
+          <b>{t.name}</b>
+          <small>{note}</small>
         </span>
-        {ranks.length > 0 && (
-          <span className="avg" title={`Ranked ${lo} to ${hi}`}>
-            <b>{fmt(Math.round(avg * 10) / 10)}</b>
-            <i className="rng" aria-hidden>
-              <i style={{ left: at(lo), right: `calc(100% - ${at(hi)})` }} />
-              <em style={{ left: at(avg) }} />
-            </i>
-            <small>{lo}–{hi}</small>
+        <span className="wins" role="img" aria-label={`${t.wins} of ${t.max_wins} wins`}>
+          {Array.from({ length: t.max_wins }, (_, i) => <i key={i} className={i < t.wins ? "on" : undefined} />)}
+        </span>
+        {mine && (
+          <span className="yr" title={`Your rank ${mine.points}, ${(mine.points ?? 0) * t.wins} points so far`}>
+            <b>{mine.points}</b>
+            <small>{(mine.points ?? 0) * t.wins} pts</small>
           </span>
         )}
       </summary>
-      <PickRows rows={rows} max={size} />
+      <PickRows rows={rows} max={rows.length} earn={t.wins} />
     </details>
   );
 }
 
-/** One row per playoff team, with a team in a game now marked as underway. */
-export function PlayoffSummary({ teams, games, players }: { teams: ApiTeam[]; games: ApiGame[]; players: Players }) {
+/** Playoff standing at a glance, then one row per team (those still alive first), then the points table. */
+export function PlayoffSummary({ year, teams, games, players }: { year: number; teams: ApiTeam[]; games: ApiGame[]; players: Players }) {
+  const standings = useQuery({ queryKey: ["standings", year], queryFn: () => fetchStandings(year) });
   const now = Date.now();
   const playing = new Set(games.filter((g) => gameState(g, now) === "live").flatMap((g) => g.slots.map((s) => s.team_season_id)));
+  const ordered = [...teams.filter((t) => !t.eliminated), ...teams.filter((t) => t.eliminated)];
+  const alive = ordered.length - teams.filter((t) => t.eliminated).length;
+  const rowsOf = new Map(teams.map((t) => [t.team_season_id, teamRows(t, players).sort(byPoints)]));
+  const avg = (t: ApiTeam) => rowsOf.get(t.team_season_id)!.reduce((n, r) => n + (r.points ?? 0), 0) / Math.max(1, rowsOf.get(t.team_season_id)!.length);
+  const favourite = [...ordered.slice(0, alive || undefined)].sort((a, b) => avg(b) - avg(a))[0];
+  const board = standings.data && playoffBoard(standings.data.standings);
+  const me = board?.find((r) => r.name === players.find((p) => p.is_me)?.display_name);
   return (
-    <div className="tsum">
-      {teams.map((t) => (
-        <TeamSummary key={t.team_season_id} team={t} rows={teamRows(t, players)} size={teams.length} playing={playing.has(t.team_season_id)} />
-      ))}
+    <div className="po">
+      <div className="po-top">
+        <span className="chip"><b>{alive} of {teams.length}</b>still alive</span>
+        {me && <span className="chip"><b>{me.points} pts · {ordinal(me.place)}</b>your playoff points</span>}
+        <span className="chip"><b>#{favourite.seed} {favourite.name}</b>pool favourite</span>
+      </div>
+      <div className="tsum">
+        {ordered.map((t) => <TeamSummary key={t.team_season_id} team={t} rows={rowsOf.get(t.team_season_id)!} playing={playing.has(t.team_season_id)} />)}
+      </div>
+      {standings.error && !standings.data ? (
+        <PanelError error={standings.error} />
+      ) : (
+        board && (
+          <details className="board">
+            <summary>Playoff points so far</summary>
+            <ol>
+              {board.map((r) => (
+                <li key={r.name} className={r.name === me?.name ? "mine" : undefined}>
+                  <span>{r.place}.</span>
+                  <span className="nm">{r.name}</span>
+                  <b>{fmt(r.points)}</b>
+                </li>
+              ))}
+            </ol>
+          </details>
+        )
+      )}
     </div>
   );
 }
@@ -161,7 +192,7 @@ export function EveryonesPicks({ year }: { year: number }) {
       {teams.length > 0 && (
         <section className="ep-sec" id="playoff">
           <h3 className="groupt">Playoff rankings <span className="pill">{teams.length} teams</span></h3>
-          <PlayoffSummary teams={teams} games={games.data.playoff?.games ?? []} players={players} />
+          <PlayoffSummary year={year} teams={teams} games={games.data.playoff?.games ?? []} players={players} />
         </section>
       )}
       {section("final", "Final")}
