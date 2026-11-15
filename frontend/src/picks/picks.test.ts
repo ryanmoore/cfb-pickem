@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PickRow, SaveResult } from "../api";
-import { fromRows, moved, reconcile, shuffle, toRows, type Game } from "./model";
+import { fromRows, moved, reconcile, sameRows, shuffle, toRows, type Game } from "./model";
 import { createSaveQueue, type Status } from "./saveQueue";
 
 const game = (id: number, fixedWager: number | null = null): Game => ({
@@ -43,6 +43,12 @@ describe("entry model", () => {
     expect([...e.order].sort()).toEqual([1, 2, 3, 4]);
     expect(e.winners).toEqual({ 3: 30 });
   });
+});
+
+it("compares rows by value, whatever order the server writes their keys", () => {
+  const a: PickRow[] = [{ game_id: 1, slot_id: 10, confidence: 2 }];
+  expect(sameRows(a, [{ confidence: 2, game_id: 1, slot_id: 10 }])).toBe(true);
+  expect(sameRows(a, [{ confidence: 1, game_id: 1, slot_id: 10 }])).toBe(false);
 });
 
 describe("reconcile", () => {

@@ -91,6 +91,7 @@ export function reconcile(games: Game[], e: Entry): Entry {
 }
 
 export const sameRows = (a: PickRow[], b: PickRow[]) => {
-  const key = (r: PickRow[]) => JSON.stringify([...r].sort((x, y) => x.game_id - y.game_id));
+  const key = (r: PickRow[]) =>
+    JSON.stringify([...r].sort((x, y) => x.game_id - y.game_id).map((p) => [p.game_id, p.slot_id, p.confidence]));
   return key(a) === key(b);
 };
