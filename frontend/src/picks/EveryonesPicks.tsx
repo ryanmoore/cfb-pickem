@@ -1,22 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import type { CSSProperties } from "react";
-import { fetchGames, fetchPicks, type ApiGame, type ApiSlot, type ApiTeam, type PicksResponse } from "../api";
+import { useState, type CSSProperties } from "react";
+import { fetchGames, fetchPicks, type ApiGame, type ApiTeam } from "../api";
 import { fmt, PanelError, Skeleton } from "../ui";
-import { formatKickoff } from "./kickoff";
+import { byDay, gameSides, gameState, maxPoints, teamRows, type GameState, type Players, type Row } from "./everyone";
+import { formatDay, formatWhen } from "./kickoff";
+import "./everyones.css";
 
-type Players = PicksResponse["players"];
-type Status = "won" | "lost" | "open";
-type Row = { name: string; me: boolean; points: number | null; team?: string; status: Status };
-
-/** Highest points first, then by name. */
-const byPoints = (a: Row, b: Row) => (b.points ?? 0) - (a.points ?? 0) || a.name.localeCompare(b.name);
-
-/** One player per row, with the points shaded by how many of the section's most they stake. */
-function PickRows({ rows, max }: { rows: Row[]; max: number }) {
+/** One player per row, points shaded by how much of the most anyone staked; `flip` puts the points on the left. */
+export function PickRows({ rows, max, flip }: { rows: Row[]; max: number; flip?: boolean }) {
   if (!rows.length) return <p className="nobody">Nobody</p>;
   return (
-    <ul className="pr">
-      {rows.sort(byPoints).map((r) => (
+    <ul className={"pr" + (flip ? " flip" : "")}>
+      {rows.map((r) => (
         <li key={r.name} className={r.me ? "mine" : undefined}>
           <span className="nm">{r.name}</span>
           {r.points !== null && (
@@ -28,34 +23,30 @@ function PickRows({ rows, max }: { rows: Row[]; max: number }) {
   );
 }
 
-const teamName = (s: ApiSlot) => (s.team ? s.team.name : "To be decided");
-
-/** A game as two columns, one per team, each listing the players who picked it. */
-function GameCard({ game, players, max }: { game: ApiGame; players: Players; max: number }) {
+/** A game as a one-line header over two team columns, each listing who picked it. */
+function Tile({ game, state, players, max }: { game: ApiGame; state: GameState; players: Players; max: number }) {
   return (
-    <article className="gc">
-      <header>
-        <b>{game.name}</b>
-        {game.fixed_wager !== null && <small>worth {game.fixed_wager}</small>}
-      </header>
-      <p className="when">{formatKickoff(game.kickoff_at)}</p>
-      <div className="sides">
-        {game.slots.map((s) => {
-          const status: Status = game.winner_slot_id === null ? "open" : game.winner_slot_id === s.id ? "won" : "lost";
-          const rows = players.flatMap((p) => {
-            const pick = p.picks.find((k) => k.game_id === game.id && k.slot_id === s.id);
-            return pick ? [{ name: p.display_name, me: p.is_me, points: pick.confidence, status }] : [];
-          });
-          return (
-            <div key={s.id}>
-              <h4 className={status === "won" ? "won" : undefined}>
-                {s.team?.rank ? `#${s.team.rank} ` : ""}{teamName(s)}
-              </h4>
-              <PickRows rows={rows} max={max} />
-            </div>
-          );
-        })}
+    <article className={`ep-tile ${state}`} id={`g-${game.id}`}>
+      <div className="ep-info">
+        <b className="bowl" title={game.name}>{game.name}</b>
+        {state === "live" && <span className="ep-state live">● Underway</span>}
+        {state === "final" && <span className="ep-state final">Final</span>}
+        {state === "next" && (
+          <span className="when">{formatWhen(game.kickoff_at)}{game.fixed_wager !== null && ` · worth ${game.fixed_wager}`}</span>
+        )}
       </div>
+      {gameSides(game, players).map(({ slot, status, rows, total }, i) => {
+        const name = (slot.team ? `${slot.team.rank ? `#${slot.team.rank} ` : ""}${slot.team.name}` : "To be decided");
+        return (
+          <div key={slot.id} className={`ep-side ${i ? "b" : "a"} ${status}`}>
+            <h4 className="ep-th" title={name}>{status === "won" && "✓ "}{name}</h4>
+            <small className="ep-sub">
+              {slot.team?.record && `${slot.team.record} · `}{rows.length} {rows.length === 1 ? "pick" : "picks"} · {total} pts
+            </small>
+            <PickRows rows={rows} max={max} flip={i === 1} />
+          </div>
+        );
+      })}
     </article>
   );
 }
@@ -64,7 +55,7 @@ function GameCard({ game, players, max }: { game: ApiGame; players: Players; max
  * One playoff team: where it stands, the average rank players gave it and the
  * range of ranks as a bar (dot at the average). Opens to the per-player list.
  */
-function TeamSummary({ team: t, rows, size }: { team: ApiTeam; rows: Row[]; size: number }) {
+function TeamSummary({ team: t, rows, size, playing }: { team: ApiTeam; rows: Row[]; size: number; playing: boolean }) {
   const ranks = rows.map((r) => r.points ?? 0);
   const at = (rank: number) => `${((rank - 1) / Math.max(1, size - 1)) * 100}%`;
   const avg = ranks.length ? ranks.reduce((a, b) => a + b, 0) / ranks.length : 0;
@@ -75,7 +66,7 @@ function TeamSummary({ team: t, rows, size }: { team: ApiTeam; rows: Row[]; size
       <summary>
         <span className="who">
           <b>{t.seed ? `#${t.seed} ` : ""}{t.name}</b>
-          <small>{t.eliminated ? "Eliminated" : "Alive"} · {t.wins} {t.wins === 1 ? "win" : "wins"}</small>
+          <small>{t.eliminated ? "Eliminated" : playing ? "Underway" : "Alive"} · {t.wins} {t.wins === 1 ? "win" : "wins"}</small>
         </span>
         {ranks.length > 0 && (
           <span className="avg" title={`Ranked ${lo} to ${hi}`}>
@@ -93,8 +84,22 @@ function TeamSummary({ team: t, rows, size }: { team: ApiTeam; rows: Row[]; size
   );
 }
 
-/** Every player's picks once the season has locked: a card per game listing each player's pick, open games first. */
+/** One row per playoff team, with a team in a game now marked as underway. */
+export function PlayoffSummary({ teams, games, players }: { teams: ApiTeam[]; games: ApiGame[]; players: Players }) {
+  const now = Date.now();
+  const playing = new Set(games.filter((g) => gameState(g, now) === "live").flatMap((g) => g.slots.map((s) => s.team_season_id)));
+  return (
+    <div className="tsum">
+      {teams.map((t) => (
+        <TeamSummary key={t.team_season_id} team={t} rows={teamRows(t, players)} size={teams.length} playing={playing.has(t.team_season_id)} />
+      ))}
+    </div>
+  );
+}
+
+/** Every player's picks once the season has locked: games underway, up next, the playoff teams, then decided games. */
 export function EveryonesPicks({ year }: { year: number }) {
+  const [daysOpen, setDaysOpen] = useState(false);
   const games = useQuery({ queryKey: ["games", year], queryFn: () => fetchGames(year) });
   const picks = useQuery({ queryKey: ["picks", year], queryFn: () => fetchPicks(year) });
   const error = (!games.data && games.error) || (!picks.data && picks.error);
@@ -102,27 +107,51 @@ export function EveryonesPicks({ year }: { year: number }) {
   if (!games.data || !picks.data) return <Skeleton lines={5} />;
   const { players } = picks.data;
   if (!players.length) return <p>Nobody made picks this season.</p>;
-  const open = games.data.games.filter((g) => g.winner_slot_id === null);
-  const done = games.data.games.filter((g) => g.winner_slot_id !== null);
-  const ranked = open.filter((g) => g.fixed_wager === null);
-  const fixed = open.filter((g) => g.fixed_wager !== null);
+  const now = Date.now();
+  const all = games.data.games;
+  const sections = {
+    live: all.filter((g) => gameState(g, now) === "live"),
+    next: all.filter((g) => gameState(g, now) === "next"),
+    final: all.filter((g) => gameState(g, now) === "final"),
+  };
+  const byKickoff = (a: ApiGame, b: ApiGame) => a.kickoff_at.localeCompare(b.kickoff_at);
+  sections.live.sort(byKickoff);
+  sections.next.sort(byKickoff);
+  sections.final.sort((a, b) => byKickoff(b, a));
   const teams = games.data.playoff?.teams ?? [];
-  const max = Math.max(1, ...players.flatMap((p) => p.picks.map((k) => k.confidence ?? 0)));
-  const cards = (title: string, list: ApiGame[], id?: string) =>
-    list.length > 0 && (
-      <>
-        <h3 className="groupt" id={id}>{title} <span className="pill">{list.length}</span></h3>
-        <div className="gcs">
-          {list.map((g) => <GameCard key={g.id} game={g} players={players} max={max} />)}
+  const max = maxPoints(players);
+  const section = (state: GameState, title: string) =>
+    sections[state].length > 0 && (
+      <section className="ep-sec" id={state}>
+        <h3 className="groupt">{title} <span className="pill">{sections[state].length}</span></h3>
+        <div className="ep-games">
+          {sections[state].map((g) => <Tile key={g.id} game={g} state={state} players={players} max={max} />)}
         </div>
-      </>
+      </section>
     );
   return (
     <>
-      <nav className="onpage" aria-label="On this page">
-        {open.length > 0 && <a href="#open">Open games</a>}
-        {teams.length > 0 && <a href="#playoff">Playoff rankings</a>}
-        {done.length > 0 && <a href="#completed">Completed ({done.length})</a>}
+      <nav className="ep-jump" aria-label="Jump to">
+        <div className="row">
+          {sections.live.length > 0 && <a className="live" href="#live">Live <b>{sections.live.length}</b></a>}
+          {sections.next.length > 0 && <a href="#next">Next <b>{sections.next.length}</b></a>}
+          {teams.length > 0 && <a className="po" href="#playoff">Playoff</a>}
+          {sections.final.length > 0 && <a className="done" href="#final">Final <b>{sections.final.length}</b></a>}
+          <button type="button" aria-expanded={daysOpen} aria-label="Jump to a date" title="Jump to a date" onClick={() => setDaysOpen(!daysOpen)}>📅</button>
+        </div>
+        {daysOpen && (
+          <div className="days">
+            {byDay(all).map(({ key, games: gs }) => {
+              const done = gs.every((g) => gameState(g, now) === "final");
+              return (
+                <a key={key} className={done ? "done" : undefined} href={`#g-${gs[0].id}`}>
+                  <small>{formatDay(gs[0].kickoff_at)}</small>
+                  <i>{done ? "✓" : `${gs.length} ${gs.length === 1 ? "game" : "games"}`}</i>
+                </a>
+              );
+            })}
+          </div>
+        )}
       </nav>
       <ul className="legend" aria-hidden>
         <li><i className="pt won" />Won</li>
@@ -130,23 +159,15 @@ export function EveryonesPicks({ year }: { year: number }) {
         <li><i className="pt open" />Still open</li>
         <li>Darker means more points</li>
       </ul>
-      {cards("Bowl games", ranked, "open")}
-      {cards("Fixed-value games", fixed, ranked.length ? undefined : "open")}
+      {section("live", "On now")}
+      {section("next", "Up next")}
       {teams.length > 0 && (
-        <>
-          <h3 className="groupt" id="playoff">Playoff rankings <span className="pill">{teams.length} teams</span></h3>
-          <div className="tsum">
-            {teams.map((t) => {
-              const rows = players.flatMap((p) => {
-                const r = p.playoff.find((k) => k.team_season_id === t.team_season_id);
-                return r ? [{ name: p.display_name, me: p.is_me, points: r.rank, status: (t.eliminated ? "lost" : "open") as Status }] : [];
-              });
-              return <TeamSummary key={t.team_season_id} team={t} rows={rows} size={teams.length} />;
-            })}
-          </div>
-        </>
+        <section className="ep-sec" id="playoff">
+          <h3 className="groupt">Playoff rankings <span className="pill">{teams.length} teams</span></h3>
+          <PlayoffSummary teams={teams} games={games.data.playoff?.games ?? []} players={players} />
+        </section>
       )}
-      {cards("Completed games", done, "completed")}
+      {section("final", "Final")}
     </>
   );
 }

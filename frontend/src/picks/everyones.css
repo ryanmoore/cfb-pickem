@@ -1,0 +1,69 @@
+/* Jump bar: always on screen; the calendar button opens a day row under it. */
+.ep-jump { position: sticky; top: 0; z-index: 20; margin: 0 -1rem 8px; padding: 6px 1rem; background: var(--cream); border-bottom: 1px solid var(--line); }
+.ep-jump .row { display: flex; gap: 6px; }
+.ep-jump .row > * { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 36px; padding: 0 6px; border-radius: 999px; text-decoration: none; font: 800 0.88rem var(--round); color: var(--ink); background: var(--paper); border: 2px solid var(--edge); white-space: nowrap; cursor: pointer; }
+.ep-jump .row > button { flex: 0 0 42px; }
+.ep-jump b { padding: 1px 6px; border-radius: 999px; background: var(--sand); font: 800 0.72rem var(--round); }
+.ep-jump .live { border-color: var(--cran); color: var(--cran-dk); }
+.ep-jump .live b { background: var(--cran); color: #fff; }
+.ep-jump .po { border-color: var(--gold-dk); background: #fff6dc; }
+.ep-jump .done { border-color: var(--turf); color: var(--turf-dk); }
+.ep-jump .done b { background: var(--turf); color: #fff; }
+.ep-jump button[aria-expanded="true"] { background: var(--turf); border-color: var(--turf-dk); color: #fff; }
+.ep-jump .days { display: flex; gap: 4px; margin-top: 6px; overflow-x: auto; scrollbar-width: none; }
+.ep-jump .days a { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 8px; border-radius: 9px; background: var(--paper); border: 1.5px solid var(--line); color: var(--ink); font: 800 0.82rem var(--round); text-decoration: none; white-space: nowrap; }
+.ep-jump .days i { font: 700 0.7rem system-ui; font-style: normal; color: var(--muted); }
+.ep-jump .days .done { background: var(--mint); border-color: #b7d9bf; }
+
+.ep-sec { scroll-margin-top: 6.5rem; }
+.ep-games { display: grid; gap: 8px; align-items: start; }
+@media (min-width: 600px) { .ep-games { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .ep-games { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* A game tile: one header line over two team columns. Header, team line and
+   rows have fixed heights, so row n on the left is level with row n on the right. */
+.ep-tile { --row: 27px; scroll-margin-top: 6.5rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 2px 0 var(--line); }
+.ep-tile:target { box-shadow: 0 0 0 3px var(--gold); }
+.ep-tile.live { border-color: var(--cran); }
+.ep-info { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; background: var(--sand); white-space: nowrap; }
+.ep-info .bowl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 800 0.92rem var(--round); }
+.ep-info .when { flex: none; font-size: 0.76rem; color: var(--muted); }
+.ep-state { flex: none; padding: 2px 8px; border-radius: 999px; font: 800 0.7rem var(--round); color: #fff; }
+.ep-state.live { background: var(--cran); }
+.ep-state.final { background: var(--turf-dk); }
+.ep-side { min-width: 0; padding: 4px 6px 6px; }
+.ep-side.a { border-right: 2px dashed var(--line); }
+.ep-side.won { background: var(--mint); }
+.ep-side.lost { background: var(--cran-lt); }
+.ep-th { margin: 0; height: 26px; padding: 0 4px; border-bottom: 2px solid var(--line); font: 800 0.92rem/26px var(--round); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ep-side.won .ep-th { border-bottom-color: var(--turf); }
+.ep-side.b .ep-th, .ep-side.b .ep-sub, .flip .nm { text-align: right; }
+.ep-sub { display: block; height: 18px; padding: 2px 4px 0; font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.pr { display: grid; grid-auto-rows: var(--row, 27px); gap: 1px; margin: 2px 0 0; padding: 0; list-style: none; }
+.pr li { display: flex; align-items: center; gap: 5px; padding: 0 4px; border-radius: 6px; font: 600 0.9rem/1 system-ui; }
+.pr.flip li { flex-direction: row-reverse; }
+.pr .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr .pt { flex: none; min-width: 1.75em; height: 21px; padding: 0; font-size: 0.9rem; line-height: 21px; }
+.pr li.mine { background: var(--gold-lt); box-shadow: inset 0 0 0 2px var(--gold); font-weight: 800; }
+.nobody { margin: 2px 0 0; height: var(--row, 27px); padding: 0 4px; font: italic 0.85rem/27px system-ui; color: var(--muted); }
+
+/* Playoff summary rows */
+.tsum { display: grid; gap: 4px; }
+.tm { padding: 0 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+.tm[open] { border-color: var(--turf); }
+.tm.out summary .who { opacity: 0.6; }
+.tm summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; cursor: pointer; list-style: none; }
+.tm summary::-webkit-details-marker { display: none; }
+.tm summary::after { content: "›"; flex: none; color: var(--muted); font-size: 1.3rem; transition: transform 0.15s; }
+.tm[open] summary::after { transform: rotate(90deg); }
+.tm .who { flex: 1; min-width: 0; display: grid; }
+.tm .who b { font: 800 0.92rem var(--round); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm small { color: var(--muted); font-size: 0.72rem; }
+.tm .avg { flex: none; width: 5.5rem; display: grid; gap: 1px; text-align: center; }
+.tm .avg b { font: 800 0.9rem var(--round); }
+.tm .rng { position: relative; height: 8px; border-radius: 4px; background: var(--sand); }
+.tm .rng i { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: color-mix(in srgb, #2f6fb5 45%, #fff); }
+.tm .rng em { position: absolute; top: -2px; width: 4px; height: 12px; margin-left: -2px; border-radius: 2px; background: var(--ink); }
+.tm .pr { margin-bottom: 6px; }
+@media (min-width: 800px) { .tsum { grid-template-columns: 1fr 1fr; align-items: start; } }
