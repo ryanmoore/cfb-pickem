@@ -8,6 +8,7 @@ type Sort = "total" | "reach";
 
 function StandingsList({ year }: { year: number }) {
   const [sort, setSort] = useState<Sort>("total");
+  const [detail, setDetail] = useState(() => localStorage.getItem("standings-breakdown") === "1");
   const { data, error } = useQuery({
     queryKey: ["standings", year],
     queryFn: () => fetchStandings(year),
@@ -22,6 +23,8 @@ function StandingsList({ year }: { year: number }) {
     ? [...standings].sort((a, b) => b.max_possible - a.max_possible || b.total - a.total)
     : standings;
   const mine = me?.signed_in && me.known ? me.display_name : null;
+  const hasPlayoff = standings.some((s) => s.playoff > 0 || s.remaining_playoff > 0);
+  const showDetail = hasPlayoff && detail;
   const pct = (n: number) => `${(n / scale) * 100}%`;
   const head = (key: Sort, label: string) => (
     <th aria-sort={sort === key ? "descending" : undefined}>
@@ -30,12 +33,36 @@ function StandingsList({ year }: { year: number }) {
   );
   return (
     <>
-      <ul className="legend" aria-hidden>
-        <li><i className="b" />{split ? "Bowl points" : "Points"}</li>
-        {split && <li><i className="p" />Playoff points</li>}
-        {standings.some((s) => s.remaining_bowls > 0) && <li><i className="hb" />Bowl points left</li>}
-        {standings.some((s) => s.remaining_playoff > 0) && <li><i className="hp" />Playoff points left</li>}
-      </ul>
+      <div className="legend-row">
+        <ul className="legend" aria-hidden>
+          {showDetail ? (
+            <>
+              <li><i className="bw" />Bowls won</li>
+              <li><i className="bl" />Bowls pending</li>
+              <li><i className="pw" />Playoff won</li>
+              <li><i className="pl" />Playoff pending</li>
+            </>
+          ) : (
+            <>
+              <li><i className="bw" />Won</li>
+              <li><i className="bl" />Still possible</li>
+            </>
+          )}
+        </ul>
+        {hasPlayoff && (
+          <label className="breakdown">
+            <input
+              type="checkbox"
+              checked={detail}
+              onChange={(e) => {
+                setDetail(e.target.checked);
+                localStorage.setItem("standings-breakdown", e.target.checked ? "1" : "0");
+              }}
+            />
+            Show breakdown
+          </label>
+        )}
+      </div>
       <table className={`stt${split ? " split" : ""}`} aria-label={`${year} standings`}>
         <thead>
           <tr>
@@ -65,10 +92,19 @@ function StandingsList({ year }: { year: number }) {
                 <td className="num">{fmt(s.max_possible)}</td>
                 <td className="barc">
                   <div className="split-bar">
-                    <i className="b" style={{ width: pct(s.bowls) }} />
-                    <i className="p" style={{ width: pct(s.playoff) }} />
-                    <i className="hb" style={{ width: pct(s.remaining_bowls) }} />
-                    <i className="hp" style={{ width: pct(s.remaining_playoff) }} />
+                    {showDetail ? (
+                      <>
+                        <i className="bw" style={{ width: pct(s.bowls) }} />
+                        <i className="bl" style={{ width: pct(s.remaining_bowls) }} />
+                        <i className="pw" style={{ width: pct(s.playoff) }} />
+                        <i className="pl" style={{ width: pct(s.remaining_playoff) }} />
+                      </>
+                    ) : (
+                      <>
+                        <i className="bw" style={{ width: pct(s.total) }} />
+                        <i className="bl" style={{ width: pct(s.max_possible - s.total) }} />
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

@@ -20,6 +20,7 @@
   --line: #e7dcc6;
   --accent: var(--turf);
   --edge: #d8ccb2;
+  --tan: #e2cf99;
   --danger: var(--cran-dk);
   --nav-h: 4.75rem;
   --round: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif;
@@ -91,11 +92,14 @@ section + section { margin-top: 1.5rem; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 10px; padding: 0; list-style: none; font-size: 0.8rem; color: var(--muted); }
 .legend i { display: inline-block; width: 12px; height: 12px; margin-right: 5px; border-radius: 4px; vertical-align: -2px; }
-.legend .b, .split-bar .b { background: var(--turf-2); }
-.legend .p, .split-bar .p { background: repeating-linear-gradient(45deg, var(--turf-dk) 0 3px, var(--turf-2) 3px 7px); }
-.legend .hb, .split-bar .hb { background: repeating-linear-gradient(-45deg, #c4b285 0 3px, #f1e8d2 3px 7px); }
-.legend .hp, .split-bar .hp { background: radial-gradient(circle, #a08c57 1.3px, transparent 1.8px) 0 0 / 5px 5px, #f1e8d2; }
-.legend .hb, .legend .hp { border: 1px solid var(--edge); }
+.legend .bw, .split-bar .bw { background: var(--turf-2); }
+.legend .bl, .split-bar .bl { background: var(--tan); }
+.legend .pw, .split-bar .pw { background: repeating-linear-gradient(45deg, #ffffff30 0 2px, transparent 2px 6px), var(--turf-2); }
+.legend .pl, .split-bar .pl { background: repeating-linear-gradient(45deg, #ffffff66 0 2px, transparent 2px 6px), var(--tan); }
+.legend .bl, .legend .pl { box-shadow: inset 0 0 0 1px #b9a56c; }
+.legend-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; margin: 0 0 10px; }
+.legend-row .legend { margin: 0; }
+.breakdown { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: 0.8rem; color: var(--muted); cursor: pointer; }
 .stt { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
 .stt th { padding: 0 8px; text-align: right; font: 700 0.72rem system-ui; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); white-space: nowrap; }
 .stt th:nth-child(-n+2), .stt th.bar-h { text-align: left; }
