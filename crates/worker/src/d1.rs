@@ -25,6 +25,11 @@ struct GenerationRow {
     generation: u64,
 }
 
+#[derive(Deserialize)]
+struct VersionRow {
+    version: Option<String>,
+}
+
 fn time(text: &str) -> Result<DateTime<Utc>> {
     DateTime::parse_from_rfc3339(text)
         .map(Into::into)
@@ -125,11 +130,12 @@ impl D1Storage {
     }
 
     /// Run `statements` as one transaction; the last must be the generation
-    /// bump, whose row is returned.
-    async fn batch_generation(&self, statements: Vec<D1PreparedStatement>) -> Result<u64> {
+    /// bump, whose row (absent when it matched no season, or
+    /// when a picks bump found the new set not written) is returned.
+    async fn batch_generation(&self, statements: Vec<D1PreparedStatement>) -> Result<Option<u64>> {
         let results = self.0.batch(statements).await?;
         let rows: Vec<GenerationRow> = results.last().ok_or_else(|| Error::RustError("empty batch".into()))?.results()?;
-        rows.first().map(|r| r.generation).ok_or_else(|| Error::RustError("season not found".into()))
+        Ok(rows.first().map(|r| r.generation))
     }
 }
 
@@ -240,15 +246,29 @@ impl Storage for D1Storage {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn replace_picks(&self, user: UserId, season: SeasonId, picks: &[Pick]) -> Result<u64> {
-        let mut statements = vec![self.0.prepare(sql::DELETE_PICKS).bind(&[num(user.0), num(season.0)])?];
+    async fn picks_version(&self, user: UserId, season: SeasonId) -> Result<Option<String>> {
+        let rows: Vec<VersionRow> = self.query(sql::PICKS_VERSION, &[num(user.0), num(season.0)]).await?;
+        Ok(rows.into_iter().next().and_then(|r| r.version))
+    }
+
+    async fn replace_picks(
+        &self,
+        user: UserId,
+        season: SeasonId,
+        picks: &[Pick],
+        version: &str,
+        base: Option<&str>,
+    ) -> Result<Option<u64>> {
+        let base = base.map_or(JsValue::NULL, JsValue::from_str);
+        let mut statements = vec![self.0.prepare(sql::DELETE_PICKS).bind(&[num(user.0), num(season.0), base])?];
         for p in picks {
             let confidence = p.confidence.map_or(JsValue::NULL, |c| num(c.into()));
             let slot = p.slot_id.map_or(JsValue::NULL, |s| num(s.0));
-            let args = [num(user.0), num(p.game_id.0), num(season.0), slot, confidence];
+            let args = [num(user.0), num(p.game_id.0), num(season.0), slot, confidence, version.into()];
             statements.push(self.0.prepare(sql::INSERT_PICK).bind(&args)?);
         }
-        statements.push(self.0.prepare(sql::BUMP_GENERATION).bind(&[num(season.0)])?);
+        let bump = [num(season.0), num(user.0), version.into()];
+        statements.push(self.0.prepare(sql::BUMP_GENERATION_FOR_PICKS).bind(&bump)?);
         self.batch_generation(statements).await
     }
 
@@ -258,6 +278,7 @@ impl Storage for D1Storage {
             self.0.prepare(sql::UPSERT_RESULT).bind(&upsert)?,
             self.0.prepare(sql::BUMP_GENERATION).bind(&[num(season.0)])?,
         ])
-        .await
+        .await?
+        .ok_or_else(|| Error::RustError("season not found".into()))
     }
 }

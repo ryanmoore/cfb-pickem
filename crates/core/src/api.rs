@@ -111,6 +111,10 @@ struct PickView {
 #[derive(Deserialize)]
 struct PicksBody {
     picks: Vec<PickView>,
+    /// The version the entry was based on: absent for an unconditional save,
+    /// null for "I had no picks yet".
+    #[serde(default, deserialize_with = "Option::deserialize")]
+    base_version: Option<Option<String>>,
 }
 
 #[derive(Deserialize)]
@@ -325,6 +329,13 @@ async fn games<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error> {
     Ok(Reply::json(200, &serde_json::json!({ "year": season.year, "games": views })))
 }
 
+fn pick_views(all: &[Pick], user: UserId) -> Vec<PickView> {
+    all.iter()
+        .filter(|p| p.user_id == user)
+        .map(|p| PickView { game_id: p.game_id, slot_id: p.slot_id, confidence: p.confidence })
+        .collect()
+}
+
 async fn picks<S: Storage>(
     storage: &S,
     year: &str,
@@ -345,19 +356,19 @@ async fn picks<S: Storage>(
         if !locked && !is_me {
             continue;
         }
-        let picks: Vec<PickView> = all
-            .iter()
-            .filter(|p| p.user_id == user.id)
-            .map(|p| PickView { game_id: p.game_id, slot_id: p.slot_id, confidence: p.confidence })
-            .collect();
+        let picks = pick_views(&all, user.id);
         if !picks.is_empty() {
             players.push(PlayerPicks { display_name: &user.display_name, is_me, picks });
         }
     }
     players.sort_by(|a, b| a.display_name.cmp(b.display_name));
+    let version = match me {
+        Some(user) => storage.picks_version(user, season.id).await?,
+        None => None,
+    };
     Ok(Reply::json(
         200,
-        &serde_json::json!({ "year": season.year, "locked": locked, "players": players }),
+        &serde_json::json!({ "year": season.year, "locked": locked, "version": version, "players": players }),
     ))
 }
 
@@ -438,8 +449,20 @@ async fn put_picks<S: Storage>(
     if !problems.is_empty() {
         return Ok(Reply::json(422, &serde_json::json!({ "error": "invalid picks", "problems": problems })));
     }
-    let generation = storage.replace_picks(user.id, season.id, &picks).await?;
-    Ok(Reply::json(200, &serde_json::json!({ "generation": generation })))
+    let version = now.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+    let base = body.base_version.as_ref().map(|v| v.as_deref().unwrap_or(""));
+    match storage.replace_picks(user.id, season.id, &picks, &version, base).await? {
+        Some(generation) => Ok(Reply::json(200, &serde_json::json!({ "generation": generation, "version": version }))),
+        None => {
+            let all = storage.picks_for_season(season.id).await?;
+            let current = pick_views(&all, user.id);
+            let version = storage.picks_version(user.id, season.id).await?;
+            Ok(Reply::json(
+                412,
+                &serde_json::json!({ "error": "picks changed since your copy", "version": version, "picks": current }),
+            ))
+        }
+    }
 }
 
 async fn record_result<S: Storage>(
@@ -493,6 +516,7 @@ mod tests {
         picks: RefCell<Vec<Pick>>,
         results: RefCell<Vec<GameResult>>,
         generation: Cell<u64>,
+        versions: RefCell<std::collections::HashMap<i64, String>>,
     }
 
     fn user(id: i64, name: &str, email: Option<&str>, is_admin: bool) -> User {
@@ -531,6 +555,7 @@ mod tests {
             picks: RefCell::new(picks),
             results: RefCell::new(results),
             generation: Cell::new(1),
+            versions: RefCell::new([(2, "v0".to_string())].into()),
         }
     }
 
@@ -594,12 +619,27 @@ mod tests {
         async fn users(&self) -> Result<Vec<User>, ()> {
             Ok(self.users.clone())
         }
-        async fn replace_picks(&self, user: UserId, _: SeasonId, picks: &[Pick]) -> Result<u64, ()> {
+        async fn picks_version(&self, user: UserId, _: SeasonId) -> Result<Option<String>, ()> {
+            Ok(self.versions.borrow().get(&user.0).cloned())
+        }
+        async fn replace_picks(
+            &self,
+            user: UserId,
+            _: SeasonId,
+            picks: &[Pick],
+            version: &str,
+            base: Option<&str>,
+        ) -> Result<Option<u64>, ()> {
+            let mut versions = self.versions.borrow_mut();
+            if base.is_some_and(|b| b != versions.get(&user.0).map_or("", String::as_str)) {
+                return Ok(None);
+            }
+            versions.insert(user.0, version.into());
             let mut all = self.picks.borrow_mut();
             all.retain(|p| p.user_id != user);
             all.extend_from_slice(picks);
             self.generation.set(self.generation.get() + 1);
-            Ok(self.generation.get())
+            Ok(Some(self.generation.get()))
         }
         async fn record_result(&self, _: SeasonId, result: GameResult) -> Result<u64, ()> {
             let mut all = self.results.borrow_mut();
@@ -752,7 +792,7 @@ mod tests {
         assert_eq!(send(&fake, "POST", game1, Some(BO), result).0, 403);
         assert!(fake.results.borrow().is_empty());
 
-        assert_eq!(send(&fake, "PUT", picks, Some(BO), entry), (200, serde_json::json!({"generation": 2})));
+        assert_eq!(send(&fake, "PUT", picks, Some(BO), entry), (200, serde_json::json!({"generation": 2, "version": "2023-12-21T00:00:00.000Z"})));
         assert_eq!(fake.picks.borrow()[0], pick(2, 1, 11, 2));
         assert_eq!(send(&fake, "POST", game1, Some(ANN), result).0, 200);
         // An admin can fix a mistake by recording again.
@@ -762,6 +802,30 @@ mod tests {
         // The result shows in the games list and moves the standings.
         assert_eq!(get(&fake, "/api/seasons/2023/games", None).1["games"][1]["winner_slot_id"], 11);
         assert_eq!(get(&fake, "/api/seasons/2023/standings", None).1["standings"][0]["scored"], 2);
+    }
+
+    #[test]
+    fn a_save_based_on_a_stale_version_is_refused_with_the_current_set() {
+        let fake = pool();
+        let picks = "/api/seasons/2023/picks";
+        let entry = |base: &str| {
+            format!(r#"{{{base}"picks":[{{"game_id":1,"slot_id":11,"confidence":2}},{{"game_id":2,"slot_id":20,"confidence":1}}]}}"#)
+        };
+        let (_, body) = get(&fake, picks, Some(BO));
+        assert_eq!(body["version"], "v0");
+        assert_eq!(get(&fake, picks, Some(ANN)).1["version"], serde_json::Value::Null);
+
+        let (status, body) = send(&fake, "PUT", picks, Some(BO), &entry(r#""base_version":"old","#));
+        assert_eq!(status, 412);
+        assert_eq!(body["version"], "v0");
+        assert_eq!(body["picks"][0], serde_json::json!({"game_id": 1, "slot_id": 10, "confidence": 1}));
+        assert_eq!(fake.picks.borrow()[0], pick(2, 1, 10, 1), "a refused save changes nothing");
+        // Someone with no picks expects null, not a version.
+        assert_eq!(send(&fake, "PUT", picks, Some(ANN), &entry(r#""base_version":"v0","#)).0, 412);
+
+        assert_eq!(send(&fake, "PUT", picks, Some(BO), &entry(r#""base_version":"v0","#)).0, 200);
+        assert_eq!(send(&fake, "PUT", picks, Some(ANN), &entry(r#""base_version":null,"#)).0, 200);
+        assert_eq!(send(&fake, "PUT", picks, Some(BO), &entry("")).0, 200, "no base is unconditional");
     }
 
     #[test]

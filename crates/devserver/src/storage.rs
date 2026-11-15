@@ -8,7 +8,7 @@ use pickem_core::{
     SlotSource, Storage, TeamSeasonId, User, UserId,
 };
 use rusqlite::types::Type;
-use rusqlite::{params, Connection, Row};
+use rusqlite::{params, Connection, OptionalExtension, Row};
 
 fn migrations_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../migrations")
@@ -177,21 +177,29 @@ impl Storage for SqliteStorage {
         users.collect()
     }
 
+    async fn picks_version(&self, user: UserId, season: SeasonId) -> Result<Option<String>, Self::Error> {
+        self.conn.query_row(sql::PICKS_VERSION, params![user.0, season.0], |r| r.get(0))
+    }
+
     async fn replace_picks(
         &self,
         user: UserId,
         season: SeasonId,
         picks: &[Pick],
-    ) -> Result<u64, Self::Error> {
+        version: &str,
+        base: Option<&str>,
+    ) -> Result<Option<u64>, Self::Error> {
         let tx = self.conn.unchecked_transaction()?;
-        tx.execute(sql::DELETE_PICKS, params![user.0, season.0])?;
+        tx.execute(sql::DELETE_PICKS, params![user.0, season.0, base])?;
         for p in picks {
             tx.execute(
                 sql::INSERT_PICK,
-                params![user.0, p.game_id.0, season.0, p.slot_id.map(|s| s.0), p.confidence],
+                params![user.0, p.game_id.0, season.0, p.slot_id.map(|s| s.0), p.confidence, version],
             )?;
         }
-        let generation = bump_generation(&tx, season)?;
+        let generation = tx
+            .query_row(sql::BUMP_GENERATION_FOR_PICKS, params![season.0, user.0, version], |r| r.get(0))
+            .optional()?;
         tx.commit()?;
         Ok(generation)
     }

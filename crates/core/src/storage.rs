@@ -34,7 +34,13 @@ pub trait Storage {
     async fn user_by_email_hash(&self, hash: &EmailHash) -> Result<Option<User>, Self::Error>;
     async fn users(&self) -> Result<Vec<User>, Self::Error>;
 
-    /// Replace a player's picks for a season, atomically.
+    /// The version of a player's picks for a season; `None` when they have none.
+    async fn picks_version(&self, user: UserId, season: SeasonId) -> Result<Option<String>, Self::Error>;
+
+    /// Replace a player's picks for a season with a set stamped `version`,
+    /// atomically. With `base` given, nothing changes unless it is the
+    /// player's current version (the empty string when they have no picks);
+    /// that is `Ok(None)`.
     ///
     /// Returns the season's new generation, so the caller can use it
     /// directly for read-your-own-writes instead of re-reading the pointer,
@@ -44,7 +50,9 @@ pub trait Storage {
         user: UserId,
         season: SeasonId,
         picks: &[Pick],
-    ) -> Result<u64, Self::Error>;
+        version: &str,
+        base: Option<&str>,
+    ) -> Result<Option<u64>, Self::Error>;
 
     /// Record a winner and bump the season's generation in one transaction.
     async fn record_result(&self, season: SeasonId, result: GameResult) -> Result<u64, Self::Error>;

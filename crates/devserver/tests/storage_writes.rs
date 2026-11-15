@@ -32,18 +32,29 @@ fn writes_bump_the_generation_and_failed_writes_change_nothing() {
         )
         .unwrap();
 
-    let generation = pollster::block_on(storage.replace_picks(UserId(1), SeasonId(1), &[pick(1, 1, 1), pick(2, 2, 2)])).unwrap();
-    assert_eq!(generation, 2);
+    let replace = |picks: &[Pick], version: &str, base: Option<&str>| {
+        pollster::block_on(storage.replace_picks(UserId(1), SeasonId(1), picks, version, base))
+    };
+    assert_eq!(replace(&[pick(1, 1, 1), pick(2, 2, 2)], "v1", Some("")).unwrap(), Some(2));
+    let version = || pollster::block_on(storage.picks_version(UserId(1), SeasonId(1))).unwrap();
+    assert_eq!(version().as_deref(), Some("v1"));
+
+    // A stale or wrong base changes nothing: not the picks, version or generation.
+    assert_eq!(replace(&[pick(1, 2, 2), pick(2, 1, 1)], "v2", Some("")).unwrap(), None);
+    assert_eq!(replace(&[pick(1, 2, 2), pick(2, 1, 1)], "v2", Some("old")).unwrap(), None);
+    assert_eq!(version().as_deref(), Some("v1"));
+    assert_eq!(replace(&[pick(1, 1, 1), pick(2, 2, 2)], "v3", Some("v1")).unwrap(), Some(3));
+    assert_eq!(replace(&[pick(1, 1, 1), pick(2, 2, 2)], "v4", None).unwrap(), Some(4));
 
     // The same confidence twice violates the per-season unique index; the
     // earlier picks and the generation must survive.
     let bad = [pick(1, 1, 1), pick(2, 2, 1)];
-    assert!(pollster::block_on(storage.replace_picks(UserId(1), SeasonId(1), &bad)).is_err());
+    assert!(replace(&bad, "v5", None).is_err());
     let picks = pollster::block_on(storage.picks_for_season(SeasonId(1))).unwrap();
     assert_eq!(picks, vec![pick(1, 1, 1), pick(2, 2, 2)]);
 
     let result = GameResult { game_id: GameId(1), winner_slot_id: SlotId(1), source: ResultSource::Manual };
-    assert_eq!(pollster::block_on(storage.record_result(SeasonId(1), result)).unwrap(), 3);
+    assert_eq!(pollster::block_on(storage.record_result(SeasonId(1), result)).unwrap(), 5);
     assert_eq!(pollster::block_on(storage.results_for_season(SeasonId(1))).unwrap(), vec![result]);
     fs::remove_file(path).unwrap();
 }
