@@ -38,8 +38,11 @@ jobs:
           $W d1 export pickem --remote --output "$dump"
 
           # d1_migrations goes too: the dump carries production's copy.
+          # Newest first: dropping a table whose foreign-key parent is
+          # already gone fails, and a table is always created after the
+          # tables it references.
           $W d1 execute "$TARGET_DB" --remote --env staging --json --command \
-            "SELECT type, name FROM sqlite_master WHERE type IN ('view', 'table') AND name NOT LIKE 'sqlite\_%' ESCAPE '\' AND name NOT LIKE '\_cf\_%' ESCAPE '\' ORDER BY type DESC" \
+            "SELECT type, name FROM sqlite_master WHERE type IN ('view', 'table') AND name NOT LIKE 'sqlite\_%' ESCAPE '\' AND name NOT LIKE '\_cf\_%' ESCAPE '\' ORDER BY type DESC, rowid DESC" \
             | jq -r '"PRAGMA defer_foreign_keys = on;", (.[0].results[] | "DROP \(.type) IF EXISTS \"\(.name)\";")' \
             > "$RUNNER_TEMP/drop.sql"
           $W d1 execute "$TARGET_DB" --remote --env staging --file "$RUNNER_TEMP/drop.sql"
