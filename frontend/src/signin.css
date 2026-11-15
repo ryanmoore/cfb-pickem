@@ -1,0 +1,6 @@
+.signin .card { padding: 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 2px 0 var(--line); }
+.signin h3 { margin: 0 0 8px; font: 800 1.1rem var(--round); }
+.signin ol { margin: 0 0 8px; padding-left: 1.3rem; display: grid; gap: 4px; }
+.signin .go { display: block; margin: 14px 0 10px; padding: 14px; text-align: center; text-decoration: none; border-radius: 999px; border: 2px solid var(--turf-dk); background: var(--turf); color: #fff; font: 800 1.05rem var(--round); box-shadow: 0 3px 0 var(--turf-dk); }
+.signin .go:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.signin .hint { margin: 0; font-size: 0.85rem; color: var(--muted); }

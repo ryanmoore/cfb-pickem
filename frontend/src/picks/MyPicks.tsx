@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchGames, fetchMe, fetchPicks, type PicksDoc } from "../api";
+import { NotOnList } from "../SignIn";
 import { PanelError, SeasonPage, Skeleton } from "../ui";
 import { PickEntry } from "./PickEntry";
 import { PickList } from "./PickList";
@@ -67,10 +68,10 @@ function SignedInPicks({ year }: { year: number }) {
   if (!me.signed_in)
     return (
       <p>
-        <a href="/login">Sign in</a> to make your picks.
+        <a href="/signin">Sign in</a> to make your picks.
       </p>
     );
-  if (!me.known) return <p>You're signed in, but you're not on the player list for this pool.</p>;
+  if (!me.known) return <NotOnList />;
   return <SeasonPicks year={year} name={me.display_name} />;
 }
 

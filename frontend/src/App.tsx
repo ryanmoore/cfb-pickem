@@ -4,6 +4,7 @@ import { fetchMe } from "./api";
 import { History } from "./History";
 import { MyPicks } from "./picks/MyPicks";
 import { PicksPage } from "./Progress";
+import { SignIn } from "./SignIn";
 import { Standings } from "./Standings";
 import { PanelError, SeasonPill, SeasonProvider, seasonHref, useSeason } from "./ui";
 
@@ -18,7 +19,7 @@ function MeBadge() {
   const { data: me, error } = useQuery({ queryKey: ["me"], queryFn: fetchMe });
   if (error) return <PanelError error={error} />;
   if (!me) return <div className="skeleton skeleton-inline" aria-busy="true" />;
-  if (!me.signed_in) return <a className="me" href="/login">Sign in</a>;
+  if (!me.signed_in) return <a className="me" href="/signin">Sign in</a>;
   const [text, label] = me.known
     ? [me.display_name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase(), `Signed in as ${me.display_name}`]
     : ["?", "Signed in, but this email isn't linked to a player yet"];
@@ -44,7 +45,8 @@ function Tabs({ className, current }: { className: string; current: string }) {
 }
 
 export function App() {
-  const page = PAGES.find((p) => p.path === location.pathname.replace(/(.)\/$/, "$1")) ?? PAGES[0];
+  const path = location.pathname.replace(/(.)\/$/, "$1");
+  const page = PAGES.find((p) => p.path === path) ?? (path === "/signin" ? { path, seasonal: false, view: <SignIn /> } : PAGES[0]);
   return (
     <SeasonProvider>
       <header className="app-hd">
