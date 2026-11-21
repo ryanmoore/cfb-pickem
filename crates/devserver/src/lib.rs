@@ -1,6 +1,8 @@
 //! Native adapter for `pickem-core`: [`core::Storage`] over a local SQLite
-//! file, plus the importer that fills it from the legacy Django database.
+//! file, plus the importer that fills it from the legacy Django database and
+//! the draft-season generator, which stays out of the Worker.
 
+pub mod draft;
 pub mod import;
 pub mod serve;
 pub mod storage;

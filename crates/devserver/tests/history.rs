@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use pickem_core::api::{route, Request};
+use pickem_core::api::{route, Identity, Request};
 use pickem_devserver::create;
 use serde_json::{json, Value};
 
@@ -51,7 +51,7 @@ fn seed(specs: &[Spec]) -> pickem_devserver::SqliteStorage {
 }
 
 fn get(storage: &pickem_devserver::SqliteStorage, path: &str) -> Value {
-    let req = Request { method: "GET", path, identity: None, content_type: None, origin: None, host: None, body: b"" };
+    let req = Request { method: "GET", path, identity: Identity::Anonymous, content_type: None, origin: None, host: None, body: b"" };
     serde_json::from_str(&pollster::block_on(route(storage, &req, b"k", NOW.parse().unwrap())).unwrap().body).unwrap()
 }
 

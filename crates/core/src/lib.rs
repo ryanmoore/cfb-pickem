@@ -10,10 +10,12 @@ pub mod bracket;
 pub mod history;
 pub mod model;
 pub mod scoring;
+pub mod season_doc;
 pub mod sigv4;
 pub mod sql;
 pub mod storage;
 
 pub use model::*;
 pub use scoring::{standings, validate_confidence_permutation, PermutationError, Standing};
+pub use season_doc::SeasonDoc;
 pub use storage::{Archive, Storage};

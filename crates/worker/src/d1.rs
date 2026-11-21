@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use pickem_core::sql;
 use pickem_core::{
     Archive, EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, PlayoffSave, PlayoffStatus, ResultSource, Season, SeasonId, SlotId,
-    SlotSource, Storage, TeamSeason, TeamSeasonId, User, UserId,
+    SlotSource, Storage, Team, TeamId, TeamSeason, TeamSeasonId, User, UserId, SeasonDoc,
 };
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -51,6 +51,7 @@ struct SeasonRow {
     generation: u64,
     playoff_format: String,
     practice: i64,
+    draft: i64,
 }
 
 impl SeasonRow {
@@ -62,6 +63,7 @@ impl SeasonRow {
             generation: self.generation,
             playoff_format: PlayoffFormat::from_stored(&self.playoff_format),
             practice: self.practice != 0,
+            draft: self.draft != 0,
         })
     }
 }
@@ -96,8 +98,9 @@ struct TeamSeasonRow {
 }
 
 #[derive(Deserialize)]
-struct EventRow {
+struct SlugRow {
     id: i64,
+    slug: String,
     name: String,
 }
 
@@ -252,8 +255,13 @@ impl Storage for D1Storage {
     }
 
     async fn events(&self) -> Result<Vec<Event>> {
-        let rows: Vec<EventRow> = self.query(sql::EVENTS, &[]).await?;
-        Ok(rows.into_iter().map(|r| Event { id: EventId(r.id), name: r.name }).collect())
+        let rows: Vec<SlugRow> = self.query(sql::EVENTS, &[]).await?;
+        Ok(rows.into_iter().map(|r| Event { id: EventId(r.id), slug: r.slug, name: r.name }).collect())
+    }
+
+    async fn teams(&self) -> Result<Vec<Team>> {
+        let rows: Vec<SlugRow> = self.query(sql::TEAMS, &[]).await?;
+        Ok(rows.into_iter().map(|r| Team { id: TeamId(r.id), slug: r.slug, name: r.name }).collect())
     }
 
     async fn results_for_season(&self, season: SeasonId) -> Result<Vec<GameResult>> {
@@ -330,6 +338,29 @@ impl Storage for D1Storage {
         let bump = [num(season.0), num(user.0), version.into()];
         statements.push(self.0.prepare(sql::BUMP_GENERATION_FOR_PICKS).bind(&bump)?);
         self.batch_generation(statements).await
+    }
+
+    async fn replace_draft(&self, doc: &SeasonDoc, created_at: DateTime<Utc>) -> Result<()> {
+        let mut statements = Vec::new();
+        for (statement, args) in sql::replace_draft(doc, &created_at.format("%Y-%m-%dT%H:%M:%SZ").to_string()) {
+            let args: Vec<JsValue> = args
+                .into_iter()
+                .map(|a| match a {
+                    sql::Arg::Int(n) => num(n),
+                    sql::Arg::Text(t) => t.into(),
+                })
+                .collect();
+            statements.push(self.0.prepare(statement).bind(&args)?);
+        }
+        self.0.batch(statements).await.map(drop)
+    }
+
+    async fn publish_season(&self, year: u16) -> Result<Option<u64>> {
+        self.batch_generation(vec![self.0.prepare(sql::PUBLISH_SEASON).bind(&[year.into()])?]).await
+    }
+
+    async fn delete_draft(&self, year: u16) -> Result<()> {
+        self.0.prepare(sql::DELETE_DRAFT).bind(&[year.into()])?.run().await.map(drop)
     }
 
     async fn record_result(&self, season: SeasonId, result: GameResult) -> Result<u64> {

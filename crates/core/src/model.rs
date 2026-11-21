@@ -105,13 +105,16 @@ pub struct Season {
     pub playoff_format: PlayoffFormat,
     /// Plays like any season but stays out of history and all-time stats.
     pub practice: bool,
+    /// Visible to admins only until published.
+    pub draft: bool,
 }
 
 /// How a season scores its playoff.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PlayoffFormat {
     /// Playoff games are picked by slot like any other game.
+    #[default]
     Fixed,
     /// Players rank every playoff team; a team scores its rank for each win.
     Rank,
@@ -127,6 +130,14 @@ impl PlayoffFormat {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Event {
     pub id: EventId,
+    pub slug: String,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Team {
+    pub id: TeamId,
+    pub slug: String,
     pub name: String,
 }
 

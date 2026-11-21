@@ -5,7 +5,9 @@
 //! Because both sit behind this one trait, the two build paths differ only in
 //! their adapter — there is no second copy of the rules to drift.
 
-use crate::model::{EmailHash, Event, Game, GameResult, GameSlot, Pick, PlayoffRank, PlayoffSave, PlayoffStatus, Season, SeasonId, TeamSeason, User, UserId};
+use crate::model::{EmailHash, Event, Game, GameResult, GameSlot, Pick, PlayoffRank, PlayoffSave, PlayoffStatus, Season, SeasonId, Team, TeamSeason, User, UserId};
+use chrono::{DateTime, Utc};
+use crate::season_doc::SeasonDoc;
 
 /// Every season's games, results, picks and rankings, as the per-season reads
 /// below would return them.
@@ -32,6 +34,7 @@ pub trait Storage {
     async fn slots_for_season(&self, season: SeasonId) -> Result<Vec<GameSlot>, Self::Error>;
     async fn team_seasons_for_season(&self, season: SeasonId) -> Result<Vec<TeamSeason>, Self::Error>;
     async fn events(&self) -> Result<Vec<Event>, Self::Error>;
+    async fn teams(&self) -> Result<Vec<Team>, Self::Error>;
     async fn results_for_season(&self, season: SeasonId) -> Result<Vec<GameResult>, Self::Error>;
 
     /// Every player's picks for the season — standings need all of them, and
@@ -78,6 +81,19 @@ pub trait Storage {
         version: &str,
         base: Option<&str>,
     ) -> Result<Option<u64>, Self::Error>;
+
+    /// Replace the draft season of `doc.year`, or create it, from a validated
+    /// document, all or nothing; fails without changes if that year has a
+    /// published season. Events and teams the document declares new are
+    /// created unless their slug already exists.
+    async fn replace_draft(&self, doc: &SeasonDoc, created_at: DateTime<Utc>) -> Result<(), Self::Error>;
+
+    /// Make a draft season visible to everyone. Returns its new generation,
+    /// or `None` when `year` has no draft.
+    async fn publish_season(&self, year: u16) -> Result<Option<u64>, Self::Error>;
+
+    /// Delete a draft season with everything in it; a published season is left alone.
+    async fn delete_draft(&self, year: u16) -> Result<(), Self::Error>;
 
     /// Record a winner and bump the season's generation in one transaction.
     async fn record_result(&self, season: SeasonId, result: GameResult) -> Result<u64, Self::Error>;

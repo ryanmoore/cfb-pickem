@@ -6,7 +6,7 @@ mod d1;
 mod identity;
 
 use chrono::{DateTime, Utc};
-use pickem_core::api::{route, Reply, Request as ApiRequest};
+use pickem_core::api::{route, Identity, Reply, Request as ApiRequest};
 use worker::{
     console_error, event, Context, Date, Env, Headers, Request, Response, Result, ScheduleContext,
     ScheduledEvent,
@@ -40,12 +40,14 @@ async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
     let now = now();
     let team_domain = env.var("ACCESS_TEAM_DOMAIN")?.to_string();
     let aud = env.var("ACCESS_AUD")?.to_string();
-    let email = identity::caller_email(
+    let automation_client_id = env.var("AUTOMATION_CLIENT_ID").ok().map(|v| v.to_string());
+    let subject = identity::caller_subject(
         &req,
         &identity::Access { team_domain: &team_domain, aud: &aud },
         now,
     )
     .await;
+    let identity = subject.as_ref().map_or(Identity::Anonymous, |s| Identity::from_subject(s, automation_client_id.as_deref()));
     let key = env.secret("EMAIL_HASH_KEY")?.to_string();
     let storage = d1::D1Storage(env.d1("DB")?);
     let host = url.host_str().map(|h| match url.port() {
@@ -59,7 +61,7 @@ async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
     let api_req = ApiRequest {
         method: &method,
         path: url.path(),
-        identity: email.as_deref(),
+        identity,
         content_type: content_type.as_deref(),
         origin: origin.as_deref(),
         host: host.as_deref(),

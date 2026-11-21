@@ -5,8 +5,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use chrono::DateTime;
-use pickem_core::api::{route, Reply, Request as ApiRequest};
+use chrono::{DateTime, Utc};
+use pickem_core::api::{route, Identity, Reply, Request as ApiRequest};
 use tiny_http::{Header, Method, Request, Response};
 
 use crate::storage::SqliteStorage;
@@ -15,12 +15,19 @@ use crate::storage::SqliteStorage;
 pub struct Config {
     /// Every request is treated as signed in as this address.
     pub dev_email: Option<String>,
+    /// Every request is the automation instead, whatever `dev_email` says.
+    pub dev_automation: bool,
     pub email_key: Vec<u8>,
     pub dist: PathBuf,
 }
 
 pub fn dist_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../frontend/dist")
+}
+
+pub fn now() -> DateTime<Utc> {
+    let secs = SystemTime::now().duration_since(UNIX_EPOCH).expect("clock").as_secs();
+    DateTime::from_timestamp(secs as i64, 0).expect("in range")
 }
 
 fn header(name: &str, value: &str) -> Header {
@@ -73,6 +80,7 @@ fn handle(storage: &SqliteStorage, config: &Config, mut request: Request) {
         Method::Get => "GET",
         Method::Put => "PUT",
         Method::Post => "POST",
+        Method::Delete => "DELETE",
         _ => "OTHER",
     };
     let path = request.url().split('?').next().unwrap_or("/").to_string();
@@ -85,9 +93,12 @@ fn handle(storage: &SqliteStorage, config: &Config, mut request: Request) {
         return;
     }
     if path == "/api" || path.starts_with("/api/") {
-        let secs = SystemTime::now().duration_since(UNIX_EPOCH).expect("clock").as_secs();
-        let now = DateTime::from_timestamp(secs as i64, 0).expect("in range");
-        let identity = config.dev_email.as_deref();
+        let now = now();
+        let identity = match (config.dev_automation, config.dev_email.as_deref()) {
+            (true, _) => Identity::Automation,
+            (false, Some(email)) => Identity::Email(email),
+            (false, None) => Identity::Anonymous,
+        };
         let (content_type, origin, host) =
             (header_value(&request, "Content-Type"), header_value(&request, "Origin"), header_value(&request, "Host"));
         let mut body = Vec::new();

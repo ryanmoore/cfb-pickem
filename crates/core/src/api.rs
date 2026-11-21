@@ -11,12 +11,14 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::access::Subject;
 use crate::bracket::Bracket;
 use crate::history::{self, Finish, Place};
 use crate::model::{
     email_hash, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, PlayoffSave, ResultSource, Season, SeasonId,
     SlotId, SlotSource, TeamSeasonId, User, UserId,
 };
+use crate::season_doc::{load_season, LoadError, SeasonDoc};
 use crate::scoring::{playoff_units, rank_ties, standings, validate_confidence_permutation, validate_ranking};
 use crate::storage::{Archive, Storage};
 
@@ -35,12 +37,33 @@ impl Reply {
     }
 }
 
+/// Who the adapter has verified the caller to be.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Identity<'a> {
+    Anonymous,
+    /// A signed-in address; whether it belongs to a player is for the route to find out.
+    Email(&'a str),
+    /// The pool's automation: it manages draft seasons and is not a player.
+    Automation,
+}
+
+impl<'a> Identity<'a> {
+    /// A verified Access subject as a caller. Only the service token named
+    /// `automation_client_id` is the automation; any other is as anonymous as no token.
+    pub fn from_subject(subject: &'a Subject, automation_client_id: Option<&str>) -> Self {
+        match subject {
+            Subject::Email(email) => Identity::Email(email),
+            Subject::ServiceToken(id) if automation_client_id == Some(id) => Identity::Automation,
+            Subject::ServiceToken(_) => Identity::Anonymous,
+        }
+    }
+}
+
 /// What an adapter knows about a request.
 pub struct Request<'a> {
     pub method: &'a str,
     pub path: &'a str,
-    /// An address the adapter has already verified.
-    pub identity: Option<&'a str>,
+    pub identity: Identity<'a>,
     pub content_type: Option<&'a str>,
     pub origin: Option<&'a str>,
     /// The authority the request was sent to (`host[:port]`).
@@ -54,6 +77,8 @@ struct SeasonSummary {
     locked: bool,
     locks_at: DateTime<Utc>,
     practice: bool,
+    /// Only admins are told of a draft season.
+    draft: bool,
 }
 
 #[derive(Serialize)]
@@ -212,43 +237,50 @@ pub async fn route<S: Storage>(
     let (identity, key) = (req.identity, email_key);
     match (req.method, segments.as_slice()) {
         ("GET", ["api", "me"]) => me(storage, identity, key).await,
-        ("GET", ["api", "seasons"]) => seasons(storage, now).await,
+        ("GET", ["api", "seasons"]) => seasons(storage, identity, key, now).await,
         ("GET", ["api", "history"]) => history_reply(storage, now).await,
-        ("GET", ["api", "seasons", year, "standings"]) => standings_reply(storage, year, now).await,
-        ("GET", ["api", "seasons", year, "games"]) => games(storage, year).await,
+        ("GET", ["api", "seasons", year, "standings"]) => standings_reply(storage, year, identity, key, now).await,
+        ("GET", ["api", "seasons", year, "games"]) => games(storage, year, identity, key).await,
         ("GET", ["api", "seasons", year, "picks"]) => picks(storage, year, identity, key, now).await,
-        ("GET", ["api", "seasons", year, "progress"]) => progress(storage, year).await,
+        ("GET", ["api", "seasons", year, "progress"]) => progress(storage, year, identity, key).await,
         ("PUT", ["api", "seasons", year, "picks"]) => put_picks(storage, year, req, key, now).await,
         ("POST", ["api", "seasons", year, "games", id, "result"]) => {
             record_result(storage, year, id, req, key).await
         }
+        ("PUT", ["api", "admin", "seasons", year, "draft"]) => put_draft(storage, year, req, key, now, false).await,
+        ("POST", ["api", "admin", "seasons", year, "draft", "dry-run"]) => put_draft(storage, year, req, key, now, true).await,
+        ("POST", ["api", "admin", "seasons", year, "publish"]) => publish_draft(storage, year, req, key).await,
+        ("DELETE", ["api", "admin", "seasons", year, "draft"]) => delete_draft(storage, year, req, key).await,
         (_, ["api", "me" | "seasons" | "history"] | ["api", "seasons", _, "standings" | "games" | "picks" | "progress"])
-        | (_, ["api", "seasons", _, "games", _, "result"]) => Ok(Reply::error(405, "method not allowed")),
+        | (_, ["api", "seasons", _, "games", _, "result"])
+        | (_, ["api", "admin", "seasons", _, "draft" | "publish"] | ["api", "admin", "seasons", _, "draft", "dry-run"]) => {
+            Ok(Reply::error(405, "method not allowed"))
+        }
         _ => Ok(Reply::error(404, "not found")),
     }
 }
 
 async fn caller<S: Storage>(
     storage: &S,
-    identity: Option<&str>,
+    identity: Identity<'_>,
     email_key: &[u8],
 ) -> Result<Option<User>, S::Error> {
     match identity {
-        Some(email) => storage.user_by_email_hash(&email_hash(email_key, email)).await,
-        None => Ok(None),
+        Identity::Email(email) => storage.user_by_email_hash(&email_hash(email_key, email)).await,
+        Identity::Anonymous | Identity::Automation => Ok(None),
     }
 }
 
 /// The signed-in, known player, or the reply that turns the caller away.
 async fn require_user<S: Storage>(
     storage: &S,
-    identity: Option<&str>,
+    identity: Identity<'_>,
     email_key: &[u8],
 ) -> Result<Result<User, Reply>, S::Error> {
     Ok(match (identity, caller(storage, identity, email_key).await?) {
-        (None, _) => Err(Reply::error(401, "sign in required")),
-        (Some(_), None) => Err(Reply::error(403, "not a player in this pool")),
-        (Some(_), Some(user)) => Ok(user),
+        (Identity::Anonymous, _) => Err(Reply::error(401, "sign in required")),
+        (Identity::Automation, _) | (Identity::Email(_), None) => Err(Reply::error(403, "not a player in this pool")),
+        (Identity::Email(_), Some(user)) => Ok(user),
     })
 }
 
@@ -259,18 +291,58 @@ async fn season_by_year<S: Storage>(storage: &S, year: &str) -> Result<Option<Se
     }
 }
 
-async fn seasons<S: Storage>(storage: &S, now: DateTime<Utc>) -> Result<Reply, S::Error> {
+/// Admins and the automation can see draft seasons.
+async fn sees_drafts<S: Storage>(storage: &S, identity: Identity<'_>, email_key: &[u8]) -> Result<bool, S::Error> {
+    Ok(identity == Identity::Automation || caller(storage, identity, email_key).await?.is_some_and(|u| u.is_admin))
+}
+
+/// The season a per-season route works on. A draft exists for admins and the
+/// automation only; to everyone else it is no season at all.
+async fn season_for<S: Storage>(
+    storage: &S,
+    year: &str,
+    identity: Identity<'_>,
+    email_key: &[u8],
+) -> Result<Option<Season>, S::Error> {
+    let season = season_by_year(storage, year).await?;
+    match season {
+        Some(s) if s.draft && !sees_drafts(storage, identity, email_key).await? => Ok(None),
+        other => Ok(other),
+    }
+}
+
+async fn seasons<S: Storage>(
+    storage: &S,
+    identity: Identity<'_>,
+    email_key: &[u8],
+    now: DateTime<Utc>,
+) -> Result<Reply, S::Error> {
     let mut seasons = storage.seasons().await?;
+    if seasons.iter().any(|s| s.draft) && !sees_drafts(storage, identity, email_key).await? {
+        seasons.retain(|s| !s.draft);
+    }
     seasons.sort_by_key(|s| std::cmp::Reverse(s.year));
     let seasons: Vec<_> = seasons
         .iter()
-        .map(|s| SeasonSummary { year: s.year, locked: now >= s.locks_at, locks_at: s.locks_at, practice: s.practice })
+        .map(|s| SeasonSummary {
+            year: s.year,
+            locked: now >= s.locks_at,
+            locks_at: s.locks_at,
+            practice: s.practice,
+            draft: s.draft,
+        })
         .collect();
     Ok(Reply::json(200, &serde_json::json!({ "seasons": seasons })))
 }
 
-async fn standings_reply<S: Storage>(storage: &S, year: &str, now: DateTime<Utc>) -> Result<Reply, S::Error> {
-    let Some(season) = season_by_year(storage, year).await? else {
+async fn standings_reply<S: Storage>(
+    storage: &S,
+    year: &str,
+    identity: Identity<'_>,
+    email_key: &[u8],
+    now: DateTime<Utc>,
+) -> Result<Reply, S::Error> {
+    let Some(season) = season_for(storage, year, identity, email_key).await? else {
         return Ok(Reply::error(404, "no such season"));
     };
     let data = Archive {
@@ -379,7 +451,7 @@ fn by_season(all: Archive) -> HashMap<SeasonId, Archive> {
 /// of rows and costs a few milliseconds.
 async fn history_reply<S: Storage>(storage: &S, now: DateTime<Utc>) -> Result<Reply, S::Error> {
     let mut seasons = storage.seasons().await?;
-    seasons.retain(|s| !s.practice && now >= s.locks_at);
+    seasons.retain(|s| !s.practice && !s.draft && now >= s.locks_at);
     let users = storage.users().await?;
     let mut data = by_season(storage.archive().await?);
     let standings: Vec<_> = seasons
@@ -411,16 +483,16 @@ fn split_games(season: &Season, games: Vec<Game>) -> (Vec<Game>, Vec<Game>) {
 
 async fn me<S: Storage>(
     storage: &S,
-    identity: Option<&str>,
+    identity: Identity<'_>,
     email_key: &[u8],
 ) -> Result<Reply, S::Error> {
     let user = caller(storage, identity, email_key).await?;
     Ok(Reply::json(
         200,
         &match (identity, &user) {
-            (None, _) => Me::Anonymous { signed_in: false },
-            (Some(_), None) => Me::Unknown { signed_in: true, known: false },
-            (Some(_), Some(u)) => Me::Player {
+            (Identity::Anonymous | Identity::Automation, _) => Me::Anonymous { signed_in: false },
+            (Identity::Email(_), None) => Me::Unknown { signed_in: true, known: false },
+            (Identity::Email(_), Some(u)) => Me::Player {
                 signed_in: true,
                 known: true,
                 display_name: &u.display_name,
@@ -430,8 +502,13 @@ async fn me<S: Storage>(
     ))
 }
 
-async fn games<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error> {
-    let Some(season) = season_by_year(storage, year).await? else {
+async fn games<S: Storage>(
+    storage: &S,
+    year: &str,
+    identity: Identity<'_>,
+    email_key: &[u8],
+) -> Result<Reply, S::Error> {
+    let Some(season) = season_for(storage, year, identity, email_key).await? else {
         return Ok(Reply::error(404, "no such season"));
     };
     let mut games = storage.games_for_season(season.id).await?;
@@ -529,11 +606,11 @@ fn rank_views(all: &[PlayoffRank], user: UserId) -> Vec<RankView> {
 async fn picks<S: Storage>(
     storage: &S,
     year: &str,
-    identity: Option<&str>,
+    identity: Identity<'_>,
     email_key: &[u8],
     now: DateTime<Utc>,
 ) -> Result<Reply, S::Error> {
-    let Some(season) = season_by_year(storage, year).await? else {
+    let Some(season) = season_for(storage, year, identity, email_key).await? else {
         return Ok(Reply::error(404, "no such season"));
     };
     let me = caller(storage, identity, email_key).await?.map(|u| u.id);
@@ -578,8 +655,13 @@ const STARTED_MOVES: u32 = 3;
 /// how far they got with the playoff ranking: `done` once they confirmed a
 /// ranking that is complete for the current bracket, `started` after a few
 /// changes to it, else `untouched`. Reveals no picks or rankings, so it is public before the lock.
-async fn progress<S: Storage>(storage: &S, year: &str) -> Result<Reply, S::Error> {
-    let Some(season) = season_by_year(storage, year).await? else {
+async fn progress<S: Storage>(
+    storage: &S,
+    year: &str,
+    identity: Identity<'_>,
+    email_key: &[u8],
+) -> Result<Reply, S::Error> {
+    let Some(season) = season_for(storage, year, identity, email_key).await? else {
         return Ok(Reply::error(404, "no such season"));
     };
     let (bracket_games, games) = split_games(&season, storage.games_for_season(season.id).await?);
@@ -635,7 +717,7 @@ async fn put_picks<S: Storage>(
         Ok(user) => user,
         Err(reply) => return Ok(reply),
     };
-    let Some(season) = season_by_year(storage, year).await? else {
+    let Some(season) = season_for(storage, year, req.identity, email_key).await? else {
         return Ok(Reply::error(404, "no such season"));
     };
     if now >= season.locks_at {
@@ -718,6 +800,18 @@ async fn put_picks<S: Storage>(
     }
 }
 
+/// The signed-in admin, or the reply that turns the caller away.
+async fn require_admin<S: Storage>(
+    storage: &S,
+    identity: Identity<'_>,
+    email_key: &[u8],
+) -> Result<Result<User, Reply>, S::Error> {
+    Ok(match require_user(storage, identity, email_key).await? {
+        Ok(user) if !user.is_admin => Err(Reply::error(403, "admin only")),
+        other => other,
+    })
+}
+
 async fn record_result<S: Storage>(
     storage: &S,
     year: &str,
@@ -725,12 +819,8 @@ async fn record_result<S: Storage>(
     req: &Request<'_>,
     email_key: &[u8],
 ) -> Result<Reply, S::Error> {
-    let user = match require_user(storage, req.identity, email_key).await? {
-        Ok(user) => user,
-        Err(reply) => return Ok(reply),
-    };
-    if !user.is_admin {
-        return Ok(Reply::error(403, "admin only"));
+    if let Err(reply) = require_admin(storage, req.identity, email_key).await? {
+        return Ok(reply);
     }
     let Some(season) = season_by_year(storage, year).await? else {
         return Ok(Reply::error(404, "no such season"));
@@ -750,6 +840,91 @@ async fn record_result<S: Storage>(
     let result = GameResult { game_id, winner_slot_id: body.winner_slot_id, source: ResultSource::Manual };
     let generation = storage.record_result(season.id, result).await?;
     Ok(Reply::json(200, &serde_json::json!({ "generation": generation })))
+}
+
+/// The admin or the automation, or the reply that turns the caller away.
+async fn require_draft_editor<S: Storage>(
+    storage: &S,
+    req: &Request<'_>,
+    email_key: &[u8],
+) -> Result<Result<(), Reply>, S::Error> {
+    if req.identity == Identity::Automation {
+        return Ok(Ok(()));
+    }
+    Ok(require_admin(storage, req.identity, email_key).await?.map(|_| ()))
+}
+
+/// Check or store a season document for `year`; a stored one is a draft.
+async fn put_draft<S: Storage>(
+    storage: &S,
+    year: &str,
+    req: &Request<'_>,
+    email_key: &[u8],
+    now: DateTime<Utc>,
+    dry_run: bool,
+) -> Result<Reply, S::Error> {
+    if let Err(reply) = require_draft_editor(storage, req, email_key).await? {
+        return Ok(reply);
+    }
+    let mut doc = match serde_json::from_slice::<SeasonDoc>(req.body) {
+        Ok(doc) => doc,
+        Err(e) => return Ok(Reply::error(400, &format!("malformed season document: {e}"))),
+    };
+    if year.parse() != Ok(doc.year) {
+        return Ok(Reply::error(422, &format!("the document is for {}, not {year}", doc.year)));
+    }
+    Ok(match load_season(storage, &mut doc, dry_run, now).await? {
+        Ok(summary) => Reply::json(200, &serde_json::json!({ "dry_run": dry_run, "summary": summary })),
+        Err(LoadError::Published) => Reply::error(409, "that season is published; only a draft can be replaced"),
+        Err(LoadError::Invalid(problems)) => {
+            Reply::json(422, &serde_json::json!({ "error": "invalid season document", "problems": problems }))
+        }
+    })
+}
+
+/// The year's draft season, or the reply that explains why not.
+async fn require_draft<S: Storage>(storage: &S, year: &str) -> Result<Result<Season, Reply>, S::Error> {
+    Ok(match season_by_year(storage, year).await? {
+        None => Err(Reply::error(404, "no such season")),
+        Some(s) if !s.draft => Err(Reply::error(409, "that season is published")),
+        Some(s) => Ok(s),
+    })
+}
+
+async fn publish_draft<S: Storage>(
+    storage: &S,
+    year: &str,
+    req: &Request<'_>,
+    email_key: &[u8],
+) -> Result<Reply, S::Error> {
+    if let Err(reply) = require_admin(storage, req.identity, email_key).await? {
+        return Ok(reply);
+    }
+    let season = match require_draft(storage, year).await? {
+        Ok(season) => season,
+        Err(reply) => return Ok(reply),
+    };
+    Ok(match storage.publish_season(season.year).await? {
+        Some(generation) => Reply::json(200, &serde_json::json!({ "generation": generation })),
+        None => Reply::error(409, "that season is published"),
+    })
+}
+
+async fn delete_draft<S: Storage>(
+    storage: &S,
+    year: &str,
+    req: &Request<'_>,
+    email_key: &[u8],
+) -> Result<Reply, S::Error> {
+    if let Err(reply) = require_draft_editor(storage, req, email_key).await? {
+        return Ok(reply);
+    }
+    let season = match require_draft(storage, year).await? {
+        Ok(season) => season,
+        Err(reply) => return Ok(reply),
+    };
+    storage.delete_draft(season.year).await?;
+    Ok(Reply::json(200, &serde_json::json!({ "deleted": season.year })))
 }
 
 #[cfg(test)]
@@ -888,6 +1063,7 @@ mod tests {
                 generation: self.generation.get(),
                 playoff_format: self.format,
                 practice: false,
+                draft: false,
             };
             Ok(vec![at(2022, "2022-12-01T00:00:00Z"), at(2023, "2024-01-01T00:00:00Z")])
         }
@@ -930,7 +1106,19 @@ mod tests {
             Ok(self.ranks.borrow().clone())
         }
         async fn events(&self) -> Result<Vec<Event>, ()> {
-            Ok(vec![Event { id: EventId(1), name: "First Bowl".into() }])
+            Ok(vec![Event { id: EventId(1), slug: "first".into(), name: "First Bowl".into() }])
+        }
+        async fn teams(&self) -> Result<Vec<Team>, ()> {
+            Ok(vec![])
+        }
+        async fn replace_draft(&self, _: &SeasonDoc, _: DateTime<Utc>) -> Result<(), ()> {
+            unimplemented!("season loading is tested against SQLite")
+        }
+        async fn publish_season(&self, _: u16) -> Result<Option<u64>, ()> {
+            unimplemented!("season loading is tested against SQLite")
+        }
+        async fn delete_draft(&self, _: u16) -> Result<(), ()> {
+            unimplemented!("season loading is tested against SQLite")
         }
         async fn results_for_season(&self, _: SeasonId) -> Result<Vec<GameResult>, ()> {
             Ok(self.results.borrow().clone())
@@ -1000,22 +1188,28 @@ mod tests {
         }
     }
 
-    fn send(fake: &Fake, method: &str, path: &str, identity: Option<&str>, body: &str) -> (u16, serde_json::Value) {
+    impl<'a> From<Option<&'a str>> for Identity<'a> {
+        fn from(email: Option<&'a str>) -> Self {
+            email.map_or(Identity::Anonymous, Identity::Email)
+        }
+    }
+
+    fn send<'a>(fake: &Fake, method: &str, path: &str, identity: impl Into<Identity<'a>>, body: &str) -> (u16, serde_json::Value) {
         send_at(fake, NOW, method, path, identity, body)
     }
 
-    fn send_at(
+    fn send_at<'a>(
         fake: &Fake,
         now: &str,
         method: &str,
         path: &str,
-        identity: Option<&str>,
+        identity: impl Into<Identity<'a>>,
         body: &str,
     ) -> (u16, serde_json::Value) {
         let req = Request {
             method,
             path,
-            identity,
+            identity: identity.into(),
             content_type: Some("application/json"),
             origin: None,
             host: Some("pool.test"),
@@ -1025,7 +1219,7 @@ mod tests {
         (r.status, serde_json::from_str(&r.body).unwrap())
     }
 
-    fn get(fake: &Fake, path: &str, identity: Option<&str>) -> (u16, serde_json::Value) {
+    fn get<'a>(fake: &Fake, path: &str, identity: impl Into<Identity<'a>>) -> (u16, serde_json::Value) {
         send(fake, "GET", path, identity, "")
     }
 
@@ -1090,7 +1284,7 @@ mod tests {
     #[test]
     fn seasons_newest_first_with_lock_state() {
         let (_, body) = get(&pool(), "/api/seasons", None);
-        assert_eq!(body, serde_json::json!({"seasons": [{"year": 2023, "locked": false, "locks_at": "2024-01-01T00:00:00Z", "practice": false}, {"year": 2022, "locked": true, "locks_at": "2022-12-01T00:00:00Z", "practice": false}]}));
+        assert_eq!(body, serde_json::json!({"seasons": [{"year": 2023, "locked": false, "locks_at": "2024-01-01T00:00:00Z", "practice": false, "draft": false}, {"year": 2022, "locked": true, "locks_at": "2022-12-01T00:00:00Z", "practice": false, "draft": false}]}));
     }
 
     #[test]
@@ -1248,7 +1442,7 @@ mod tests {
             let req = Request {
                 method: "POST",
                 path: "/api/seasons/2023/games/1/result",
-                identity: Some(ANN),
+                identity: Identity::Email(ANN),
                 content_type,
                 origin,
                 host: Some("pool.test"),

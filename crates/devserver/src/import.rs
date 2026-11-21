@@ -82,7 +82,7 @@ const EVENTS: &[(&str, &str, &[&str])] = &[
 ];
 
 /// Lowercase alphanumerics joined by single hyphens.
-fn slugify(name: &str) -> String {
+pub(crate) fn slugify(name: &str) -> String {
     let mut slug = String::new();
     for c in name.chars() {
         if c.is_ascii_alphanumeric() {

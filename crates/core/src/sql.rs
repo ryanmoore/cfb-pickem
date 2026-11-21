@@ -3,10 +3,15 @@
 //! Parameters are numbered (`?1`), which both bind by position. Timestamps
 //! are written as RFC 3339 UTC, the form [`crate::model`] parses.
 
-pub const SEASONS: &str = "SELECT id, year, locks_at, generation, playoff_format, practice FROM season";
+use serde::Serialize;
+
+use crate::model::PlayoffFormat;
+use crate::season_doc::SeasonDoc;
+
+pub const SEASONS: &str = "SELECT id, year, locks_at, generation, playoff_format, practice, draft FROM season";
 
 pub const SEASON_BY_YEAR: &str =
-    "SELECT id, year, locks_at, generation, playoff_format, practice FROM season WHERE year = ?1";
+    "SELECT id, year, locks_at, generation, playoff_format, practice, draft FROM season WHERE year = ?1";
 
 /// The same rows as the `*_FOR_SEASON` statements, for every season at once,
 /// so reading the whole archive costs a fixed number of queries.
@@ -31,7 +36,9 @@ pub const TEAM_SEASONS_FOR_SEASON: &str = "SELECT ts.id, t.name, ts.rank, ts.rec
      FROM team_season ts JOIN team t ON t.id = ts.team_id
      WHERE ts.season_id = ?1 ORDER BY ts.id";
 
-pub const EVENTS: &str = "SELECT id, name FROM event ORDER BY id";
+pub const EVENTS: &str = "SELECT id, slug, name FROM event ORDER BY id";
+
+pub const TEAMS: &str = "SELECT id, slug, name FROM team ORDER BY id";
 
 pub const RESULTS_FOR_SEASON: &str = "SELECT r.game_id, r.winner_slot_id, r.source
      FROM game_result r JOIN game g ON g.id = r.game_id
@@ -115,6 +122,74 @@ pub const UPSERT_RESULT: &str = "INSERT OR REPLACE INTO game_result (game_id, wi
 pub const BUMP_GENERATION: &str =
     "UPDATE season SET generation = generation + 1 WHERE id = ?1 RETURNING generation";
 
+pub const PUBLISH_SEASON: &str = "UPDATE season SET draft = 0, generation = generation + 1
+     WHERE year = ?1 AND draft = 1 RETURNING generation";
+
+pub const DELETE_DRAFT: &str = "DELETE FROM season WHERE year = ?1 AND draft = 1";
+
+/// A statement parameter.
+pub enum Arg {
+    Int(i64),
+    Text(String),
+}
+
+fn json(v: &impl Serialize) -> Arg {
+    Arg::Text(serde_json::to_string(v).expect("documents serialise"))
+}
+
+/// The statements that replace a year's draft season with `doc`, in order,
+/// with their arguments. Rows are found by slug and year rather than id, so
+/// the whole set runs as one batch of a fixed length however large the
+/// season is, and the document's JSON is expanded by `json_each`.
+pub fn replace_draft(doc: &SeasonDoc, created_at: &str) -> Vec<(&'static str, Vec<Arg>)> {
+    let year = || Arg::Int(doc.year.into());
+    let format = if doc.playoff_format == PlayoffFormat::Rank { "rank" } else { "fixed" };
+    vec![
+        (DELETE_DRAFT, vec![year()]),
+        (
+            INSERT_DRAFT_SEASON,
+            vec![year(), Arg::Text(doc.locks_at.clone().expect("validated")), Arg::Text(format.into()), Arg::Int(doc.practice.into()), Arg::Text(created_at.into())],
+        ),
+        (INSERT_NEW_EVENTS, vec![json(&doc.new_bowls)]),
+        (INSERT_NEW_TEAMS, vec![json(&doc.new_teams)]),
+        (INSERT_DRAFT_TEAM_SEASONS, vec![year(), json(&doc.teams)]),
+        (INSERT_DRAFT_GAMES, vec![year(), json(&doc.games)]),
+        (INSERT_DRAFT_SLOTS, vec![year(), json(&doc.games)]),
+    ]
+}
+
+const INSERT_DRAFT_SEASON: &str = "INSERT INTO season (year, locks_at, playoff_format, practice, draft, generation, created_at)
+     VALUES (?1, ?2, ?3, ?4, 1, 1, ?5)";
+
+const INSERT_NEW_EVENTS: &str = "INSERT OR IGNORE INTO event (slug, name) SELECT key, value FROM json_each(?1)";
+
+const INSERT_NEW_TEAMS: &str = "INSERT OR IGNORE INTO team (slug, name) SELECT key, value FROM json_each(?1)";
+
+const INSERT_DRAFT_TEAM_SEASONS: &str = "INSERT INTO team_season (season_id, team_id, rank, record)
+     SELECT s.id, t.id, json_extract(j.value, '$.rank'), json_extract(j.value, '$.record')
+     FROM season s, json_each(?2) j JOIN team t ON t.slug = j.key
+     WHERE s.year = ?1";
+
+const INSERT_DRAFT_GAMES: &str = "INSERT INTO game (season_id, event_id, display_name, kickoff_at, fixed_wager, playoff, external_id)
+     SELECT s.id, e.id, json_extract(g.value, '$.name'), json_extract(g.value, '$.kickoff_at'),
+            json_extract(g.value, '$.fixed_wager'), COALESCE(json_extract(g.value, '$.playoff'), 0),
+            json_extract(g.value, '$.external_id')
+     FROM season s, json_each(?2) g JOIN event e ON e.slug = json_extract(g.value, '$.bowl')
+     WHERE s.year = ?1";
+
+const INSERT_DRAFT_SLOTS: &str = "INSERT INTO game_slot (game_id, slot_index, team_season_id, feeder_game_id, seed)
+     SELECT gm.id, sl.key, ts.id, fg.id, json_extract(sl.value, '$.seed')
+     FROM season s
+     JOIN json_each(?2) g
+     JOIN json_each(g.value, '$.slots') sl
+     JOIN event ge ON ge.slug = json_extract(g.value, '$.bowl')
+     JOIN game gm ON gm.season_id = s.id AND gm.event_id = ge.id
+     LEFT JOIN team t ON t.slug = json_extract(sl.value, '$.team')
+     LEFT JOIN team_season ts ON ts.season_id = s.id AND ts.team_id = t.id
+     LEFT JOIN event fe ON fe.slug = json_extract(sl.value, '$.winner_of')
+     LEFT JOIN game fg ON fg.season_id = s.id AND fg.event_id = fe.id
+     WHERE s.year = ?1";
+
 pub const ALL: &[&str] = &[
     SEASONS,
     SEASON_BY_YEAR,
@@ -142,4 +217,13 @@ pub const ALL: &[&str] = &[
     BUMP_GENERATION_FOR_PICKS,
     UPSERT_RESULT,
     BUMP_GENERATION,
+    TEAMS,
+    PUBLISH_SEASON,
+    DELETE_DRAFT,
+    INSERT_DRAFT_SEASON,
+    INSERT_NEW_EVENTS,
+    INSERT_NEW_TEAMS,
+    INSERT_DRAFT_TEAM_SEASONS,
+    INSERT_DRAFT_GAMES,
+    INSERT_DRAFT_SLOTS,
 ];

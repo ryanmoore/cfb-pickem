@@ -7,7 +7,7 @@
 use std::cell::RefCell;
 
 use chrono::{DateTime, Utc};
-use pickem_core::access;
+use pickem_core::access::{self, Subject};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker::{console_error, Date, Error, Fetch, Request, Result};
@@ -112,27 +112,26 @@ async fn verify_rs256(jwk: &serde_json::Value, signed: &str, signature: &[u8]) -
     Ok(ok.as_bool().unwrap_or(false))
 }
 
-/// The verified address of the caller, or `None` when there is no valid
-/// Access token. A bad token is logged and treated as signed out: the public
+/// The verified subject of the caller's Access token, or `None` when there is
+/// no valid one. A bad token is logged and treated as signed out: the public
 /// pages still work for it.
-pub async fn caller_email(req: &Request, access: &Access<'_>, now: DateTime<Utc>) -> Option<String> {
+pub async fn caller_subject(req: &Request, access: &Access<'_>, now: DateTime<Utc>) -> Option<Subject> {
     let raw = token_from(req)?;
     let verified = async {
         let token = access::parse(&raw).map_err(|e| Error::RustError(e.to_string()))?;
-        let email = token
+        let subject = token
             .claims
-            .verified_email(access.aud, access.team_domain, now)
-            .map_err(|e| Error::RustError(e.to_string()))?
-            .to_string();
+            .verified_subject(access.aud, access.team_domain, now)
+            .map_err(|e| Error::RustError(e.to_string()))?;
         let jwk = key_for(access.team_domain, &token.kid).await?;
         if verify_rs256(&jwk, token.signing_input, &token.signature).await? {
-            Ok(email)
+            Ok(subject)
         } else {
             Err(Error::RustError("bad signature".into()))
         }
     };
     match verified.await {
-        Ok(email) => Some(email),
+        Ok(subject) => Some(subject),
         Err(e) => {
             console_error!("access token rejected: {e}");
             None

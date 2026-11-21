@@ -24,8 +24,8 @@ pub enum AccessError {
     Expired,
     #[error("token not yet valid")]
     NotYetValid,
-    #[error("no email claim")]
-    NoEmail,
+    #[error("no email or service token claim")]
+    NoSubject,
 }
 
 #[derive(Deserialize)]
@@ -48,6 +48,15 @@ pub struct Claims {
     exp: i64,
     nbf: Option<i64>,
     email: Option<String>,
+    /// The client id of a service token, which carries no email.
+    common_name: Option<String>,
+}
+
+/// Who a verified token belongs to.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Subject {
+    Email(String),
+    ServiceToken(String),
 }
 
 pub struct Token<'a> {
@@ -84,14 +93,14 @@ pub fn parse(token: &str) -> Result<Token<'_>, AccessError> {
 }
 
 impl Claims {
-    /// The signed-in address, if the claims were issued by this team for this
-    /// application and are valid at `now`.
-    pub fn verified_email(
+    /// The signed-in address or service token, if the claims were issued by
+    /// this team for this application and are valid at `now`.
+    pub fn verified_subject(
         &self,
         aud: &str,
         team_domain: &str,
         now: DateTime<Utc>,
-    ) -> Result<&str, AccessError> {
+    ) -> Result<Subject, AccessError> {
         let aud_ok = match &self.aud {
             Audience::One(a) => a == aud,
             Audience::Many(list) => list.iter().any(|a| a == aud),
@@ -109,7 +118,11 @@ impl Claims {
         if self.nbf.is_some_and(|nbf| now < nbf) {
             return Err(AccessError::NotYetValid);
         }
-        self.email.as_deref().ok_or(AccessError::NoEmail)
+        match (&self.email, &self.common_name) {
+            (Some(email), _) => Ok(Subject::Email(email.clone())),
+            (None, Some(client_id)) => Ok(Subject::ServiceToken(client_id.clone())),
+            (None, None) => Err(AccessError::NoSubject),
+        }
     }
 }
 
@@ -129,22 +142,23 @@ mod tests {
         )
     }
 
-    fn check(claims: &str) -> Result<String, AccessError> {
+    fn check(claims: &str) -> Result<Subject, AccessError> {
         let raw = token("RS256", claims);
         let t = parse(&raw)?;
         let now = DateTime::from_timestamp(NOW, 0).unwrap();
-        t.claims.verified_email("app-aud", "team.cloudflareaccess.com", now).map(String::from)
+        t.claims.verified_subject("app-aud", "team.cloudflareaccess.com", now)
     }
 
     #[test]
     fn claim_checks() {
         // Valid except for the one field each case overrides.
-        let claims = |aud: &str, iss: &str, exp: i64, nbf: &str, email: &str| {
-            format!(r#"{{"aud":{aud},"iss":"{iss}","exp":{exp}{nbf}{email}}}"#)
+        let claims = |aud: &str, iss: &str, exp: i64, nbf: &str, who: &str| {
+            format!(r#"{{"aud":{aud},"iss":"{iss}","exp":{exp}{nbf}{who}}}"#)
         };
         let team = "https://team.cloudflareaccess.com";
         let email = r#","email":"a@example.com""#;
-        let ok = Ok("a@example.com".to_string());
+        let ok = Ok(Subject::Email("a@example.com".into()));
+        let service = r#","common_name":"automation.access""#;
         let cases = [
             (claims(r#"["other","app-aud"]"#, team, NOW + 60, r#","nbf":1800000000"#, email), ok.clone()),
             (claims(r#""app-aud""#, team, NOW + 60, "", email), ok),
@@ -152,7 +166,8 @@ mod tests {
             (claims(r#""app-aud""#, "https://evil.example.com", NOW + 60, "", email), Err(AccessError::Issuer)),
             (claims(r#""app-aud""#, team, NOW, "", email), Err(AccessError::Expired)),
             (claims(r#""app-aud""#, team, NOW + 60, r#","nbf":1800000001"#, email), Err(AccessError::NotYetValid)),
-            (claims(r#""app-aud""#, team, NOW + 60, "", ""), Err(AccessError::NoEmail)),
+            (claims(r#""app-aud""#, team, NOW + 60, "", ""), Err(AccessError::NoSubject)),
+            (claims(r#""app-aud""#, team, NOW + 60, "", service), Ok(Subject::ServiceToken("automation.access".into()))),
             ("not json".to_string(), Err(AccessError::Malformed)),
         ];
         for (body, expected) in cases {

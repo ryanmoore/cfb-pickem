@@ -5,10 +5,10 @@ use chrono::{DateTime, Utc};
 use pickem_core::sql;
 use pickem_core::{
     email_hash, Archive, EmailHash, Event, EventId, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, PlayoffSave, PlayoffStatus, ResultSource, SeasonId, Season, SlotId, TeamSeason,
-    SlotSource, Storage, TeamSeasonId, User, UserId,
+    SlotSource, SeasonDoc, Storage, Team, TeamId, TeamSeasonId, User, UserId,
 };
-use rusqlite::types::Type;
-use rusqlite::{params, Connection, OptionalExtension, Row};
+use rusqlite::types::{Type, Value};
+use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Row};
 
 fn migrations_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../migrations")
@@ -35,7 +35,11 @@ pub struct SqliteStorage {
 
 impl SqliteStorage {
     pub fn open(path: &Path) -> rusqlite::Result<Self> {
-        Ok(Self { conn: Connection::open(path)? })
+        let conn = Connection::open(path)?;
+        // Off by default per connection; D1 always enforces them, and a draft's
+        // deletion relies on the cascade.
+        conn.pragma_update(None, "foreign_keys", true)?;
+        Ok(Self { conn })
     }
 
     fn all<T>(&self, sql: &str, row: fn(&Row) -> rusqlite::Result<T>) -> rusqlite::Result<Vec<T>> {
@@ -112,7 +116,13 @@ impl Storage for SqliteStorage {
 
     async fn events(&self) -> Result<Vec<Event>, Self::Error> {
         let mut stmt = self.conn.prepare(sql::EVENTS)?;
-        let rows = stmt.query_map([], |r| Ok(Event { id: EventId(r.get(0)?), name: r.get(1)? }))?;
+        let rows = stmt.query_map([], |r| Ok(Event { id: EventId(r.get(0)?), slug: r.get(1)?, name: r.get(2)? }))?;
+        rows.collect()
+    }
+
+    async fn teams(&self) -> Result<Vec<Team>, Self::Error> {
+        let mut stmt = self.conn.prepare(sql::TEAMS)?;
+        let rows = stmt.query_map([], |r| Ok(Team { id: TeamId(r.get(0)?), slug: r.get(1)?, name: r.get(2)? }))?;
         rows.collect()
     }
 
@@ -196,6 +206,26 @@ impl Storage for SqliteStorage {
         Ok(generation)
     }
 
+    async fn replace_draft(&self, doc: &SeasonDoc, created_at: DateTime<Utc>) -> Result<(), Self::Error> {
+        let tx = self.conn.unchecked_transaction()?;
+        for (statement, args) in sql::replace_draft(doc, &created_at.format("%Y-%m-%dT%H:%M:%SZ").to_string()) {
+            let args = args.into_iter().map(|a| match a {
+                sql::Arg::Int(n) => Value::Integer(n),
+                sql::Arg::Text(t) => Value::Text(t),
+            });
+            tx.execute(statement, params_from_iter(args))?;
+        }
+        tx.commit()
+    }
+
+    async fn publish_season(&self, year: u16) -> Result<Option<u64>, Self::Error> {
+        self.conn.query_row(sql::PUBLISH_SEASON, [year], |r| r.get(0)).optional()
+    }
+
+    async fn delete_draft(&self, year: u16) -> Result<(), Self::Error> {
+        self.conn.execute(sql::DELETE_DRAFT, [year]).map(drop)
+    }
+
     async fn record_result(&self, season: SeasonId, result: GameResult) -> Result<u64, Self::Error> {
         let tx = self.conn.unchecked_transaction()?;
         let args = params![result.game_id.0, result.winner_slot_id.0, result.source.as_str()];
@@ -214,6 +244,7 @@ fn season_row(r: &Row) -> rusqlite::Result<Season> {
         generation: r.get(3)?,
         playoff_format: PlayoffFormat::from_stored(&r.get::<_, String>(4)?),
         practice: r.get(5)?,
+        draft: r.get(6)?,
     })
 }
 
