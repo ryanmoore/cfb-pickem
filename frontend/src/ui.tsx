@@ -7,15 +7,17 @@ import type { TeamLook } from "./api";
 /** The team's two color bands, the wider its primary; nothing for a team with no color. `size` picks a CSS variant. */
 export function Marker({ team, size }: { team?: TeamLook | null; size?: "lead" | "lg" }) {
   const c = markerOf(team);
-  return c && <i className={"sw " + (size ?? "")} style={{ "--c1": c[0], "--c2": c[1] } as React.CSSProperties} />;
+  return c && <i className={"duo " + (size ?? "")} style={{ "--c1": c[0], "--c2": c[1] } as React.CSSProperties} />;
 }
 
-/** `children` as a label filled in the team's colors (text and accent band per `fillOf`); plain when the team has none. */
+/** `children` as a label that truncates with an ellipsis, filled in the team's colors (text and accent band per `fillOf`) when it has any. */
 export function TeamTag({ team, children }: { team?: TeamLook | null; children: ReactNode }) {
   const f = fillOf(team);
-  if (!f) return <>{children}</>;
   return (
-    <span className={"tn" + (f.edge ? " edge" : "")} style={{ "--tc": f.bg, "--tf": f.ink, "--ta": f.accent ?? f.bg } as React.CSSProperties}>
+    <span
+      className={"tn" + (f ? " tc" : "") + (f?.edge ? " edge" : "")}
+      style={f ? ({ "--tc": f.bg, "--tf": f.ink, "--ta": f.accent ?? f.bg } as React.CSSProperties) : undefined}
+    >
       {children}
     </span>
   );

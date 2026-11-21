@@ -252,8 +252,9 @@ table.medals { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
 @media (min-width: 640px) { .yc-stats { grid-template-columns: repeat(4, 1fr); } }
 .viewswitch { display: block; width: 100%; margin-top: 2rem; padding: 8px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 0.8rem; text-decoration: underline; cursor: pointer; }
 /* A team's two color bands (--c1 wider, --c2 beside it) and its name filled in its colors (--tc, text --tf, accent --ta). */
-i.sw { display: inline-block; flex: none; width: 16px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, var(--c1) 0 62%, var(--c2) 62%); box-shadow: 0 0 0 1px #0006; }
-i.sw.lg { width: 30px; height: 22px; border-radius: 5px; margin-right: 4px; }
-.tn { display: inline-block; max-width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; vertical-align: top; padding: 0 6px 3px; border-radius: 5px; background: var(--tc); color: var(--tf); box-shadow: inset 0 -3px 0 var(--ta); line-height: 1.4; }
+i.duo { display: inline-block; flex: none; width: 16px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, var(--c1) 0 62%, var(--c2) 62%); box-shadow: 0 0 0 1px #0006; }
+i.duo.lg { width: 30px; height: 22px; border-radius: 5px; margin-right: 4px; }
+.tn { display: inline-block; max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }
+.tn.tc { box-sizing: border-box; padding: 0 6px 3px; border-radius: 5px; background: var(--tc); color: var(--tf); box-shadow: inset 0 -3px 0 var(--ta); line-height: 1.4; }
 .tn.edge { outline: 1px solid var(--muted); outline-offset: -1px; }
 .mc { font-weight: 600; font-size: 0.8rem; color: var(--muted); }

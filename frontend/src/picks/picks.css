@@ -132,7 +132,7 @@
 /* A chip's team marker is a bar down its leading edge. A chosen side is filled in the team's colors (--tc, text --tf) and marked by a check, weight and an inner ring in the text color. */
 .picks .chip .rec { max-width: 100%; overflow-x: clip; text-overflow: ellipsis; white-space: nowrap; }
 .picks .chip.mk { position: relative; padding-left: 20px; }
-.picks .chip i.sw.lead { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; height: auto; border-radius: 8px 0 0 8px; box-shadow: none; }
+.picks .chip i.duo.lead { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; height: auto; border-radius: 8px 0 0 8px; box-shadow: none; }
 .picks .chip.off { opacity: 0.7; }
 .picks .chip.tc { background: var(--tc); color: var(--tf); border-color: var(--tc); }
 .picks .chip.tc.edge { border-color: var(--muted); }

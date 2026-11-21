@@ -35,11 +35,14 @@
 .ep-side.a { border-right: 2px dashed var(--line); }
 .ep-side.won { background: var(--mint); }
 .ep-side.lost { background: var(--cran-lt); }
-.ep-th .mc { display: none; }
+/* The mascot gives way before the school name does; a near-zero shrink keeps the name from clipping by a subpixel while the mascot still has room. */
+.ep-th .tn { flex-shrink: 0.001; }
+.ep-th .mc { display: none; flex-shrink: 100; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 @media (min-width: 600px) { .ep-th .mc { display: inline; } }
-.ep-th { margin: 0; height: 26px; padding: 0 4px; border-bottom: 2px solid var(--line); font: 800 0.92rem/26px var(--round); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ep-th { margin: 0; height: 26px; padding: 0 4px; border-bottom: 2px solid var(--line); font: 800 0.92rem/26px var(--round); white-space: nowrap; overflow: hidden; display: flex; align-items: center; gap: 4px; }
 .ep-side.won .ep-th { border-bottom-color: var(--turf); }
-.ep-side.b .ep-th, .ep-side.b .ep-sub, .flip .nm { text-align: right; }
+.ep-side.b .ep-th { justify-content: flex-end; }
+.ep-side.b .ep-sub, .flip .nm { text-align: right; }
 .ep-sub { display: block; height: 18px; padding: 2px 4px 0; font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .pr { display: grid; grid-auto-rows: var(--row, 27px); gap: 1px; margin: 2px 0 0; padding: 0; list-style: none; }
