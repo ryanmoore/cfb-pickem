@@ -281,7 +281,9 @@ async fn standings_reply<S: Storage>(storage: &S, year: &str, now: DateTime<Utc>
         ranks: storage.playoff_ranks_for_season(season.id).await?,
     };
     let users = storage.users().await?;
-    let ranked = ranked_standings(&season, now >= season.locks_at, &data, &users);
+    // No rows until the lock: a figure built from picks still being entered
+    // shows how far along each player is and what they have staked.
+    let ranked = if now >= season.locks_at { ranked_standings(&season, &data, &users) } else { Vec::new() };
     Ok(Reply::json(
         200,
         &serde_json::json!({
@@ -293,7 +295,7 @@ async fn standings_reply<S: Storage>(storage: &S, year: &str, now: DateTime<Utc>
 }
 
 /// A season's standings, leader first.
-fn ranked_standings<'a>(season: &Season, locked: bool, data: &Archive, users: &'a [User]) -> Vec<StandingRow<'a>> {
+fn ranked_standings<'a>(season: &Season, data: &Archive, users: &'a [User]) -> Vec<StandingRow<'a>> {
     let (bracket_games, bowls) = split_games(season, data.games.clone());
     let (picks, results) = (&data.picks, &data.results);
     let runs = Bracket::new(&bracket_games.iter().map(|g| g.id).collect::<Vec<_>>(), &data.slots, results).runs();
@@ -305,13 +307,7 @@ fn ranked_standings<'a>(season: &Season, locked: bool, data: &Archive, users: &'
         .iter()
         .filter_map(|u| {
             let bowl = bowl_standings.iter().find(|s| s.user_id == u.id);
-            // Rankings count only once locked: any playoff figure before then would
-            // show how the player weighed the bye teams.
-            let mine: Vec<PlayoffRank> = if locked {
-                data.ranks.iter().filter(|r| r.user_id == u.id).copied().collect()
-            } else {
-                Vec::new()
-            };
+            let mine: Vec<PlayoffRank> = data.ranks.iter().filter(|r| r.user_id == u.id).copied().collect();
             if bowl.is_none() && mine.is_empty() {
                 return None;
             }
@@ -390,7 +386,7 @@ async fn history_reply<S: Storage>(storage: &S, now: DateTime<Utc>) -> Result<Re
         .iter()
         .filter_map(|s| Some((s, data.remove(&s.id)?)))
         .filter(|(_, d)| !d.games.is_empty() && d.games.iter().all(|g| d.results.iter().any(|r| r.game_id == g.id)))
-        .map(|(s, d)| (s.year, ranked_standings(s, true, &d, &users)))
+        .map(|(s, d)| (s.year, ranked_standings(s, &d, &users)))
         .collect();
     let finishes: Vec<_> = standings
         .iter()
@@ -1067,7 +1063,7 @@ mod tests {
             ],
             vec![GameResult { game_id: GameId(1), winner_slot_id: SlotId(10), source: ResultSource::Manual }],
         );
-        let (status, body) = get(&fake, "/api/seasons/2023/standings", None);
+        let (status, body) = send_at(&fake, LOCKED, "GET", "/api/seasons/2023/standings", None, "");
         assert_eq!(status, 200);
         let rows: Vec<(u64, String, u64, u64, u64)> = body["standings"]
             .as_array()
@@ -1166,7 +1162,7 @@ mod tests {
         assert_eq!(fake.results.borrow()[0].source, ResultSource::Manual);
         // The result shows in the games list and moves the standings.
         assert_eq!(get(&fake, "/api/seasons/2023/games", None).1["games"][1]["winner_slot_id"], 11);
-        assert_eq!(get(&fake, "/api/seasons/2023/standings", None).1["standings"][0]["total"], 2.0);
+        assert_eq!(send_at(&fake, LOCKED, "GET", "/api/seasons/2023/standings", None, "").1["standings"][0]["total"], 2.0);
     }
 
     #[test]
@@ -1240,7 +1236,7 @@ mod tests {
 
         // The unset game scores 0 even once decided, and was never in play.
         send(&fake, "POST", "/api/seasons/2023/games/1/result", Some(ANN), r#"{"winner_slot_id":10}"#);
-        let after = get(&fake, "/api/seasons/2023/standings", None).1["standings"][0].clone();
+        let after = send_at(&fake, LOCKED, "GET", "/api/seasons/2023/standings", None, "").1["standings"][0].clone();
         assert_eq!((after["total"].clone(), after["max_possible"].clone()), (0.0.into(), 1.0.into()));
         assert_eq!(get(&fake, "/api/seasons/1999/progress", None).0, 404);
     }
@@ -1408,21 +1404,12 @@ mod tests {
     }
 
     #[test]
-    fn standings_before_the_lock_do_not_depend_on_rankings() {
+    fn standings_are_empty_until_the_lock() {
         let fake = rank_pool(12, 4);
-        let ann = Some(ANN);
-        let before = |fake: &Fake| get(fake, "/api/seasons/2023/standings", None).1["standings"].clone();
         assert_eq!(send(&fake, "PUT", PUT_PICKS, Some(BO), &entry(&by_seed(12).join(","))).0, 200);
         let reversed = (1..=12).map(|s| format!(r#"{{"team_season_id":{},"rank":{s}}}"#, 100 + s)).collect::<Vec<_>>().join(",");
-        assert_eq!(send(&fake, "PUT", PUT_PICKS, ann, &entry(&reversed)).0, 200);
-        let rows = before(&fake);
-        let field = |row: usize, k: &str| rows[row][k].as_f64().unwrap();
-        assert_eq!(rows.as_array().unwrap().len(), 2);
-        assert_eq!(field(0, "remaining_playoff"), 0.0);
-        for k in ["playoff", "total", "remaining", "remaining_playoff", "max_possible"] {
-            assert_eq!(field(0, k), field(1, k), "{k}");
-        }
-        // The same entries count once the season locks.
+        assert_eq!(send(&fake, "PUT", PUT_PICKS, Some(ANN), &entry(&reversed)).0, 200);
+        assert_eq!(get(&fake, "/api/seasons/2023/standings", None).1["standings"], serde_json::json!([]));
         let locked = send_at(&fake, LOCKED, "GET", "/api/seasons/2023/standings", None, "").1["standings"].clone();
         assert_ne!(locked[0]["max_possible"], locked[1]["max_possible"]);
     }

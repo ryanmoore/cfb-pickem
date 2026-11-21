@@ -18,7 +18,7 @@ function StandingsList({ year }: { year: number }) {
   if (!data) return <Skeleton lines={6} />;
   const { standings, playoff_ranked: split } = data;
   const last = Math.max(0, ...standings.map((s) => s.rank));
-  if (standings.length === 0) return <p>No standings for {year} yet.</p>;
+  if (standings.length === 0) return <p>No standings for {year} yet. They start once picks lock.</p>;
   const scale = Math.max(1, ...standings.map((s) => s.max_possible));
   const rows = sort === "reach"
     ? [...standings].sort((a, b) => b.max_possible - a.max_possible || b.total - a.total)
