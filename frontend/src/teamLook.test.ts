@@ -1,33 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { lookOf, pairLooks } from "./teamLook";
+import { fillOf, markerOf } from "./teamLook";
 
 const T = (color: string | null, alt_color: string | null = null) => ({ mascot: null, color, alt_color });
 
-describe("lookOf", () => {
+describe("fillOf", () => {
   it.each([
-    ["#4f2683", "#ffffff", false],
-    ["#ffcc00", "#1b2a20", true],
-    ["#ffffff", "#1b2a20", true],
-    ["#000000", "#ffffff", false],
-  ])("%s gets ink %s (edge %s)", (bg, ink, edge) => {
-    expect(lookOf(bg)).toEqual({ bg, ink, edge });
-  });
-  it.each([[null], [undefined], [""], ["red"], ["#e03c31"]])("%s stays neutral", (c) => {
-    // #e03c31 has 4.5:1 against neither ink.
-    expect(lookOf(c)).toBeNull();
+    ["alternate that reads is the text", T("#4f2683", "#ffcc00"), { bg: "#4f2683", ink: "#ffcc00", accent: "#ffcc00", edge: false }],
+    ["alternate that does not read: better ink", T("#ffcc00", "#fff0b0"), { bg: "#ffcc00", ink: "#1b2a20", accent: "#fff0b0", edge: true }],
+    ["no alternate: better ink", T("#4f2683"), { bg: "#4f2683", ink: "#ffffff", accent: null, edge: false }],
+    ["white primary needs an edge", T("#ffffff", "#00274c"), { bg: "#ffffff", ink: "#00274c", accent: "#00274c", edge: true }],
+    ["no ink reaches 4.5 on the primary: fill with the alternate", T("#e03c31", "#ffffff"), { bg: "#ffffff", ink: "#1b2a20", accent: "#e03c31", edge: true }],
+    ["no color: the alternate fills", T(null, "#4f2683"), { bg: "#4f2683", ink: "#ffffff", accent: null, edge: false }],
+    ["neither color usable", T("#e03c31", "#e8503f"), null],
+    ["none", T(null), null],
+  ])("%s", (_, team, want) => {
+    expect(fillOf(team)).toEqual(want);
   });
 });
 
-describe("pairLooks", () => {
-  const bgs = (teams: ReturnType<typeof T>[]) => pairLooks(teams).map((l) => l?.bg ?? null);
+describe("markerOf", () => {
   it.each([
-    ["distinct colors stay", [T("#4f2683"), T("#ffcc00")], ["#4f2683", "#ffcc00"]],
-    ["a near twin takes its alternate", [T("#4f2683"), T("#552288", "#ffcc00")], ["#4f2683", "#ffcc00"]],
-    ["a near twin with a near-twin alternate is neutral", [T("#4f2683"), T("#552288", "#4a2a80")], ["#4f2683", null]],
-    ["a near twin with no alternate is neutral", [T("#4f2683"), T("#552288")], ["#4f2683", null]],
-    ["a first team without a color takes its alternate", [T(null, "#cc0000"), T("#cc0000")], ["#cc0000", null]],
-    ["unknown teams", [undefined, undefined], [null, null]],
-  ])("%s", (_, teams, want) => {
-    expect(bgs(teams as ReturnType<typeof T>[])).toEqual(want);
+    ["both colors", T("#4f2683", "#ffcc00"), ["#4f2683", "#ffcc00"]],
+    ["one color is one band", T("#4f2683"), ["#4f2683", "#4f2683"]],
+    ["none", T(null), null],
+  ])("%s", (_, team, want) => {
+    expect(markerOf(team)).toEqual(want);
   });
 });

@@ -58,7 +58,7 @@
 .picks .bt { font: 800 0.98rem/20px var(--round); color: var(--ink); }
 .picks .mt { display: flex; gap: 6px; }
 .picks .badge { align-self: center; font-size: 0.8rem; font-weight: 600; color: var(--accent); background: var(--mint); border-radius: 999px; padding: 3px 10px; }
-.picks .mt .chip { height: 40px; min-height: 0 !important; }
+.picks .mt .chip { height: 46px; min-height: 0 !important; }
 .picks .ml { font-size: 0.8rem; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .picks .bt, .picks .ml { overflow-x: clip; overflow-y: visible; text-overflow: ellipsis; white-space: nowrap; }
 .picks .chev { flex: none; width: 14px; text-align: center; color: var(--muted); font-size: 1.3rem; line-height: 1; }
@@ -68,7 +68,7 @@
 .picks .cw { position: absolute; left: 8px; right: 8px; top: 50%; transform: translateY(-50%); max-width: 30rem; margin: 0 auto; pointer-events: none; }
 .picks .card { transform-origin: 0 0; pointer-events: none; background: var(--paper); border-radius: 14px; padding: 6px; display: flex; align-items: stretch; gap: 8px; box-shadow: 0 8px 30px #0007; border: 3px solid var(--gold); }
 .picks .card .mu { gap: 6px; }
-.picks .card .mt .chip { height: 44px; }
+.picks .card .mt .chip { height: 48px; }
 .picks .card button, .picks .card .chip, .picks .bar button { pointer-events: auto; }
 .picks .cancel { color: var(--cran-dk) !important; font-weight: 600; flex: none; }
 .picks .menu { position: absolute; right: 8px; bottom: calc(100% - 2px); pointer-events: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 30px #0007; padding: 4px; display: grid; min-width: 10rem; z-index: 3; }
@@ -129,13 +129,15 @@
 .picks .confirmed { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 10px 0; padding: 10px 12px; border: 1px solid #bfdcc6; border-radius: 12px; background: var(--mint); color: var(--turf-dk); font-size: 0.9rem; }
 .picks .confirmed span { flex: 1 1 12rem; }
 .picks .imdone { display: block; margin: 16px auto 0; padding: 0 22px; }
-/* Team colors arrive as --tc (fill) and --tf (text on it) and mean "team", so the chosen side is marked by a check, weight and an inner ring in the text color. */
-.picks .chip.tc .rec { opacity: 1; }
+/* A chip's team marker is a bar down its leading edge. A chosen side is filled in the team's colors (--tc, text --tf) and marked by a check, weight and an inner ring in the text color. */
 .picks .chip .rec { max-width: 100%; overflow-x: clip; text-overflow: ellipsis; white-space: nowrap; }
+.picks .chip.mk { position: relative; padding-left: 20px; }
+.picks .chip i.sw.lead { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; height: auto; border-radius: 8px 0 0 8px; box-shadow: none; }
+.picks .chip.off { opacity: 0.7; }
 .picks .chip.tc { background: var(--tc); color: var(--tf); border-color: var(--tc); }
 .picks .chip.tc.edge { border-color: var(--muted); }
 .picks .chip.tc.on { background: var(--tc) !important; color: var(--tf) !important; border-color: var(--tf) !important; box-shadow: inset 0 0 0 2px var(--tf); }
 .picks .chip.tc.on .nm { font-weight: 800; }
 .picks .chip.tc.on .nm::before { content: "✓ "; }
 .picks .chip.tc.on.lost .nm::before { content: "✗ "; }
-.picks .chip.sw { padding-left: 16px; box-shadow: inset 6px 0 0 var(--tc), inset 7px 0 0 var(--paper); }
+.picks .chip.tc .rec { opacity: 1; }
