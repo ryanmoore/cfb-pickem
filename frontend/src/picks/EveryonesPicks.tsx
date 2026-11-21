@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type CSSProperties } from "react";
-import { fetchGames, fetchPicks, fetchStandings, type ApiGame, type ApiTeam } from "../api";
+import { fetchGames, fetchPicks, fetchStandings, type ApiGame, type ApiTeam, type Standing } from "../api";
 import { fmt, PanelError, Skeleton } from "../ui";
 import { ordinal } from "../YourSeasons";
-import { byDay, byPoints, gameSides, gameState, maxPoints, playoffBoard, teamRows, type GameState, type Players, type Row } from "./everyone";
+import { byDay, byPoints, gameSides, gameState, livePicks, maxPoints, placeBlock, playoffBoard, slotName, teamRows, type GameState, type Players, type Row } from "./everyone";
 import { formatDay, formatWhen } from "./kickoff";
 import "./everyones.css";
 
@@ -41,7 +41,7 @@ function Tile({ game, state, players, max }: { game: ApiGame; state: GameState; 
         )}
       </div>
       {gameSides(game, players).map(({ slot, status, rows, total }, i) => {
-        const name = slot.team ? `${slot.team.rank ? `#${slot.team.rank} ` : ""}${slot.team.name}` : "To be decided";
+        const name = slotName(slot);
         return (
           <div key={slot.id} className={`ep-side ${i ? "b" : "a"} ${status}`}>
             <h4 className="ep-th" title={name}>{status === "won" && "✓ "}{name}</h4>
@@ -129,6 +129,43 @@ export function PlayoffSummary({ year, teams, games, players }: { year: number; 
   );
 }
 
+/** The viewer's rank, points and neighbours, then the side they staked on each underway game. The standings part loads and fails on its own. */
+function YourPlace({ year, games, players }: { year: number; games: ApiGame[]; players: Players }) {
+  const standings = useQuery({ queryKey: ["standings", year], queryFn: () => fetchStandings(year) });
+  const me = players.find((p) => p.is_me);
+  if (!me) return null;
+  const live = livePicks(games, me, Date.now());
+  const place = standings.data && placeBlock(standings.data.standings, me.display_name);
+  const neighbour = (s: Standing, arrow: string) => (
+    <span>{arrow} {s.display_name} <b>{fmt(s.total)}</b> <small>({s.total > place!.me.total ? "+" : "−"}{fmt(Math.abs(s.total - place!.me.total))})</small></span>
+  );
+  if (standings.data && !place && !live.length) return null;
+  return (
+    <section className="ep-me" aria-label="Your place">
+      {standings.isPending ? (
+        <div className="skeleton" />
+      ) : standings.error ? (
+        <PanelError error={standings.error} />
+      ) : (
+        place && (
+          <div className="mine">
+            <b>{ordinal(place.me.rank)}</b> · {fmt(place.me.total)} pts
+            {place.above && neighbour(place.above, "▲")}
+            {place.below && neighbour(place.below, "▼")}
+          </div>
+        )
+      )}
+      {live.map(({ game, side, points }) => (
+        <div key={game.id} className="lp">
+          <span className="dot" aria-label="Underway">●</span>
+          <span className="bowl">{game.name}</span>
+          <span>{side ? <>{slotName(side)} · <b>{points ?? "?"}</b> pts</> : <i>no pick</i>}</span>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 /** Every player's picks once the season has locked: games underway, up next, the playoff teams, then decided games. */
 export function EveryonesPicks({ year }: { year: number }) {
   const [daysOpen, setDaysOpen] = useState(false);
@@ -160,6 +197,7 @@ export function EveryonesPicks({ year }: { year: number }) {
     );
   return (
     <>
+      <YourPlace year={year} games={all} players={players} />
       <nav className="ep-jump" aria-label="Jump to">
         <div className="row">
           {sections.live.length > 0 && <a className="live" href="#live">Live <b>{sections.live.length}</b></a>}

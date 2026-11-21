@@ -59,3 +59,23 @@ export function playoffBoard(standings: Standing[]): { name: string; points: num
     .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
     .map((r, _, all) => ({ ...r, place: 1 + all.filter((o) => o.points > r.points).length }));
 }
+
+/** A team's display name, with its ranking when it has one. */
+export const slotName = (slot: ApiSlot) => (slot.team ? `${slot.team.rank ? `#${slot.team.rank} ` : ""}${slot.team.name}` : "To be decided");
+
+/** The viewer's standing with the players directly above and below; a tie shares its rank. Null when they have no row. */
+export function placeBlock(standings: Standing[], name: string): { me: Standing; above?: Standing; below?: Standing } | null {
+  const sorted = [...standings].sort((a, b) => a.rank - b.rank || a.display_name.localeCompare(b.display_name));
+  const i = sorted.findIndex((s) => s.display_name === name);
+  return i < 0 ? null : { me: sorted[i], above: sorted[i - 1], below: sorted[i + 1] };
+}
+
+/** For each underway game, the side the viewer picked and its points; null when they made no pick. */
+export function livePicks(games: ApiGame[], me: Players[number], now: number): { game: ApiGame; side: ApiSlot | null; points: number | null }[] {
+  return games
+    .filter((g) => gameState(g, now) === "live")
+    .map((game) => {
+      const pick = me.picks.find((k) => k.game_id === game.id);
+      return { game, side: game.slots.find((s) => s.id === pick?.slot_id) ?? null, points: pick?.confidence ?? null };
+    });
+}
