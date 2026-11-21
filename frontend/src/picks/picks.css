@@ -73,7 +73,7 @@
 .picks .cancel { color: var(--cran-dk) !important; font-weight: 600; flex: none; }
 .picks .menu { position: absolute; right: 8px; bottom: calc(100% - 2px); pointer-events: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 30px #0007; padding: 4px; display: grid; min-width: 10rem; z-index: 3; }
 .picks .menu button { border: 0; text-align: left; }
-.picks .bar { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); border-top: 1px solid var(--line); pointer-events: none; padding-bottom: env(safe-area-inset-bottom); }
+.picks .bar { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); border-top: 1px solid var(--line); pointer-events: none; padding-bottom: var(--safe-b); }
 .picks .barin { max-width: 30rem; margin: 0 auto; padding: 8px; display: grid; gap: 6px; }
 .picks .barrow { display: flex; gap: 6px; }
 .picks .barrow button { flex: 1 1 auto; padding: 0 6px; font-size: 0.8rem; white-space: nowrap; }
@@ -96,11 +96,11 @@
 .picks .callout button { justify-self: end; }
 @keyframes callout-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .picks .callout { animation: none; } }
-.picks .toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 80; box-sizing: border-box; width: max-content; max-width: min(26rem, calc(100% - 32px)); padding: 10px 16px; border-radius: 12px; background: var(--cran-lt); color: var(--cran-dk); border: 1px solid var(--cran); box-shadow: 0 6px 20px #0003; font-size: 0.9rem; text-align: center; cursor: pointer; animation: toast-in 0.25s ease-out; }
-.picks .toast.raised { bottom: calc(9.5rem + env(safe-area-inset-bottom)); }
+.picks .toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 16px + var(--safe-b)); transform: translateX(-50%); z-index: 80; box-sizing: border-box; width: max-content; max-width: min(26rem, calc(100% - 32px)); padding: 10px 16px; border-radius: 12px; background: var(--cran-lt); color: var(--cran-dk); border: 1px solid var(--cran); box-shadow: 0 6px 20px #0003; font-size: 0.9rem; text-align: center; cursor: pointer; animation: toast-in 0.25s ease-out; }
+.picks .toast.raised { bottom: calc(9.5rem + var(--safe-b)); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px); } }
 @media (prefers-reduced-motion: reduce) { .picks .toast { animation: none; } }
-@media (min-width: 700px) { .picks .toast.raised { bottom: calc(16px + env(safe-area-inset-bottom)); } }
+@media (min-width: 700px) { .picks .toast.raised { bottom: calc(16px + var(--safe-b)); } }
 .picks .stack { display: contents; }
 .picks .hints { display: none; }
 .picks .hl.cancel { background: var(--cran); }
