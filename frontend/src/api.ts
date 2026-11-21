@@ -1,4 +1,11 @@
-export type Season = { year: number; locked: boolean; locks_at: string; practice: boolean };
+export type Season = {
+  year: number;
+  locked: boolean;
+  locks_at: string;
+  practice: boolean;
+  /** Present only for admins, who alone are told of a draft. */
+  draft?: boolean;
+};
 
 export type Standing = {
   rank: number;
@@ -140,3 +147,53 @@ export async function putPicks(year: number, doc: PicksDoc, base: string | null,
   const detail = body?.problems ? `: ${JSON.stringify(body.problems)}` : "";
   return { kind: "rejected", message: `${body?.error ?? `Request failed (${res.status})`}${detail}` };
 }
+
+/** What loading a document creates, or for a dry run would create. */
+export type LoadSummary = {
+  year: number;
+  locks_at: string;
+  games: number;
+  playoff_games: number;
+  teams: number;
+  new_bowls: Record<string, string>;
+  new_teams: Record<string, string>;
+  replaces_draft: boolean;
+};
+
+/** How an admin request ended, as the admin page needs to show it. */
+export type AdminResult<T> =
+  | { kind: "ok"; body: T }
+  | { kind: "problems"; problems: string[] }
+  | { kind: "failed"; message: string }
+  /** No usable reply: a lapsed edge login answers with a redirect, which the browser reports as a network failure. */
+  | { kind: "signedout" };
+
+/** Maps an admin route's status and body to what the page shows. */
+export function adminResult<T>(status: number, body: any): AdminResult<T> {
+  if (status >= 200 && status < 300) return { kind: "ok", body };
+  if (status === 401) return { kind: "signedout" };
+  if (status === 422 && Array.isArray(body?.problems)) return { kind: "problems", problems: body.problems };
+  const fallback = status === 403 ? "Your account isn't an admin." : `Request failed (${status})`;
+  return { kind: "failed", message: body?.error ?? fallback };
+}
+
+async function adminCall<T>(method: string, path: string, doc?: string): Promise<AdminResult<T>> {
+  let res: Response;
+  try {
+    res = await fetch(`/api/admin/seasons/${path}`, {
+      method,
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: doc,
+      redirect: "manual",
+    });
+  } catch {
+    return { kind: "signedout" };
+  }
+  if (res.type === "opaqueredirect") return { kind: "signedout" };
+  return adminResult(res.status, await res.json().catch(() => null));
+}
+
+export const dryRunDraft = (year: number, doc: string) => adminCall<{ summary: LoadSummary }>("POST", `${year}/draft/dry-run`, doc);
+export const applyDraft = (year: number, doc: string) => adminCall<{ summary: LoadSummary }>("PUT", `${year}/draft`, doc);
+export const publishDraft = (year: number) => adminCall<unknown>("POST", `${year}/publish`);
+export const deleteDraft = (year: number) => adminCall<unknown>("DELETE", `${year}/draft`);

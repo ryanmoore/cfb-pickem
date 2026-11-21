@@ -50,7 +50,7 @@ export function SeasonProvider({ children }: { children: ReactNode }) {
 /** A link to `path` for the chosen season; without a choice the page defaults to the newest. */
 export const seasonHref = (path: string, chosen: number | null) => (chosen === null ? path : `${path}?season=${chosen}`);
 
-const seasonLabel = (s: Season) => (s.practice ? `${s.year} · Practice` : String(s.year));
+const seasonLabel = (s: Season) => [s.year, s.practice && "Practice", s.draft && "Draft"].filter(Boolean).join(" · ");
 
 /**
  * The season switcher shown in the header. The pill shows the current label

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchMe } from "./api";
+import { Admin } from "./Admin";
 import { History } from "./History";
 import { MyPicks } from "./picks/MyPicks";
 import { PicksPage } from "./Progress";
@@ -24,9 +25,27 @@ function MeBadge() {
     ? [me.display_name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase(), `Signed in as ${me.display_name}`]
     : ["?", "Signed in, but this email isn't linked to a player yet"];
   return (
-    <span className="me" role="img" aria-label={label} title={label}>
-      {text}
-    </span>
+    <>
+      {me.known && me.is_admin && (
+        <a className="me admin-link" href="/admin" aria-label="Admin" title="Admin">
+          ⚙️
+        </a>
+      )}
+      <span className="me" role="img" aria-label={label} title={label}>
+        {text}
+      </span>
+    </>
+  );
+}
+
+/** Tells an admin that the season on screen is a draft nobody else can see. */
+function DraftBanner() {
+  const { year, seasons } = useSeason();
+  if (!seasons?.find((s) => s.year === year)?.draft) return null;
+  return (
+    <p className="draft-banner" role="status">
+      Draft: this season is visible to admins only. <a href="/admin">Back to Admin</a>
+    </p>
   );
 }
 
@@ -46,7 +65,11 @@ function Tabs({ className, current }: { className: string; current: string }) {
 
 export function App() {
   const path = location.pathname.replace(/(.)\/$/, "$1");
-  const page = PAGES.find((p) => p.path === path) ?? (path === "/signin" ? { path, seasonal: false, view: <SignIn /> } : PAGES[0]);
+  const page = PAGES.find((p) => p.path === path) ?? (path === "/signin"
+      ? { path, seasonal: false, view: <SignIn /> }
+      : path === "/admin"
+        ? { path, seasonal: false, view: <Admin /> }
+        : PAGES[0]);
   return (
     <SeasonProvider>
       <header className="app-hd">
@@ -62,7 +85,10 @@ export function App() {
           </div>
         </div>
       </header>
-      <main>{page.view}</main>
+      <main>
+        {page.seasonal && <DraftBanner />}
+        {page.view}
+      </main>
       <Tabs className="botnav" current={page.path} />
     </SeasonProvider>
   );

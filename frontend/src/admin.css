@@ -1,0 +1,20 @@
+.admin textarea { display: block; width: 100%; min-height: 12rem; margin: 10px 0; padding: 8px; border: 1px solid var(--edge); border-radius: 12px; font: 0.8rem/1.4 ui-monospace, monospace; }
+.admin .file { display: block; font-size: 0.9rem; }
+.admin .file input { display: block; max-width: 100%; margin-top: 4px; }
+.admin .actions, .admin .draft { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.admin .actions button { flex: 1 1 8rem; }
+.admin .ok { color: var(--turf-dk); font-weight: 700; margin-bottom: 6px; }
+.admin .problems { margin: 6px 0 0; padding-left: 1.1rem; display: grid; gap: 4px; overflow-wrap: anywhere; }
+.admin .summary { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
+.admin .summary dt { font: 700 0.72rem system-ui; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); align-self: center; }
+.admin .summary dd { margin: 0; overflow-wrap: anywhere; }
+.admin .drafts { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.admin .draft b { font: 800 1.1rem var(--round); margin-right: auto; }
+.draft-banner { margin: 0 0 12px; padding: 8px 12px; border-radius: 12px; background: var(--gold-lt); color: var(--gold-ink); font-size: 0.88rem; }
+.draft-banner a { color: inherit; font-weight: 700; }
+a.me.admin-link { padding: 0; background: var(--cream); color: var(--turf-dk); text-decoration: none; }
+@media (max-width: 420px) {
+  .hd-in:has(.admin-link) { gap: 8px; }
+  .hd-in:has(.admin-link) .logo { display: none; }
+  .hd-in:has(.admin-link) .hd-end { gap: 8px; }
+}
