@@ -103,6 +103,8 @@ fn count(conn: &Connection, sql: &str) -> rusqlite::Result<i64> {
 pub fn import(legacy: &Path, out: &Path) -> Result<SqliteStorage, ImportError> {
     let storage = create(out)?;
     load(&storage.conn, legacy)?;
+    // `create` ran this against empty tables; the rows it repairs exist only now.
+    storage.conn.execute_batch(include_str!("../../../migrations/0006_kickoff_repair.sql"))?;
     let seasons: Vec<(i64, u16)> = {
         let mut stmt = storage.conn.prepare("SELECT id, year FROM season ORDER BY year")?;
         let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
