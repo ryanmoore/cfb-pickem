@@ -40,6 +40,16 @@ export function fillOf(t?: TeamLook | null): Fill | null {
   return fillWith(a, b) ?? fillWith(b, a);
 }
 
+/** A team color to outline with and the text beside it: the color itself when it reads on paper, else the ink. */
+export type Outline = { color: string; ink: string; edge: boolean };
+
+export function outlineOf(t?: TeamLook | null): Outline | null {
+  const color = hex(t?.color) ?? hex(t?.alt_color);
+  if (!color) return null;
+  const onPaper = contrast(color, PAPER);
+  return { color, ink: onPaper >= MIN_TEXT ? color : INK, edge: onPaper < MIN_EDGE };
+}
+
 /** The team's marker bands, widest first: both colors, one when it has one, null when it has none. */
 export function markerOf(t?: TeamLook | null): [string, string] | null {
   const [a, b] = [hex(t?.color), hex(t?.alt_color)];

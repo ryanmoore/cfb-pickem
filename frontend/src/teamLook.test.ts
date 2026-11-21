@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fillOf, markerOf } from "./teamLook";
+import { fillOf, markerOf, outlineOf } from "./teamLook";
 
 const T = (color: string | null, alt_color: string | null = null) => ({ mascot: null, color, alt_color });
 
@@ -25,5 +25,16 @@ describe("markerOf", () => {
     ["none", T(null), null],
   ])("%s", (_, team, want) => {
     expect(markerOf(team)).toEqual(want);
+  });
+});
+
+describe("outlineOf", () => {
+  it.each([
+    ["a color that reads on paper is the text too", T("#4f2683"), { color: "#4f2683", ink: "#4f2683", edge: false }],
+    ["a light color: ink text, needs an edge", T("#ffcc00"), { color: "#ffcc00", ink: "#1b2a20", edge: true }],
+    ["the alternate stands in for a missing color", T(null, "#4f2683"), { color: "#4f2683", ink: "#4f2683", edge: false }],
+    ["none", T(null), null],
+  ])("%s", (_, team, want) => {
+    expect(outlineOf(team)).toEqual(want);
   });
 });

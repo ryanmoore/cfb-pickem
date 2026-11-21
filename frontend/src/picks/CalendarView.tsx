@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { CSSProperties } from "react";
-import { fetchGames, fetchPicks, fetchStandings, type ApiGame, type Standing } from "../api";
+import { fetchGames, fetchPicks, fetchStandings, type ApiGame, type Standing, type TeamLook } from "../api";
+import { fillOf, outlineOf } from "../teamLook";
 import { PanelError, Skeleton } from "../ui";
 import { slotName } from "./model";
 import { byDay, gameSides, gameState, maxPoints, type Players } from "./everyone";
@@ -15,6 +16,20 @@ function inStandingsOrder(players: Players, standings: Standing[]): Players {
 }
 
 const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).join("").slice(0, 3);
+
+/** Side A is filled in its team's color and side B outlined in it, so two similar teams stay apart by shape; a side with no usable color keeps its role's own look. */
+function sideKey(team: TeamLook | null | undefined, b: boolean): { className: string; style?: CSSProperties } {
+  const o = b ? outlineOf(team) : null;
+  const f = b ? null : fillOf(team);
+  if (o) return { className: "oc" + (o.edge ? " edge" : ""), style: { "--tc": o.color, "--tf": o.ink, "--tw": o.ink === o.color ? "2px" : "3px" } as CSSProperties };
+  if (f) return { className: "tc" + (f.edge ? " edge" : ""), style: { "--tc": f.bg, "--tf": f.ink } as CSSProperties };
+  return { className: "" };
+}
+
+function SideSwatch({ team, b }: { team: TeamLook | null | undefined; b: boolean }) {
+  const { className, style } = sideKey(team, b);
+  return <i className={`sw ${b ? "b" : "a"} ${className}`} style={style} />;
+}
 
 /** One game: when, teams, and a pick cell per player in standings order; opens to the two sorted lists. */
 function GameRow({ game, games, players, max, now }: { game: ApiGame; games: ApiGame[]; players: Players; max: number; now: number }) {
@@ -31,7 +46,7 @@ function GameRow({ game, games, players, max, now }: { game: ApiGame; games: Api
             <div className="bowl">{game.name}{game.fixed_wager !== null && ` · worth ${game.fixed_wager}`}</div>
             {sides.map((s, i) => (
               <div key={s.slot.id} className={`team ${s.status}`}>
-                <i className={`sw ${i ? "b" : "a"}`} />
+                <SideSwatch team={s.slot.team} b={!!i} />
                 <span>{slotName(s.slot, games)}{s.status === "won" && " ✓"}</span>
                 <small>{s.rows.length} picks</small>
               </div>
@@ -44,10 +59,12 @@ function GameRow({ game, games, players, max, now }: { game: ApiGame; games: Api
             const side = sides.findIndex((s) => s.slot.id === pick?.slot_id);
             if (!pick || side < 0) return <span key={p.display_name} className="cell none" title={p.display_name}><small>{initials(p.display_name)}</small>–</span>;
             const status = sides[side].status;
+            const key = status === "lost" ? { className: "" } : sideKey(sides[side].slot.team, !!side);
             return (
               <span
                 key={p.display_name}
-                className={`cell ${side ? "b" : "a"} ${status}${p.is_me ? " mine" : ""}`}
+                className={`cell ${side ? "b" : "a"} ${status}${p.is_me ? " mine" : ""} ${key.className}`}
+                style={key.style}
                 title={`${p.display_name}: ${slotName(sides[side].slot, games)}, ${pick.confidence}`}
               >
                 <small>{initials(p.display_name)}</small>
@@ -60,7 +77,7 @@ function GameRow({ game, games, players, max, now }: { game: ApiGame; games: Api
       <div className="lists">
         {sides.map((s, i) => (
           <div key={s.slot.id}>
-            <h4><i className={`sw ${i ? "b" : "a"}`} />{slotName(s.slot, games)}</h4>
+            <h4><SideSwatch team={s.slot.team} b={!!i} />{slotName(s.slot, games)}</h4>
             <PickRows rows={s.rows} max={max} />
           </div>
         ))}
