@@ -60,9 +60,6 @@ export function playoffBoard(standings: Standing[]): { name: string; points: num
     .map((r, _, all) => ({ ...r, place: 1 + all.filter((o) => o.points > r.points).length }));
 }
 
-/** A team's display name, with its ranking when it has one. */
-export const slotName = (slot: ApiSlot) => (slot.team ? `${slot.team.rank ? `#${slot.team.rank} ` : ""}${slot.team.name}` : "To be decided");
-
 /** The viewer's standing with the players directly above and below; a tie shares its rank. Null when they have no row. */
 export function placeBlock(standings: Standing[], name: string): { me: Standing; above?: Standing; below?: Standing } | null {
   const sorted = [...standings].sort((a, b) => a.rank - b.rank || a.display_name.localeCompare(b.display_name));

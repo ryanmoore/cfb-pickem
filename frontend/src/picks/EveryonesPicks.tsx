@@ -3,8 +3,9 @@ import { useState, type CSSProperties } from "react";
 import { fetchGames, fetchPicks, fetchStandings, type ApiGame, type ApiTeam, type Standing } from "../api";
 import { fmt, PanelError, Skeleton, TeamTag } from "../ui";
 import { ordinal } from "../YourSeasons";
-import { byDay, byPoints, gameSides, gameState, livePicks, maxPoints, placeBlock, playoffBoard, slotName, teamRows, type GameState, type Players, type Row } from "./everyone";
+import { byDay, byPoints, gameSides, gameState, livePicks, maxPoints, placeBlock, playoffBoard, teamRows, type GameState, type Players, type Row } from "./everyone";
 import { formatDay, formatWhen } from "./kickoff";
+import { slotName } from "./model";
 import "./everyones.css";
 
 /**
@@ -29,7 +30,7 @@ export function PickRows({ rows, max, flip, earn }: { rows: Row[]; max: number; 
 }
 
 /** A game as a one-line header over two team columns, each listing who picked it. */
-function Tile({ game, state, players, max }: { game: ApiGame; state: GameState; players: Players; max: number }) {
+function Tile({ game, games, state, players, max }: { game: ApiGame; games: ApiGame[]; state: GameState; players: Players; max: number }) {
   return (
     <article className={`ep-tile ${state}`} id={`g-${game.id}`}>
       <div className="ep-info">
@@ -41,7 +42,7 @@ function Tile({ game, state, players, max }: { game: ApiGame; state: GameState; 
         )}
       </div>
       {gameSides(game, players).map(({ slot, status, rows, total }, i) => {
-        const name = slotName(slot);
+        const name = slotName(slot, games);
         return (
           <div key={slot.id} className={`ep-side ${i ? "b" : "a"} ${status}`}>
             <h4 className="ep-th" title={name}>{status === "won" && "✓ "}<TeamTag team={slot.team}>{name}</TeamTag>{slot.team?.mascot && <span className="mc"> {slot.team.mascot}</span>}</h4>
@@ -159,7 +160,7 @@ function YourPlace({ year, games, players }: { year: number; games: ApiGame[]; p
         <div key={game.id} className="lp">
           <span className="dot" aria-label="Underway">●</span>
           <span className="bowl">{game.name}</span>
-          <span>{side ? <>{slotName(side)} · <b>{points ?? "?"}</b> pts</> : <i>no pick</i>}</span>
+          <span>{side ? <>{slotName(side, games)} · <b>{points ?? "?"}</b> pts</> : <i>no pick</i>}</span>
         </div>
       ))}
     </section>
@@ -191,7 +192,7 @@ export function EveryonesPicks({ year }: { year: number }) {
       <section className="ep-sec" id={state}>
         <h3 className="groupt">{title} <span className="pill">{sections[state].length}</span></h3>
         <div className="ep-games">
-          {sections[state].map((g) => <Tile key={g.id} game={g} state={state} players={players} max={max} />)}
+          {sections[state].map((g) => <Tile key={g.id} game={g} games={all} state={state} players={players} max={max} />)}
         </div>
       </section>
     );

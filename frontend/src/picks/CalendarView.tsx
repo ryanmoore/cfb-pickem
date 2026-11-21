@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { CSSProperties } from "react";
 import { fetchGames, fetchPicks, fetchStandings, type ApiGame, type Standing } from "../api";
 import { PanelError, Skeleton } from "../ui";
+import { slotName } from "./model";
 import { byDay, gameSides, gameState, maxPoints, type Players } from "./everyone";
 import { PickRows, PlayoffSummary } from "./EveryonesPicks";
 import { formatDay, formatTime, formatWeekday } from "./kickoff";
@@ -16,7 +17,7 @@ function inStandingsOrder(players: Players, standings: Standing[]): Players {
 const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).join("").slice(0, 3);
 
 /** One game: when, teams, and a pick cell per player in standings order; opens to the two sorted lists. */
-function GameRow({ game, players, max, now }: { game: ApiGame; players: Players; max: number; now: number }) {
+function GameRow({ game, games, players, max, now }: { game: ApiGame; games: ApiGame[]; players: Players; max: number; now: number }) {
   const state = gameState(game, now);
   const sides = gameSides(game, players);
   return (
@@ -31,7 +32,7 @@ function GameRow({ game, players, max, now }: { game: ApiGame; players: Players;
             {sides.map((s, i) => (
               <div key={s.slot.id} className={`team ${s.status}`}>
                 <i className={`sw ${i ? "b" : "a"}`} />
-                <span>{s.slot.team?.name ?? "To be decided"}{s.status === "won" && " ✓"}</span>
+                <span>{slotName(s.slot, games)}{s.status === "won" && " ✓"}</span>
                 <small>{s.rows.length} picks</small>
               </div>
             ))}
@@ -47,7 +48,7 @@ function GameRow({ game, players, max, now }: { game: ApiGame; players: Players;
               <span
                 key={p.display_name}
                 className={`cell ${side ? "b" : "a"} ${status}${p.is_me ? " mine" : ""}`}
-                title={`${p.display_name}: ${sides[side].slot.team?.name}, ${pick.confidence}`}
+                title={`${p.display_name}: ${slotName(sides[side].slot, games)}, ${pick.confidence}`}
               >
                 <small>{initials(p.display_name)}</small>
                 <b>{pick.confidence}</b>
@@ -59,7 +60,7 @@ function GameRow({ game, players, max, now }: { game: ApiGame; players: Players;
       <div className="lists">
         {sides.map((s, i) => (
           <div key={s.slot.id}>
-            <h4><i className={`sw ${i ? "b" : "a"}`} />{s.slot.team?.name ?? "To be decided"}</h4>
+            <h4><i className={`sw ${i ? "b" : "a"}`} />{slotName(s.slot, games)}</h4>
             <PickRows rows={s.rows} max={max} />
           </div>
         ))}
@@ -105,7 +106,7 @@ export function CalendarView({ year }: { year: number }) {
       {days.map(({ key, games: gs }) => (
         <section key={key} className="day" id={`d-${key}`}>
           <h3>{formatDay(gs[0].kickoff_at)}</h3>
-          {gs.map((g) => <GameRow key={g.id} game={g} players={players} max={max} now={now} />)}
+          {gs.map((g) => <GameRow key={g.id} game={g} games={games.data.games} players={players} max={max} now={now} />)}
         </section>
       ))}
       {teams.length > 0 && (

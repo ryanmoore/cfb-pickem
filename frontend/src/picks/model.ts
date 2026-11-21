@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ApiGame, PicksDoc, TeamLook } from "../api";
+import type { ApiGame, ApiSlot, PicksDoc, TeamLook } from "../api";
 
 export type Slot = { id: number; label: string; record?: string; look?: TeamLook };
 export type Game = {
@@ -28,8 +28,19 @@ export type Game = {
  */
 export type Entry = { order: number[]; winners: Record<number, number>; ranking: number[]; done: boolean };
 
+/**
+ * What a side is called outside the bracket diagram. A side fed by an earlier game keeps its label once that game
+ * is decided: it names the side that was picked, not who advanced.
+ */
+export function slotName(slot: ApiSlot, games: ApiGame[]): string {
+  if (slot.team) return (slot.team.rank ? `#${slot.team.rank} ` : "") + slot.team.name;
+  const feeder = games.find((g) => g.id === slot.winner_of);
+  if (!feeder) return "To be decided";
+  const [a, b] = feeder.slots.map((s) => s.team?.name);
+  return a && b ? `${a} / ${b}` : `Winner of ${feeder.name}`;
+}
+
 export function toGames(api: ApiGame[]): Game[] {
-  const names = new Map(api.map((g) => [g.id, g.name]));
   return api.map((g) => ({
     id: g.id,
     name: g.name,
@@ -38,9 +49,7 @@ export function toGames(api: ApiGame[]): Game[] {
     winner: g.winner_slot_id ?? undefined,
     slots: g.slots.map((s) => ({
       id: s.id,
-      label: s.team
-        ? (s.team.rank ? `#${s.team.rank} ` : "") + s.team.name
-        : `Winner of ${names.get(s.winner_of ?? -1) ?? "an earlier game"}`,
+      label: slotName(s, api),
       record: s.team?.record ?? undefined,
       look: s.team ?? undefined,
     })),
