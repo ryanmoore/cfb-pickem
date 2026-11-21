@@ -54,7 +54,7 @@
 .picks .rk i { display: block; font-style: normal; font-weight: 400; font-size: 0.6rem; color: var(--muted); }
 .picks .mu { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
 .picks .hd { display: flex; align-items: center; gap: 4px; }
-.picks .tt { flex: 1; min-width: 0; display: grid; }
+.picks .tt { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
 .picks .bt { font: 800 0.98rem/20px var(--round); color: var(--ink); }
 .picks .mt { display: flex; gap: 6px; }
 .picks .badge { align-self: center; font-size: 0.8rem; font-weight: 600; color: var(--accent); background: var(--mint); border-radius: 999px; padding: 3px 10px; }
@@ -132,7 +132,7 @@
 /* A chip's team marker is a bar down its leading edge. A chosen side is filled in the team's colors (--tc, text --tf) and marked by a check, weight and an inner ring in the text color. */
 .picks .chip .rec { max-width: 100%; overflow-x: clip; text-overflow: ellipsis; white-space: nowrap; }
 .picks .chip.mk { position: relative; padding-left: 20px; }
-.picks .chip i.duo.lead { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; height: auto; border-radius: 8px 0 0 8px; box-shadow: none; }
+.picks .chip i.duo { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; border-radius: 8px 0 0 8px; background: linear-gradient(90deg, var(--c1) 0 62%, var(--c2) 62%); }
 .picks .chip.off { opacity: 0.7; }
 .picks .chip.tc { background: var(--tc); color: var(--tf); border-color: var(--tc); }
 .picks .chip.tc.edge { border-color: var(--muted); }
@@ -141,3 +141,4 @@
 .picks .chip.tc.on .nm::before { content: "✓ "; }
 .picks .chip.tc.on.lost .nm::before { content: "✗ "; }
 .picks .chip.tc .rec { opacity: 1; }
+.picks .bt .tn.tc { line-height: 17px; }

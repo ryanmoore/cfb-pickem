@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { fillOf, markerOf } from "../teamLook";
-import { Marker } from "../ui";
+import { Marker, TeamTag } from "../ui";
 import { formatKickoff } from "./kickoff";
 import type { Game, Slot } from "./model";
 
@@ -26,7 +26,7 @@ function Chip({ slot, lite, on, off, result, onPick }: { slot: Slot; lite?: bool
         },
       })}
     >
-      <Marker team={slot.look} size="lead" />
+      <Marker team={slot.look} />
       <span className="nm">{slot.label}</span>
       {sub && <span className="rec">{sub}</span>}
     </Tag>
@@ -59,10 +59,9 @@ export function Cells({ game, pts, pick, onPick, open, end, lite }: {
       </span>
       <div className="mu">
         <div className="hd">
-          {game.slots.length === 0 && <Marker team={game.look} size="lg" />}
           <div className="tt">
             <b className="bt">
-              {game.name}
+              {game.look ? <TeamTag team={game.look}>{game.name}</TeamTag> : game.name}
               {game.look?.mascot && <span className="mc"> {game.look.mascot}</span>}
             </b>
             {(game.kickoffAt || game.line) && (
