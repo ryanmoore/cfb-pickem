@@ -16,7 +16,7 @@ use crate::bracket::Bracket;
 use crate::history::{self, Finish, Place};
 use crate::model::{
     email_hash, Game, GameId, GameResult, GameSlot, Pick, PlayoffFormat, PlayoffRank, PlayoffSave, ResultSource, Season, SeasonId,
-    SlotId, SlotSource, TeamSeasonId, User, UserId,
+    SlotId, SlotSource, TeamSeason, TeamSeasonId, User, UserId,
 };
 use crate::season_doc::{load_season, LoadError, SeasonDoc};
 use crate::scoring::{playoff_units, rank_ties, standings, validate_confidence_permutation, validate_ranking};
@@ -114,6 +114,8 @@ struct SlotView<'a> {
 #[derive(Serialize)]
 struct TeamView<'a> {
     name: &'a str,
+    #[serde(flatten)]
+    look: Look<'a>,
     rank: Option<u32>,
     record: Option<&'a str>,
 }
@@ -133,11 +135,27 @@ struct GameView<'a> {
     winner: Option<TeamSeasonId>,
 }
 
+/// How a team is told apart on the page; each is null when unknown.
+#[derive(Serialize)]
+struct Look<'a> {
+    mascot: Option<&'a str>,
+    color: Option<&'a str>,
+    alt_color: Option<&'a str>,
+}
+
+impl<'a> Look<'a> {
+    fn of(t: &'a TeamSeason) -> Self {
+        Self { mascot: t.mascot.as_deref(), color: t.color.as_deref(), alt_color: t.alt_color.as_deref() }
+    }
+}
+
 /// A playoff team and its run through the bracket.
 #[derive(Serialize)]
 struct BracketTeam<'a> {
     team_season_id: TeamSeasonId,
     name: &'a str,
+    #[serde(flatten)]
+    look: Look<'a>,
     rank: Option<u32>,
     record: Option<&'a str>,
     seed: Option<u16>,
@@ -541,6 +559,7 @@ async fn games<S: Storage>(
                         team_season_id,
                         team: team_season_id.and_then(|id| teams.iter().find(|t| t.id == id)).map(|t| TeamView {
                             name: &t.name,
+                            look: Look::of(t),
                             rank: t.rank,
                             record: t.record.as_deref(),
                         }),
@@ -571,6 +590,7 @@ async fn games<S: Storage>(
                 Some(BracketTeam {
                     team_season_id: t.id,
                     name: &t.name,
+                    look: Look::of(t),
                     rank: t.rank,
                     record: t.record.as_deref(),
                     seed: run.seed,
@@ -1024,7 +1044,7 @@ mod tests {
             }
         }
         let teams = (1..=size as i64)
-            .map(|seed| TeamSeason { id: TeamSeasonId(100 + seed), name: format!("Team {seed}"), rank: None, record: None })
+            .map(|seed| TeamSeason { id: TeamSeasonId(100 + seed), name: format!("Team {seed}"), mascot: None, color: None, alt_color: None, rank: None, record: None })
             .collect();
         (games, slots, teams)
     }
@@ -1097,6 +1117,9 @@ mod tests {
             let ts = |id: i64, name: &str| TeamSeason {
                 id: TeamSeasonId(id),
                 name: name.into(),
+                mascot: (id == 1).then(|| "Owls".into()),
+                color: (id == 1).then(|| "#102030".into()),
+                alt_color: None,
                 rank: (id == 1).then_some(3),
                 record: Some("10-2".into()),
             };
@@ -1311,7 +1334,9 @@ mod tests {
         assert_eq!(games[0]["name"], "Renamed Bowl");
         assert_eq!(games[1]["name"], "First Bowl");
         // Slots in slot_index order: a team, or a feeder game.
-        assert_eq!(games[0]["slots"][0]["team"], serde_json::json!({"name": "Alpha", "rank": 3, "record": "10-2"}));
+        assert_eq!(games[0]["slots"][0]["team"], serde_json::json!({
+            "name": "Alpha", "mascot": "Owls", "color": "#102030", "alt_color": null, "rank": 3, "record": "10-2"
+        }));
         assert_eq!(games[0]["slots"][1]["winner_of"], 1);
         assert!(games[0]["slots"][1]["team"].is_null());
         assert!(games[0]["winner_slot_id"].is_null());

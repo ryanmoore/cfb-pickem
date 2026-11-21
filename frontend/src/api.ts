@@ -36,10 +36,13 @@ export const fetchSeasons = () =>
 export const fetchStandings = (year: number) =>
   get<{ standings: Standing[]; playoff_ranked: boolean }>(`/api/seasons/${year}/standings`);
 
+/** Mascot and `#rrggbb` colors; null when unknown. */
+export type TeamLook = { mascot?: string | null; color?: string | null; alt_color?: string | null };
+
 export type ApiSlot = {
   id: number;
   team_season_id: number | null;
-  team: { name: string; rank: number | null; record: string | null } | null;
+  team: (TeamLook & { name: string; rank: number | null; record: string | null }) | null;
   winner_of: number | null;
   seed: number | null;
 };
@@ -57,7 +60,7 @@ export type ApiGame = {
 };
 
 /** A playoff team and its run through the bracket. */
-export type ApiTeam = {
+export type ApiTeam = TeamLook & {
   team_season_id: number;
   name: string;
   rank: number | null;

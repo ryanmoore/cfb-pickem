@@ -93,6 +93,9 @@ struct SlotRow {
 struct TeamSeasonRow {
     id: i64,
     name: String,
+    mascot: Option<String>,
+    color: Option<String>,
+    alt_color: Option<String>,
     rank: Option<u32>,
     record: Option<String>,
 }
@@ -250,7 +253,15 @@ impl Storage for D1Storage {
         let rows: Vec<TeamSeasonRow> = self.query(sql::TEAM_SEASONS_FOR_SEASON, &[num(season.0)]).await?;
         Ok(rows
             .into_iter()
-            .map(|r| TeamSeason { id: TeamSeasonId(r.id), name: r.name, rank: r.rank, record: r.record })
+            .map(|r| TeamSeason {
+                id: TeamSeasonId(r.id),
+                name: r.name,
+                mascot: r.mascot,
+                color: r.color,
+                alt_color: r.alt_color,
+                rank: r.rank,
+                record: r.record,
+            })
             .collect())
     }
 

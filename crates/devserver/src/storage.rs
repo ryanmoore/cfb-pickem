@@ -107,8 +107,11 @@ impl Storage for SqliteStorage {
             Ok(TeamSeason {
                 id: TeamSeasonId(r.get(0)?),
                 name: r.get(1)?,
-                rank: r.get(2)?,
-                record: r.get(3)?,
+                mascot: r.get(2)?,
+                color: r.get(3)?,
+                alt_color: r.get(4)?,
+                rank: r.get(5)?,
+                record: r.get(6)?,
             })
         })?;
         rows.collect()

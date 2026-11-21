@@ -20,7 +20,7 @@ fn database() -> SqliteStorage {
                (1, '{ann}', 'Ann', 1, 't'), (2, '{bo}', 'Bo', 0, 't');
              INSERT INTO season (id, year, locks_at, created_at) VALUES (5, 2024, '2024-12-01T00:00:00Z', 't');
              INSERT INTO event (id, slug, name) VALUES (1, 'alpha', 'Alpha Bowl'), (2, 'beta', 'Beta Bowl');
-             INSERT INTO team (id, slug, name) VALUES (1, 'north', 'North'), (2, 'south', 'South'), (3, 'east', 'East'), (4, 'west', 'West');
+             INSERT INTO team (id, slug, name) VALUES (1, 'north', 'North'), (2, 'south', 'South');
              INSERT INTO team_season (id, season_id, team_id) VALUES (1, 5, 1);
              INSERT INTO game (id, season_id, event_id, kickoff_at, external_id) VALUES (1, 5, 2, '2024-12-20T00:00:00Z', 777);
              INSERT INTO game_slot (id, game_id, slot_index, team_season_id) VALUES (1, 1, 0, 1), (2, 1, 1, 1);"
@@ -68,6 +68,7 @@ fn document(with_bowl: bool, external_id: i64) -> Value {
     }
     json!({"year": 2025, "playoff_format": "rank",
            "new_bowls": {"semi-1": "Semi One", "semi-2": "Semi Two", "final": "Final"},
+           "new_teams": {"east": "East", "west": {"name": "West", "mascot": "Owls", "color": "#102030", "alt_color": "#ffffff"}},
            "teams": teams, "games": games})
 }
 
@@ -119,13 +120,23 @@ fn a_draft_is_applied_replaced_hidden_published_and_then_frozen() {
     assert_eq!(body["playoff"]["games"][2]["name"], "The Final");
     let seeds: Vec<_> = body["playoff"]["teams"].as_array().unwrap().iter().map(|t| t["seed"].as_i64().unwrap()).collect();
     assert_eq!(seeds, [1, 2, 3, 4]);
+    let teams = &body["playoff"]["teams"];
+    assert_eq!(
+        (teams[3]["name"].clone(), teams[3]["mascot"].clone(), teams[3]["color"].clone(), teams[3]["alt_color"].clone()),
+        ("West".into(), "Owls".into(), "#102030".into(), "#ffffff".into())
+    );
+    assert_eq!((teams[2]["name"].clone(), teams[2]["mascot"].clone()), ("East".into(), Value::Null));
 
     // Applying again replaces the draft wholesale; bowls and teams the first
     // apply created are not new any more.
-    let (status, body) = put(admin, &document(false, 1));
+    // A declaration never changes a team that exists.
+    let mut redo = document(false, 1);
+    redo["new_teams"]["west"]["mascot"] = json!("Hawks");
+    let (status, body) = put(admin, &redo);
     assert_eq!((status, body["summary"]["replaces_draft"].clone(), body["summary"]["new_bowls"].clone()), (200, json!(true), json!({})));
     assert_eq!(count(&db, "SELECT count(*) FROM game g JOIN season s ON s.id = g.season_id WHERE s.year = 2025"), 3);
     assert_eq!(count(&db, "SELECT count(*) FROM season WHERE year = 2025"), 1);
+    assert_eq!(count(&db, "SELECT count(*) FROM team WHERE slug = 'west' AND mascot = 'Owls'"), 1);
     let (_, body) = ok(&db, "GET", "/api/seasons/2025/games", admin, &json!(null));
     assert_eq!(body["games"].as_array().unwrap().len(), 0);
 

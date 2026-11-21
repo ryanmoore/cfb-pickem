@@ -11,7 +11,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use chrono::DateTime;
-use pickem_core::season_doc::{GameEntry, SeasonDoc, SlotEntry, TeamEntry, REVIEW};
+use pickem_core::season_doc::{valid_color, GameEntry, NewTeam, SeasonDoc, SlotEntry, TeamEntry, REVIEW};
 use pickem_core::{Event, PlayoffFormat, Team};
 use serde::Deserialize;
 
@@ -36,6 +36,17 @@ struct SourceGame {
 struct SourcePlayoff {
     home_seed: Option<u16>,
     away_seed: Option<u16>,
+}
+
+/// One entry of the source's teams list. A color the source does not have may
+/// come as `#null`, which is not a color.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SourceTeam {
+    school: String,
+    mascot: Option<String>,
+    color: Option<String>,
+    alternate_color: Option<String>,
 }
 
 pub struct Draft {
@@ -87,28 +98,11 @@ fn match_bowl<'a>(notes: &str, events: &'a [Event]) -> Option<&'a Event> {
     top_events.next().is_none().then_some(first)
 }
 
-/// The existing team for the source's school name. Stored names carry a mascot
-/// ("Washington Huskies"), so the school may be a prefix; among prefix
-/// matches the one with the fewest extra words wins, and a tie is no match.
-/// A prefix followed by "State" is another school ("Washington State").
+/// The existing team named exactly `school`, ignoring case. A school the
+/// source spells differently, or one whose stored name carries more words, is
+/// no match: a near match would attach a pick to the wrong team.
 fn match_team<'a>(school: &str, teams: &'a [Team]) -> Option<&'a Team> {
-    let school = words(school);
-    let mut best: Vec<(usize, Vec<String>, &Team)> = Vec::new();
-    for t in teams {
-        let name = words(&t.name);
-        if !name.starts_with(&school) || name.get(school.len()).is_some_and(|w| w == "state") {
-            continue;
-        }
-        best.push((name.len() - school.len(), name, t));
-    }
-    let fewest = best.iter().map(|(n, ..)| *n).min()?;
-    best.retain(|(n, ..)| *n == fewest);
-    if best.iter().any(|(_, name, _)| *name != best[0].1) {
-        return None;
-    }
-    // The importer keeps names that differ by stray whitespace as separate
-    // teams; take the clean one.
-    best.iter().find(|(.., t)| t.name == t.name.trim()).or(best.first()).map(|(.., t)| *t)
+    teams.iter().find(|t| t.name.to_lowercase() == school.to_lowercase())
 }
 
 /// The season's own name for a bowl: the notes without a playoff round prefix
@@ -127,8 +121,13 @@ fn is_playoff(notes: &str) -> bool {
 }
 
 /// Build the draft for the FBS games of `response` that kick off on or after
-/// `from` (`YYYY-MM-DD`, UTC).
-pub fn draft(response: &str, events: &[Event], teams: &[Team], from: Option<&str>) -> Result<Draft, String> {
+/// `from` (`YYYY-MM-DD`, UTC). `source_teams`, the source's teams list, fills
+/// mascot and colors on the teams the draft declares.
+pub fn draft(response: &str, events: &[Event], teams: &[Team], source_teams: Option<&str>, from: Option<&str>) -> Result<Draft, String> {
+    let source_teams: Vec<SourceTeam> = match source_teams {
+        Some(text) => serde_json::from_str(text).map_err(|e| format!("not a teams list: {e}"))?,
+        None => Vec::new(),
+    };
     let mut games: Vec<SourceGame> = serde_json::from_str(response).map_err(|e| format!("not a games response: {e}"))?;
     games.retain(|g| {
         g.home_classification.as_deref() == Some("fbs")
@@ -197,8 +196,18 @@ pub fn draft(response: &str, events: &[Event], teams: &[Team], from: Option<&str
                     }
                     None => {
                         let slug = slugify(school);
-                        doc.new_teams.insert(slug.clone(), format!("{REVIEW} {}", school.trim()));
-                        review.push(format!("team {slug:?} ({school:?}): no existing team matched; set its full name or point it at an existing team"));
+                        let found = source_teams.iter().find(|t| t.school.to_lowercase() == school.to_lowercase());
+                        let color = |c: Option<&String>| c.filter(|c| valid_color(c)).cloned();
+                        doc.new_teams.insert(
+                            slug.clone(),
+                            NewTeam {
+                                name: format!("{REVIEW} {}", school.trim()),
+                                mascot: found.and_then(|t| t.mascot.clone()),
+                                color: color(found.and_then(|t| t.color.as_ref())),
+                                alt_color: color(found.and_then(|t| t.alternate_color.as_ref())),
+                            },
+                        );
+                        review.push(format!("team {slug:?} ({school:?}): no existing team has exactly this name; confirm the name or point it at an existing team"));
                         slug
                     }
                 })
@@ -270,30 +279,16 @@ mod tests {
     }
 
     #[test]
-    fn teams_match_by_school_prefix_never_across_a_state_school() {
-        let all = teams(&[
-            "Washington Huskies",
-            "Washington State Cougars",
-            " Fresno State Bulldogs",
-            "Fresno State Bulldogs",
-            "Ohio State Buckeyes",
-            "Miami Hurricanes",
-            "Miami (OH) RedHawks",
-            "Texas A&M Aggies",
-            "Hawaii Rainbow Warriors",
-        ]);
+    fn teams_match_the_whole_school_name_ignoring_case() {
+        let all = teams(&["Washington", "Washington State", "Miami", "Miami (OH)"]);
         let name = |school: &str| match_team(school, &all).map(|t| t.name.as_str());
         for (school, expected) in [
-            ("Washington", Some("Washington Huskies")),
-            ("Washington State", Some("Washington State Cougars")),
-            ("Fresno State", Some("Fresno State Bulldogs")),
-            ("Miami", Some("Miami Hurricanes")),
-            ("Miami (OH)", Some("Miami (OH) RedHawks")),
-            ("Texas A&M", Some("Texas A&M Aggies")),
-            ("Hawai'i", Some("Hawaii Rainbow Warriors")),
-            // Only a "State" school stores this prefix, so it is a different school.
-            ("Ohio", None),
-            ("UConn", None),
+            ("Washington", Some("Washington")),
+            ("washington state", Some("Washington State")),
+            ("MIAMI (OH)", Some("Miami (OH)")),
+            ("Wash", None),
+            ("Washington Huskies", None),
+            ("Troy", None),
         ] {
             assert_eq!(name(school), expected, "{school}");
         }
@@ -310,14 +305,18 @@ mod tests {
            "homeTeam": "West", "awayTeam": "East", "homeClassification": "fbs", "awayClassification": "fcs"}
         ]"#;
         let all_events = events(&[("beta", "Beta Bowl")]);
-        let all_teams = teams(&["North Owls"]);
-        let both = draft(response, &all_events, &all_teams, None).unwrap();
+        let all_teams = teams(&["north"]);
+        let source = r##"[{"school": "East", "mascot": "Hawks", "color": "#102030", "alternateColor": "#null"},
+                          {"school": "South", "mascot": "Owls", "color": "#ffffff", "alternateColor": null}]"##;
+        let both = draft(response, &all_events, &all_teams, None, None).unwrap();
         assert_eq!(both.doc.games.len(), 2);
-        let later = draft(response, &all_events, &all_teams, Some("2030-12-21")).unwrap();
+        let later = draft(response, &all_events, &all_teams, Some(source), Some("2030-12-21")).unwrap();
         assert_eq!(later.doc.games.len(), 1);
         assert_eq!((later.matched_bowls, later.matched_teams), (1, 1));
         assert_eq!(later.doc.new_teams.keys().collect::<Vec<_>>(), ["east"]);
-        assert!(later.doc.new_teams.values().all(|n| n.starts_with(REVIEW)));
+        let east = &later.doc.new_teams["east"];
+        assert_eq!((east.name.as_str(), east.mascot.as_deref(), east.color.as_deref(), east.alt_color.as_deref()), ("REVIEW: East", Some("Hawks"), Some("#102030"), None));
+        assert!(both.doc.new_teams["south"].mascot.is_none(), "without a teams list nothing is filled");
         assert_eq!(later.review.len(), 1);
     }
 }

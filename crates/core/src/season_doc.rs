@@ -33,12 +33,44 @@ pub struct SeasonDoc {
     /// Bowl slug to name, for bowls not yet in the database.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub new_bowls: BTreeMap<String, String>,
-    /// Team slug to name, for teams not yet in the database.
+    /// Team slug to its name (or an object with mascot and colors), for teams
+    /// not yet in the database.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub new_teams: BTreeMap<String, String>,
+    pub new_teams: BTreeMap<String, NewTeam>,
     /// The teams taking part, by slug.
     pub teams: BTreeMap<String, TeamEntry>,
     pub games: Vec<GameEntry>,
+}
+
+/// A declared team. Written as a bare name or as an object, always stored as
+/// the object so the SQL reads one shape.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(from = "NewTeamForm")]
+pub struct NewTeam {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mascot: Option<String>,
+    /// `#rrggbb`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alt_color: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum NewTeamForm {
+    Name(String),
+    Full { name: String, mascot: Option<String>, color: Option<String>, alt_color: Option<String> },
+}
+
+impl From<NewTeamForm> for NewTeam {
+    fn from(form: NewTeamForm) -> Self {
+        match form {
+            NewTeamForm::Name(name) => Self { name, ..Self::default() },
+            NewTeamForm::Full { name, mascot, color, alt_color } => Self { name, mascot, color, alt_color },
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -136,6 +168,10 @@ fn valid_slug(s: &str) -> bool {
         && s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
 }
 
+pub fn valid_color(s: &str) -> bool {
+    s.strip_prefix('#').is_some_and(|h| h.len() == 6 && h.bytes().all(|b| b.is_ascii_hexdigit()))
+}
+
 fn utc(text: &str) -> Option<String> {
     let t: DateTime<Utc> = DateTime::parse_from_rfc3339(text).ok()?.into();
     Some(t.format("%Y-%m-%dT%H:%M:%SZ").to_string())
@@ -144,7 +180,7 @@ fn utc(text: &str) -> Option<String> {
 /// Check a declaration list; returns the entries that are really new.
 /// A slug that exists already is accepted when its name is the same, so a
 /// document can be applied again after its first apply created the entry.
-fn declared(kind: &str, new: &BTreeMap<String, String>, known: &HashMap<&str, &str>, errs: &mut Vec<String>) -> BTreeMap<String, String> {
+fn declared<'a>(kind: &str, new: impl Iterator<Item = (&'a String, &'a String)>, known: &HashMap<&str, &str>, errs: &mut Vec<String>) -> BTreeMap<String, String> {
     let mut created = BTreeMap::new();
     for (slug, name) in new {
         if !valid_slug(slug) {
@@ -170,8 +206,15 @@ pub fn validate(doc: &mut SeasonDoc, events: &[Event], teams: &[Team]) -> Result
     let mut errs = Vec::new();
     let known_bowls: HashMap<&str, &str> = events.iter().map(|e| (e.slug.as_str(), e.name.as_str())).collect();
     let known_teams: HashMap<&str, &str> = teams.iter().map(|t| (t.slug.as_str(), t.name.as_str())).collect();
-    let new_bowls = declared("bowl", &doc.new_bowls, &known_bowls, &mut errs);
-    let new_teams = declared("team", &doc.new_teams, &known_teams, &mut errs);
+    let new_bowls = declared("bowl", doc.new_bowls.iter(), &known_bowls, &mut errs);
+    let new_teams = declared("team", doc.new_teams.iter().map(|(slug, t)| (slug, &t.name)), &known_teams, &mut errs);
+    for (slug, t) in &doc.new_teams {
+        for (field, color) in [("color", &t.color), ("alt_color", &t.alt_color)] {
+            if color.as_deref().is_some_and(|c| !valid_color(c)) {
+                errs.push(format!("new team {slug:?}: {field} {:?} is not a #rrggbb color", color.as_deref().unwrap()));
+            }
+        }
+    }
     let bowl_exists = |slug: &str| known_bowls.contains_key(slug) || doc.new_bowls.contains_key(slug);
     let team_exists = |slug: &str| known_teams.contains_key(slug) || doc.new_teams.contains_key(slug);
 
@@ -415,7 +458,7 @@ mod tests {
     #[test]
     fn each_mistake_names_its_entry_and_the_fix() {
         type Edit = fn(&mut Value);
-        let cases: [(&str, Edit, &str); 21] = [
+        let cases: [(&str, Edit, &str); 23] = [
             ("unknown bowl", |d| d["games"][0]["bowl"] = json!("rsoe"), "game \"rsoe\": unknown bowl"),
             ("duplicate game", |d| d["games"][1]["bowl"] = json!("rose"), "listed more than once"),
             ("repeated external_id", |d| { d["games"][0]["external_id"] = json!(5); d["games"][1]["external_id"] = json!(5); }, "game \"sugar\": external_id 5 is already used by game \"rose\""),
@@ -435,6 +478,8 @@ mod tests {
             ("seed missing", |d| { d["games"][0]["slots"][0].as_object_mut().unwrap().remove("seed"); }, "needs a seed"),
             ("seed repeated", |d| d["games"][0]["slots"][1]["seed"] = json!(3), "seeds must be 1 to 4"),
             ("team enters twice", |d| d["games"][2]["slots"][0] = json!({"team": "a", "seed": 1}), "already enters the bracket"),
+            ("bad color", |d| d["new_teams"] = json!({"zz": {"name": "Zed", "color": "red"}}), "new team \"zz\": color \"red\" is not a #rrggbb color"),
+            ("short alt color", |d| d["new_teams"] = json!({"zz": {"name": "Zed", "alt_color": "#fff"}}), "alt_color \"#fff\" is not"),
             ("placeholder name", |d| d["new_bowls"]["final"] = json!("REVIEW: Final"), "unconfirmed placeholder"),
             ("no bracket", |d| for g in d["games"].as_array_mut().unwrap() { g["playoff"] = json!(false) }, "no game has playoff"),
         ];

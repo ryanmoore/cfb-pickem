@@ -16,7 +16,7 @@ const USAGE: &str = "usage:
   devserver import <legacy.sqlite3> <out.sqlite3>
   devserver serve <db.sqlite3>
   devserver attach-email <db.sqlite3> <legacy_username> <email>
-  devserver draft-season <games.json> <db.sqlite3> [--from YYYY-MM-DD]   (document on stdout)
+  devserver draft-season <games.json> <db.sqlite3> [--from YYYY-MM-DD] [--teams teams.json]   (document on stdout)
   devserver apply-season <season.json> <db.sqlite3> [--dry-run]
 
 env: PICKEM_EMAIL_KEY (HMAC key for email digests), PICKEM_DEV_EMAIL (serve: sign every request in as this address), PICKEM_DEV_AUTOMATION (serve: act as the automation instead), PICKEM_BIND (serve: listen address, default 127.0.0.1), PICKEM_PORT (serve: default 8787)";
@@ -25,11 +25,20 @@ fn email_key() -> Vec<u8> {
     env::var("PICKEM_EMAIL_KEY").unwrap_or_else(|_| "dev-email-key".into()).into_bytes()
 }
 
-fn draft_season(response: &str, db: &str, from: Option<&str>) -> Result<(), String> {
+fn draft_season(response: &str, db: &str, flags: &[&str]) -> Result<(), String> {
+    let (mut from, mut teams_file) = (None, None);
+    for pair in flags.chunks(2) {
+        match pair {
+            ["--from", date] => from = Some(*date),
+            ["--teams", file] => teams_file = Some(*file),
+            _ => return Err(USAGE.into()),
+        }
+    }
+    let source_teams = teams_file.map(|f| fs::read_to_string(f).map_err(|e| format!("{f}: {e}"))).transpose()?;
     let storage = SqliteStorage::open(&PathBuf::from(db)).map_err(|e| e.to_string())?;
     let response = fs::read_to_string(response).map_err(|e| format!("{response}: {e}"))?;
     let (events, teams) = pollster::block_on(async { (storage.events().await, storage.teams().await) });
-    let draft = draft(&response, &events.map_err(|e| e.to_string())?, &teams.map_err(|e| e.to_string())?, from)?;
+    let draft = draft(&response, &events.map_err(|e| e.to_string())?, &teams.map_err(|e| e.to_string())?, source_teams.as_deref(), from)?;
     println!("{}", serde_json::to_string_pretty(&draft.doc).expect("documents serialise"));
     eprintln!("matched {} bowls and {} teams automatically", draft.matched_bowls, draft.matched_teams);
     for line in &draft.review {
@@ -66,8 +75,7 @@ fn run(args: &[String]) -> Result<(), String> {
             println!("{hash}");
             Ok(())
         }
-        ["draft-season", response, db] => draft_season(response, db, None),
-        ["draft-season", response, db, "--from", date] => draft_season(response, db, Some(date)),
+        ["draft-season", response, db, flags @ ..] => draft_season(response, db, flags),
         ["apply-season", file, db] => apply_season(file, db, false),
         ["apply-season", file, db, "--dry-run"] => apply_season(file, db, true),
         ["serve", db] => {

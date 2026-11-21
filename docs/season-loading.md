@@ -15,8 +15,10 @@ cost no API calls:
 cargo run -p pickem-devserver -- draft-season games.json pickem.sqlite3 > season.json
 ```
 
-Only FBS-vs-FBS games are kept; `--from YYYY-MM-DD` keeps games from that UTC date on. Stderr reports how many bowls and teams
-matched an existing one and lists every `REVIEW` line.
+Only FBS-vs-FBS games are kept; `--from YYYY-MM-DD` keeps games from that UTC date on. A team matches an
+existing one only when its school name equals the stored name (any case); `--teams teams.json` (the source's
+saved teams list) fills mascot and colors on the teams the draft declares. Stderr reports how many bowls and
+teams matched an existing one and lists every `REVIEW` line.
 
 ## 2. The document
 
@@ -27,7 +29,8 @@ matched an existing one and lists every `REVIEW` line.
   "playoff_format": "rank",             // "fixed" (default) or "rank"
   "practice": false,
   "new_bowls": { "la-bowl": "LA Bowl" },        // slug -> name, only for bowls not in the database
-  "new_teams": { "troy": "Troy" },              // same for teams
+  "new_teams": { "troy": "Troy",                // same for teams; an object adds mascot and #rrggbb colors
+                 "indiana": { "name": "Indiana", "mascot": "Hoosiers", "color": "#990000", "alt_color": "#eeedeb" } },
   "teams": { "troy": {}, "indiana": { "rank": 1, "record": "13-0" } },
   "games": [
     { "bowl": "la-bowl",                 // names the game; one game per bowl per season
@@ -46,7 +49,8 @@ matched an existing one and lists every `REVIEW` line.
 
 - Every `REVIEW:` name resolved: either set the real name (bowls: the name
   without the sponsor), or delete the entry and use the existing slug in the
-  games and `teams`. Validation refuses a `REVIEW:` name.
+  games and `teams`. Validation refuses a `REVIEW:` name. Mascot and colors apply only to teams the
+  document creates; an existing team is never changed.
 - Each `name` on a game is the sponsored name for this season.
 - A ranked playoff (`"playoff_format": "rank"`): mark every bracket game
   `"playoff": true`; each team appears once, at its first game, with its seed

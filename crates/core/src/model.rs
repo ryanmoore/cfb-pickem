@@ -146,6 +146,10 @@ pub struct Team {
 pub struct TeamSeason {
     pub id: TeamSeasonId,
     pub name: String,
+    pub mascot: Option<String>,
+    /// `#rrggbb`.
+    pub color: Option<String>,
+    pub alt_color: Option<String>,
     pub rank: Option<u32>,
     pub record: Option<String>,
 }

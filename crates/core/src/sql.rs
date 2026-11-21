@@ -32,7 +32,7 @@ pub const SLOTS_FOR_SEASON: &str = "SELECT s.id, s.game_id, s.slot_index, s.team
      FROM game_slot s JOIN game g ON g.id = s.game_id
      WHERE g.season_id = ?1 ORDER BY s.id";
 
-pub const TEAM_SEASONS_FOR_SEASON: &str = "SELECT ts.id, t.name, ts.rank, ts.record
+pub const TEAM_SEASONS_FOR_SEASON: &str = "SELECT ts.id, t.name, t.mascot, t.color, t.alt_color, ts.rank, ts.record
      FROM team_season ts JOIN team t ON t.id = ts.team_id
      WHERE ts.season_id = ?1 ORDER BY ts.id";
 
@@ -163,7 +163,10 @@ const INSERT_DRAFT_SEASON: &str = "INSERT INTO season (year, locks_at, playoff_f
 
 const INSERT_NEW_EVENTS: &str = "INSERT OR IGNORE INTO event (slug, name) SELECT key, value FROM json_each(?1)";
 
-const INSERT_NEW_TEAMS: &str = "INSERT OR IGNORE INTO team (slug, name) SELECT key, value FROM json_each(?1)";
+const INSERT_NEW_TEAMS: &str = "INSERT OR IGNORE INTO team (slug, name, mascot, color, alt_color)
+     SELECT key, json_extract(value, '$.name'), json_extract(value, '$.mascot'),
+            json_extract(value, '$.color'), json_extract(value, '$.alt_color')
+     FROM json_each(?1)";
 
 const INSERT_DRAFT_TEAM_SEASONS: &str = "INSERT INTO team_season (season_id, team_id, rank, record)
      SELECT s.id, t.id, json_extract(j.value, '$.rank'), json_extract(j.value, '$.record')
