@@ -137,7 +137,7 @@ function YourPlace({ year, games, players }: { year: number; games: ApiGame[]; p
   const live = livePicks(games, me, Date.now());
   const place = standings.data && placeBlock(standings.data.standings, me.display_name);
   const neighbour = (s: Standing, arrow: string) => (
-    <span>{arrow} {s.display_name} <b>{fmt(s.total)}</b> <small>({s.total > place!.me.total ? "+" : "−"}{fmt(Math.abs(s.total - place!.me.total))})</small></span>
+    <span>{arrow} {s.display_name} <b>{fmt(s.total)}</b> <small>({s.total === place!.me.total ? "tied" : `${s.total > place!.me.total ? "+" : "−"}${fmt(Math.abs(s.total - place!.me.total))}`})</small></span>
   );
   if (standings.data && !place && !live.length) return null;
   return (
