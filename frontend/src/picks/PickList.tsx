@@ -32,7 +32,7 @@ export function PickList({ games, byId, entry, flash, onPick, onOpen, playoff }:
             {fixed.map((g) => (
               <div key={g.id} id={"g-" + g.id} className="row">
                 {hl(g.id)}
-                <Cells game={g} pts={g.fixedWager!} pick={entry.winners[g.id]} onPick={pick(g.id)} />
+                <Cells game={g} pts={g.fixedWager!} pick={entry.winners[g.id]} onPick={pick(g.id)} lite={!onPick} />
               </div>
             ))}
           </div>
@@ -43,7 +43,7 @@ export function PickList({ games, byId, entry, flash, onPick, onOpen, playoff }:
         {entry.order.map((id, k) => (
           <div key={id} id={"g-" + id} className={"row" + (onOpen ? " tap" : "")} onClick={onOpen && (() => onOpen(id))}>
             {hl(id)}
-            <Cells game={byId.get(id)!} pts={entry.order.length - k} pick={entry.winners[id]} onPick={pick(id)} open={!!onOpen} />
+            <Cells game={byId.get(id)!} pts={entry.order.length - k} pick={entry.winners[id]} onPick={pick(id)} open={!!onOpen} lite={!onPick} />
           </div>
         ))}
       </div>

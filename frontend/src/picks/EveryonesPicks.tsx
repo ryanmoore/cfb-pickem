@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type CSSProperties } from "react";
 import { fetchGames, fetchPicks, fetchStandings, type ApiGame, type ApiTeam, type Standing } from "../api";
-import { fmt, PanelError, Skeleton } from "../ui";
+import { fmt, PanelError, Skeleton, Swatch } from "../ui";
+import { pairLooks } from "../teamLook";
 import { ordinal } from "../YourSeasons";
 import { byDay, byPoints, gameSides, gameState, livePicks, maxPoints, placeBlock, playoffBoard, slotName, teamRows, type GameState, type Players, type Row } from "./everyone";
 import { formatDay, formatWhen } from "./kickoff";
@@ -30,6 +31,7 @@ export function PickRows({ rows, max, flip, earn }: { rows: Row[]; max: number; 
 
 /** A game as a one-line header over two team columns, each listing who picked it. */
 function Tile({ game, state, players, max }: { game: ApiGame; state: GameState; players: Players; max: number }) {
+  const looks = pairLooks(game.slots.map((s) => s.team ?? undefined));
   return (
     <article className={`ep-tile ${state}`} id={`g-${game.id}`}>
       <div className="ep-info">
@@ -42,9 +44,10 @@ function Tile({ game, state, players, max }: { game: ApiGame; state: GameState; 
       </div>
       {gameSides(game, players).map(({ slot, status, rows, total }, i) => {
         const name = slotName(slot);
+        const look = looks[i];
         return (
           <div key={slot.id} className={`ep-side ${i ? "b" : "a"} ${status}`}>
-            <h4 className="ep-th" title={name}>{status === "won" && "✓ "}{name}</h4>
+            <h4 className="ep-th" title={name}>{status === "won" && "✓ "}<Swatch look={look} />{name}{slot.team?.mascot && <span className="mc"> {slot.team.mascot}</span>}</h4>
             <small className="ep-sub">
               {slot.team?.record && `${slot.team.record} · `}{rows.length} {rows.length === 1 ? "pick" : "picks"} · {total} pts
             </small>
@@ -67,7 +70,7 @@ function TeamSummary({ team: t, rows, playing }: { team: ApiTeam; rows: Row[]; p
       <summary>
         <span className="sd">{t.seed}</span>
         <span className="who">
-          <b>{t.name}</b>
+          <b><Swatch look={pairLooks([t])[0]} />{t.name}{t.mascot && <span className="mc"> {t.mascot}</span>}</b>
           <small>{note}</small>
         </span>
         <span className="wins" role="img" aria-label={`${t.wins} of ${t.max_wins} wins`}>

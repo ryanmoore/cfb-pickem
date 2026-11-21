@@ -251,3 +251,5 @@ table.medals { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
 .yc-stats dd { margin: 2px 0 0; font: 800 0.95rem var(--round); }
 @media (min-width: 640px) { .yc-stats { grid-template-columns: repeat(4, 1fr); } }
 .viewswitch { display: block; width: 100%; margin-top: 2rem; padding: 8px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 0.8rem; text-decoration: underline; cursor: pointer; }
+i.sw { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 50%; background: var(--tc); box-shadow: 0 0 0 1px #0006; }
+.mc { font-weight: 600; font-size: 0.8rem; color: var(--muted); }

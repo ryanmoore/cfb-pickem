@@ -1,6 +1,10 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchSeasons, type Season } from "./api";
+import type { Look } from "./teamLook";
+
+/** A dot in a team's color beside its name; nothing for a neutral team. */
+export const Swatch = ({ look }: { look: Look | null }) => look && <i className="sw" style={{ "--tc": look.bg } as React.CSSProperties} />;
 
 export function Skeleton({ lines = 1 }: { lines?: number }) {
   return (

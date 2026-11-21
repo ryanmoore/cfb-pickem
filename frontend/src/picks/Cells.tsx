@@ -1,15 +1,22 @@
 import type { ReactNode } from "react";
+import { Swatch } from "../ui";
+import { pairLooks, type Look } from "../teamLook";
 import { formatKickoff } from "./kickoff";
 import type { Game, Slot } from "./model";
 
 type Result = "won" | "lost";
 
+const colors = (l: Look) => ({ "--tc": l.bg, "--tf": l.ink }) as React.CSSProperties;
+
 // Without onPick the chip is a plain span (read-only rows and the dimmed rows in the spotlight).
-function Chip({ slot, on, result, onPick }: { slot: Slot; on: boolean; result?: Result; onPick?: () => void }) {
+// A team's color fills the chip (`tc`), or with `lite` only marks its left edge (`sw`) so a result's shading stays readable.
+function Chip({ slot, look, lite, on, result, onPick }: { slot: Slot; look: Look | null; lite?: boolean; on: boolean; result?: Result; onPick?: () => void }) {
   const Tag = onPick ? "button" : "span";
+  const sub = [slot.look?.mascot, slot.record].filter(Boolean).join(" · ");
   return (
     <Tag
-      className={"chip" + (on ? " on" : "") + (on && result ? " " + result : "")}
+      className={"chip" + (on ? " on" : "") + (on && result ? " " + result : "") + (look ? (lite ? " sw" : " tc") + (look.edge ? " edge" : "") : "")}
+      style={look ? colors(look) : undefined}
       title={slot.label}
       {...(onPick && {
         "aria-pressed": on,
@@ -20,7 +27,7 @@ function Chip({ slot, on, result, onPick }: { slot: Slot; on: boolean; result?: 
       })}
     >
       <span className="nm">{slot.label}</span>
-      {slot.record && <span className="rec">{slot.record}</span>}
+      {sub && <span className="rec">{sub}</span>}
     </Tag>
   );
 }
@@ -31,16 +38,18 @@ function Chip({ slot, on, result, onPick }: { slot: Slot; on: boolean; result?: 
  * chips beneath. A ranked row is exactly `ROW` tall including its gap, so the
  * page list and the spotlight's list line up.
  */
-export function Cells({ game, pts, pick, onPick, open, end }: {
+export function Cells({ game, pts, pick, onPick, open, end, lite }: {
   game: Game;
   pts: number;
   pick?: number;
   onPick?: (slotId: number) => void;
   open?: boolean;
   end?: ReactNode;
+  lite?: boolean;
 }) {
   // A row with no sides (a team in a ranking) has nothing to pick.
   const result: Result | undefined = pick !== undefined && game.winner !== undefined ? (pick === game.winner ? "won" : "lost") : undefined;
+  const looks = pairLooks(game.slots.length ? game.slots.map((s) => s.look) : [game.look]);
   const unpicked = pick === undefined && game.slots.length > 0;
   return (
     <>
@@ -51,7 +60,11 @@ export function Cells({ game, pts, pick, onPick, open, end }: {
       <div className="mu">
         <div className="hd">
           <div className="tt">
-            <b className="bt">{game.name}</b>
+            <b className="bt">
+              {game.slots.length === 0 && <Swatch look={looks[0]} />}
+              {game.name}
+              {game.look?.mascot && <span className="mc"> {game.look.mascot}</span>}
+            </b>
             {(game.kickoffAt || game.line) && (
               <span className="ml">{[game.kickoffAt && formatKickoff(game.kickoffAt), game.line].filter(Boolean).join(" · ")}</span>
             )}
@@ -67,8 +80,8 @@ export function Cells({ game, pts, pick, onPick, open, end }: {
         </div>
         <div className="mt">
           {game.badge && <span className="badge">{game.badge}</span>}
-          {game.slots.map((s) => (
-            <Chip key={s.id} slot={s} on={pick === s.id} result={result} onPick={onPick && (() => onPick(s.id))} />
+          {game.slots.map((s, i) => (
+            <Chip key={s.id} slot={s} look={looks[i]} lite={lite} on={pick === s.id} result={result} onPick={onPick && (() => onPick(s.id))} />
           ))}
         </div>
       </div>

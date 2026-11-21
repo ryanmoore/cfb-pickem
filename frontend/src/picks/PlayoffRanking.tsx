@@ -24,6 +24,7 @@ function teamGame(f: Field, id: number, decided: boolean): Game {
   return {
     id,
     name: t.name,
+    look: t,
     kickoffAt: "",
     fixedWager: null,
     slots: [],

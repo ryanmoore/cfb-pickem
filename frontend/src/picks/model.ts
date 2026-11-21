@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import type { ApiGame, PicksDoc } from "../api";
+import type { ApiGame, PicksDoc, TeamLook } from "../api";
 
-export type Slot = { id: number; label: string; record?: string };
+export type Slot = { id: number; label: string; record?: string; look?: TeamLook };
 export type Game = {
   id: number;
   name: string;
@@ -11,6 +11,8 @@ export type Game = {
   slots: Slot[];
   /** The winning slot, once the game is decided. */
   winner?: number;
+  /** The team, for a row that is one. */
+  look?: TeamLook;
   /** Betting line, shown when the data has one. */
   line?: string;
   /** Shown beside the team chips, for a row that is not a game. */
@@ -40,6 +42,7 @@ export function toGames(api: ApiGame[]): Game[] {
         ? (s.team.rank ? `#${s.team.rank} ` : "") + s.team.name
         : `Winner of ${names.get(s.winner_of ?? -1) ?? "an earlier game"}`,
       record: s.team?.record ?? undefined,
+      look: s.team ?? undefined,
     })),
   }));
 }

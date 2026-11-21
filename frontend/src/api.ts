@@ -37,7 +37,7 @@ export const fetchStandings = (year: number) =>
   get<{ standings: Standing[]; playoff_ranked: boolean }>(`/api/seasons/${year}/standings`);
 
 /** Mascot and `#rrggbb` colors; null when unknown. */
-export type TeamLook = { mascot?: string | null; color?: string | null; alt_color?: string | null };
+export type TeamLook = { mascot: string | null; color: string | null; alt_color: string | null };
 
 export type ApiSlot = {
   id: number;
